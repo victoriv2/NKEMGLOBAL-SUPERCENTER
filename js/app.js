@@ -241,7 +241,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       const cachedProducts = window.SupabaseService.getLocalProducts ? window.SupabaseService.getLocalProducts() : [];
 
       if (cachedCategories.length > 0) state.categories = cachedCategories;
-      if (cachedProducts.length > 0) state.products = cachedProducts;
+      if (cachedProducts.length > 0) {
+        const suitFallbackDesc = 'These particular suits are authentic Italian bespoke cuts, crafted with premium high-twist wool blend fabric for exceptional drape, comfort, and structure. Designed with classic notch lapels, flap pockets, soft interior lining, and dual side vents. Meticulously finished for modern executives and high-profile occasions.';
+        state.products = cachedProducts.map(p => {
+          const raw = p.description || p.desc || p.details || p.product_description || '';
+          if (!raw || typeof raw !== 'string' || !raw.trim()) {
+            return { ...p, description: suitFallbackDesc };
+          }
+          return p;
+        });
+      }
 
       renderHomeCategories();
       renderShopCategoryPills();
@@ -267,7 +276,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       ]);
 
       if (categories && categories.length > 0) state.categories = categories;
-      if (products && products.length > 0) state.products = products;
+      if (products && products.length > 0) {
+        const suitFallbackDesc = 'These particular suits are authentic Italian bespoke cuts, crafted with premium high-twist wool blend fabric for exceptional drape, comfort, and structure. Designed with classic notch lapels, flap pockets, soft interior lining, and dual side vents. Meticulously finished for modern executives and high-profile occasions.';
+        state.products = products.map(p => {
+          const raw = p.description || p.desc || p.details || p.product_description || '';
+          if (!raw || typeof raw !== 'string' || !raw.trim()) {
+            return { ...p, description: suitFallbackDesc };
+          }
+          return p;
+        });
+      }
       state.hasMoreProducts = Array.isArray(products) && products.length === state.pageSize;
 
       renderHomeCategories();
@@ -716,6 +734,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         : ['assets/images/logo.png'];
       const hasMultipleImages = images.length > 1;
 
+      const suitFallbackDesc = 'These particular suits are authentic Italian bespoke cuts, crafted with premium high-twist wool blend fabric for exceptional drape, comfort, and structure. Designed with classic notch lapels, flap pockets, soft interior lining, and dual side vents. Meticulously finished for modern executives and high-profile occasions.';
+      const rawDesc = prod.description || prod.desc || prod.details || prod.product_description || '';
+      const prodDesc = (typeof rawDesc === 'string' && rawDesc.trim().length > 0)
+        ? rawDesc.trim()
+        : ((prod.title && /suit/i.test(prod.title))
+            ? suitFallbackDesc
+            : 'Authentic premium quality product curated and verified by Nkem Global Supercenter.');
+
       return `
         <article class="product-card" data-prod-id="${prod.id}" tabindex="0">
           <div class="product-card-img-wrap" data-prod-id="${prod.id}">
@@ -740,7 +766,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           <div class="product-card-content">
             <h3 class="product-card-title">${window.CustomModal.escape(prod.title)}</h3>
-            <p class="product-card-desc">${window.CustomModal.escape(prod.description)}</p>
+            <p class="product-card-desc" style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; font-size: clamp(0.74rem, 2vw, 0.85rem); color: #5a6e62; line-height: 1.4; margin: 3px 0 6px 0; visibility: visible; opacity: 1;">${window.CustomModal.escape(prodDesc)}</p>
             <div class="product-card-footer">
               <span class="product-card-price">${window.formatNaira(prod.price)}</span>
               <button class="btn btn-add-to-cart" type="button" data-id="${prod.id}" title="Add to Cart">

@@ -140,8 +140,24 @@ window.SupabaseService = {
     try {
       const raw = localStorage.getItem('nkem_local_products');
       if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        let parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const defaults = this._getDefaultProducts();
+          let needsUpdate = false;
+          parsed = parsed.map(p => {
+            const currentDesc = p.description || p.desc || p.details || p.product_description || '';
+            if (!currentDesc || typeof currentDesc !== 'string' || !currentDesc.trim()) {
+              const def = defaults.find(d => d.id === p.id) || defaults[0];
+              needsUpdate = true;
+              return { ...p, description: (def && def.description) ? def.description : 'These particular suits are authentic Italian bespoke cuts, crafted with premium high-twist wool blend fabric for exceptional drape, comfort, and structure. Designed with classic notch lapels, flap pockets, soft interior lining, and dual side vents. Meticulously finished for modern executives and high-profile occasions.' };
+            }
+            return p;
+          });
+          if (needsUpdate) {
+            try { localStorage.setItem('nkem_local_products', JSON.stringify(parsed)); } catch (_) {}
+          }
+          return parsed;
+        }
       }
     } catch (e) {}
     return this._getDefaultProducts();
@@ -203,6 +219,21 @@ window.SupabaseService = {
       if (!local || local.length === 0) {
         local = this._getDefaultProducts();
         localStorage.setItem('nkem_local_products', JSON.stringify(local));
+      } else {
+        const defaults = this._getDefaultProducts();
+        let needsUpdate = false;
+        local = local.map(p => {
+          const currentDesc = p.description || p.desc || p.details || p.product_description || '';
+          if (!currentDesc || typeof currentDesc !== 'string' || !currentDesc.trim()) {
+            const def = defaults.find(d => d.id === p.id) || defaults[0];
+            needsUpdate = true;
+            return { ...p, description: (def && def.description) ? def.description : 'These particular suits are authentic Italian bespoke cuts, crafted with premium high-twist wool blend fabric for exceptional drape, comfort, and structure. Designed with classic notch lapels, flap pockets, soft interior lining, and dual side vents. Meticulously finished for modern executives and high-profile occasions.' };
+          }
+          return p;
+        });
+        if (needsUpdate) {
+          try { localStorage.setItem('nkem_local_products', JSON.stringify(local)); } catch (_) {}
+        }
       }
 
       let result = [...local];
