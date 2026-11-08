@@ -5062,14 +5062,16 @@ body:not(.admin-body) .product-card-price {
 }
 
 .product-grid.list-view .product-card-desc {
-  display: block !important;
-  white-space: nowrap !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 3 !important;
+  -webkit-box-orient: vertical !important;
   overflow: hidden !important;
-  text-overflow: ellipsis !important;
   font-size: clamp(0.74rem, 2vw, 0.85rem) !important;
   color: #5a6e62 !important;
   line-height: 1.4 !important;
   margin: 3px 0 6px 0 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 /* When price and button are vertically arranged: NO DESCRIPTION */
