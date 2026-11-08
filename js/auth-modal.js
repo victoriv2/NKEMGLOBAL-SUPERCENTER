@@ -132,9 +132,15 @@
     activeOverlay = overlay;
 
     // Close button
-    overlay.querySelector('#authCloseBtn').addEventListener('click', closeAuthModal);
+    overlay.querySelector('#authCloseBtn').addEventListener('click', () => {
+      closeAuthModal();
+      if (typeof onSuccess === 'function') onSuccess();
+    });
     overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeAuthModal();
+      if (e.target === overlay) {
+        closeAuthModal();
+        if (typeof onSuccess === 'function') onSuccess();
+      }
     });
 
     // Switch to Sign In
@@ -339,9 +345,15 @@
     activeOverlay = overlay;
 
     // Close button
-    overlay.querySelector('#authCloseBtn').addEventListener('click', closeAuthModal);
+    overlay.querySelector('#authCloseBtn').addEventListener('click', () => {
+      closeAuthModal();
+      if (typeof onSuccess === 'function') onSuccess();
+    });
     overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeAuthModal();
+      if (e.target === overlay) {
+        closeAuthModal();
+        if (typeof onSuccess === 'function') onSuccess();
+      }
     });
 
     // Switch to Sign Up
@@ -470,11 +482,15 @@
     });
   }
 
-  function renderProfileModal(initialTab = 'profile') {
+  function renderProfileModal(initialTab = 'profile', onSuccess) {
+    if (typeof initialTab === 'function') {
+      onSuccess = initialTab;
+      initialTab = 'profile';
+    }
     closeAuthModal();
     const user = window.SupabaseService.getCurrentUser();
     if (!user) {
-      renderSignInModal();
+      renderSignInModal(onSuccess);
       return;
     }
 
@@ -602,9 +618,15 @@
     activeOverlay = overlay;
 
     // Close button
-    overlay.querySelector('#authCloseBtn').addEventListener('click', closeAuthModal);
+    overlay.querySelector('#authCloseBtn').addEventListener('click', () => {
+      closeAuthModal();
+      if (typeof onSuccess === 'function') onSuccess();
+    });
     overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeAuthModal();
+      if (e.target === overlay) {
+        closeAuthModal();
+        if (typeof onSuccess === 'function') onSuccess();
+      }
     });
 
     // Tab switching
@@ -736,6 +758,10 @@
 
         window.CustomModal.toast({ message: 'Profile updated successfully!', type: 'success' });
         closeAuthModal();
+        if (typeof onSuccess === 'function') {
+          try { onSuccess(); } catch (cbErr) { console.warn(cbErr); }
+        }
+        window.dispatchEvent(new CustomEvent('user-profile-updated'));
       } catch (err) {
         window.CustomModal.toast({ message: err.message || 'Failed to update profile.', type: 'danger' });
         saveBtn.disabled = false;

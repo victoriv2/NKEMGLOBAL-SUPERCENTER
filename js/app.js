@@ -329,7 +329,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const body = document.getElementById('customRequestModalBody');
     if (!body) return;
 
-    const activeUser = window.SupabaseService.getActiveUser ? window.SupabaseService.getActiveUser() : {};
+    const activeUser = (window.SupabaseService.getCurrentUser && window.SupabaseService.getCurrentUser()) ||
+                       (window.SupabaseService.getActiveUser && window.SupabaseService.getActiveUser()) || {};
+    const isLoggedIn = !!(activeUser && activeUser.id);
 
     body.innerHTML = `
       <div style="background: #e8f7ee; padding: 14px 16px; border-radius: 10px; border: 1.5px solid #d1ead9; margin-bottom: 16px;">
@@ -338,92 +340,132 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div style="font-size: 0.78rem; color: #5a6e62; margin-top: 4px;">Our procurement team will send you 2 best options with photos within 30 minutes!</div>
       </div>
 
-      <form id="customSourcingForm" autocomplete="on">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-          <div class="c-input-group">
-            <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">Your Name *</label>
-            <input type="text" class="c-input" id="reqUserName" placeholder="First and Last name" required value="${window.CustomModal.escape(activeUser.name || '')}" style="padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1ead9; background: #ffffff;" />
+      ${!isLoggedIn ? `
+        <div style="background: #f0fbf4; border: 1.5px solid #087f3b; border-radius: 12px; padding: 20px 16px; text-align: center; margin-bottom: 14px;">
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: #e2f5ea; color: #087f3b; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto;">
+            ${window.renderIcon('user')}
           </div>
-          <div class="c-input-group">
-            <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">WhatsApp Number *</label>
-            <input type="tel" class="c-input" id="reqUserWhatsApp" placeholder="e.g. 08012345678" required value="${window.CustomModal.escape(activeUser.whatsapp_number || activeUser.phone || '')}" style="padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1ead9; background: #ffffff;" />
+          <div style="font-weight: 800; color: #073b1f; font-size: 0.98rem; margin-bottom: 6px;">Sign In or Register to Submit</div>
+          <p style="font-size: 0.82rem; color: #5a6e62; margin-bottom: 16px; line-height: 1.4;">
+            Please sign in or create a free account so our procurement team can link this request to your profile and send you options on WhatsApp.
+          </p>
+          <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+            <button type="button" class="btn btn-primary btn-sm" id="sourcingPromptSignInBtn" style="padding: 9px 20px; font-weight: 800; background-color: #087f3b; border-color: #087f3b;">Sign In</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="sourcingPromptSignUpBtn" style="padding: 9px 20px; font-weight: 800; border-color: #087f3b; color: #087f3b; background: #ffffff;">Create Account</button>
           </div>
         </div>
 
-        <div class="c-input-group" style="margin-bottom: 14px;">
-          <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">Target Budget / Specific Details (Optional)</label>
-          <input type="text" class="c-input" id="reqUserNotes" placeholder="e.g. Budget ₦250k, Brand new, Size 42, Black color" style="padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1ead9; background: #ffffff;" />
+        <a href="https://wa.me/2347042087633?text=${encodeURIComponent(`Hello Nkem Global, I am requesting: ${itemQuery}. Please send me 2 best options with pictures within 30 minutes!`)}" target="_blank" rel="noopener" class="btn btn-secondary" style="width: 100%; justify-content: center; padding: 11px; font-weight: 700; color: #166534; border-color: #25D366; text-decoration: none;">
+          ${window.renderIcon('whatsapp')}
+          <span>Send Directly on WhatsApp</span>
+        </a>
+      ` : `
+        <div style="background: #f7fbf8; border: 1px solid #d1ead9; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="font-size: 0.82rem; color: #073b1f;">
+            Requesting as: <strong>${window.CustomModal.escape(activeUser.first_name || activeUser.name || 'Valued Customer')}</strong> (${window.CustomModal.escape(activeUser.whatsapp_number || activeUser.phone || '')})
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" id="sourcingEditProfileBtn" style="padding: 4px 10px; font-size: 0.75rem; border-color: #087f3b; color: #087f3b; background: #ffffff;">Change</button>
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
-          <button type="submit" class="btn btn-primary" id="submitSourcingBtn" style="width: 100%; justify-content: center; padding: 12px; font-weight: 800; background-color: #087f3b; border-color: #087f3b;">
-            ${window.renderIcon('send')}
-            <span>Submit Sourcing Request (Within 30 Mins)</span>
-          </button>
+        <form id="customSourcingForm" autocomplete="on">
+          <div class="c-input-group" style="margin-bottom: 14px;">
+            <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">Target Budget / Specific Details (Optional)</label>
+            <input type="text" class="c-input" id="reqUserNotes" placeholder="e.g. Budget ₦250k, Brand new, Size 42, Black color" style="padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1ead9; background: #ffffff;" />
+          </div>
 
-          <a href="https://wa.me/2347042087633?text=${encodeURIComponent(`Hello Nkem Global, I am requesting: ${itemQuery}. Please send me 2 best options with pictures within 30 minutes!`)}" target="_blank" rel="noopener" class="btn btn-secondary" style="width: 100%; justify-content: center; padding: 11px; font-weight: 700; color: #166534; border-color: #25D366; text-decoration: none;">
-            ${window.renderIcon('whatsapp')}
-            <span>Send Directly on WhatsApp</span>
-          </a>
-        </div>
-      </form>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+            <button type="submit" class="btn btn-primary" id="submitSourcingBtn" style="width: 100%; justify-content: center; padding: 12px; font-weight: 800; background-color: #087f3b; border-color: #087f3b;">
+              ${window.renderIcon('send')}
+              <span>Submit Sourcing Request (Within 30 Mins)</span>
+            </button>
+
+            <a href="https://wa.me/2347042087633?text=${encodeURIComponent(`Hello Nkem Global, I am requesting: ${itemQuery}. Please send me 2 best options with pictures within 30 minutes!`)}" target="_blank" rel="noopener" class="btn btn-secondary" style="width: 100%; justify-content: center; padding: 11px; font-weight: 700; color: #166534; border-color: #25D366; text-decoration: none;">
+              ${window.renderIcon('whatsapp')}
+              <span>Send Directly on WhatsApp</span>
+            </a>
+          </div>
+        </form>
+      `}
     `;
 
     const closeBtn = customRequestModal.querySelector('#closeCustomRequestBtn');
     const closeModal = () => customRequestModal.classList.remove('active');
     if (closeBtn) closeBtn.onclick = closeModal;
 
-    const form = body.querySelector('#customSourcingForm');
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const userName = body.querySelector('#reqUserName').value.trim();
-      const userPhone = body.querySelector('#reqUserWhatsApp').value.trim();
-      const userNotes = body.querySelector('#reqUserNotes').value.trim();
-
-      if (!userName || !userPhone) {
-        window.CustomModal.toast({ message: 'Please provide your name and WhatsApp number.', type: 'danger' });
-        return;
-      }
-
-      const submitBtn = body.querySelector('#submitSourcingBtn');
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = `
-        <span class="spinner" style="display:inline-block; width:16px; height:16px; border:2px solid #ffffff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:6px;"></span>
-        <span>Submitting Request...</span>
-      `;
-
-      const reqId = `req-${Date.now()}`;
-      const code = `NKG-REQ-${Date.now()}`;
-      const title = `Sourcing Request: ${itemQuery}${userNotes ? ` (${userNotes})` : ''}`;
-
-      const orderData = {
-        id: reqId,
-        retrieval_code: code,
-        user_id: activeUser.id || null,
-        product_id: 'custom-sourcing',
-        product_title: title,
-        product_price: 0,
-        product_image: 'assets/images/logo.png',
-        first_name: userName.split(' ')[0] || userName,
-        last_name: userName.split(' ')[1] || '',
-        whatsapp_number: userPhone,
-        status: 'pending',
-        created_at: new Date().toISOString()
-      };
-
-      try {
-        await window.SupabaseService.createOrder(orderData);
-      } catch (err) {}
-
-      closeModal();
-      window.CustomModal.toast({
-        message: 'Request submitted! Our team will send 2 options within 30 mins.',
-        type: 'success'
+    if (!isLoggedIn) {
+      body.querySelector('#sourcingPromptSignInBtn')?.addEventListener('click', () => {
+        closeModal();
+        if (window.AuthModal) {
+          window.AuthModal.showSignIn(() => openCustomSourcingRequestModal(itemQuery));
+        }
+      });
+      body.querySelector('#sourcingPromptSignUpBtn')?.addEventListener('click', () => {
+        closeModal();
+        if (window.AuthModal) {
+          window.AuthModal.showSignUp(() => openCustomSourcingRequestModal(itemQuery));
+        }
+      });
+    } else {
+      body.querySelector('#sourcingEditProfileBtn')?.addEventListener('click', () => {
+        if (window.AuthModal) {
+          window.AuthModal.showProfile('profile', () => openCustomSourcingRequestModal(itemQuery));
+        }
       });
 
-      // Navigate to Requests tab
-      window.switchAppTab('requests');
-    });
+      const form = body.querySelector('#customSourcingForm');
+      if (form) {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const userNotes = (body.querySelector('#reqUserNotes')?.value || '').trim();
+
+          const submitBtn = body.querySelector('#submitSourcingBtn');
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = `
+            <span class="spinner" style="display:inline-block; width:16px; height:16px; border:2px solid #ffffff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:6px;"></span>
+            <span>Submitting Request...</span>
+          `;
+
+          const reqId = `req-${Date.now()}`;
+          const code = `NKG-REQ-${Date.now()}`;
+          const title = `Sourcing Request: ${itemQuery}${userNotes ? ` (${userNotes})` : ''}`;
+
+          const orderData = {
+            id: reqId,
+            retrieval_code: code,
+            user_id: activeUser.id,
+            product_id: 'custom-sourcing',
+            product_title: title,
+            product_price: 0,
+            product_image: 'assets/images/logo.png',
+            first_name: activeUser.first_name || activeUser.name?.split(' ')[0] || 'Valued',
+            last_name: activeUser.last_name || activeUser.name?.split(' ').slice(1).join(' ') || 'Customer',
+            whatsapp_number: activeUser.whatsapp_number || activeUser.phone || '',
+            email: activeUser.email || null,
+            state: activeUser.state || '',
+            lga: activeUser.lga || '',
+            address: activeUser.address || '',
+            status: 'pending',
+            created_at: new Date().toISOString()
+          };
+
+          try {
+            await window.SupabaseService.createOrder(orderData);
+          } catch (err) {}
+
+          closeModal();
+          window.CustomModal.toast({
+            message: 'Request submitted! Our team will send 2 options within 30 mins.',
+            type: 'success'
+          });
+
+          // Navigate to Requests tab
+          window.switchAppTab('requests');
+        });
+      }
+    }
+
+    customRequestModal.classList.add('active');
+  }
 
     customRequestModal.classList.add('active');
   }
@@ -1215,89 +1257,100 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       <div class="cart-checkout-card">
         ${!isLoggedIn ? `
-          <div class="cart-auth-notice" style="background: #f0fbf4; border: 1.5px solid #087f3b; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
-            <div style="font-weight: 800; color: #073b1f; font-size: 0.94rem; margin-bottom: 4px;">Account Required for Order Placement</div>
-            <p style="font-size: 0.82rem; color: #5a6e62; margin-bottom: 12px; line-height: 1.4;">
-              To protect your orders and provide instant tracking codes, please sign in or create your free account before completing checkout.
+          <!-- Price Summary Breakdown (Pre-Auth) -->
+          <div style="background: #f7fbf8; border: 1px solid #d1ead9; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+            <div class="cart-summary-line">
+              <span>Items Subtotal (${getCartCount()} items):</span>
+              <strong style="color: #073b1f;">${window.formatNaira(subtotal)}</strong>
+            </div>
+            <div class="cart-summary-line">
+              <span>Nationwide Delivery:</span>
+              <span style="color: #5a6e62; font-size: 0.82rem; font-weight: 600;">Calculated on account sign-in</span>
+            </div>
+            <div class="cart-summary-line cart-total-line">
+              <span>Estimated Total:</span>
+              <strong id="cartGrandTotalText">${window.formatNaira(subtotal)}</strong>
+            </div>
+          </div>
+
+          <!-- Account Required Gate (No Unnecessary Forms) -->
+          <div class="cart-auth-gate" style="background: #f0fbf4; border: 1.5px solid #087f3b; border-radius: 12px; padding: 22px 18px; text-align: center;">
+            <div style="width: 44px; height: 44px; border-radius: 50%; background: #e2f5ea; color: #087f3b; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto;">
+              ${window.renderIcon('user')}
+            </div>
+            <h4 style="font-size: 1.08rem; font-weight: 900; color: #073b1f; margin-bottom: 6px;">Sign In or Register to Checkout</h4>
+            <p style="font-size: 0.84rem; color: #5a6e62; margin-bottom: 18px; line-height: 1.5; max-width: 440px; margin-left: auto; margin-right: auto;">
+              An account is required to place your order, confirm delivery to your location, and generate your official receipt with instant tracking.
             </p>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-              <button type="button" class="btn btn-primary btn-sm" id="cartPromptSignInBtn" style="padding: 7px 16px; font-size: 0.82rem;">Sign In</button>
-              <button type="button" class="btn btn-secondary btn-sm" id="cartPromptSignUpBtn" style="padding: 7px 16px; font-size: 0.82rem;">Create Account</button>
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+              <button type="button" class="btn btn-primary" id="cartPromptSignInBtn" style="padding: 11px 24px; font-size: 0.88rem; font-weight: 800; background-color: #087f3b; border-color: #087f3b; display: inline-flex; align-items: center; gap: 6px;">
+                ${window.renderIcon('login')}
+                <span>Sign In to Continue</span>
+              </button>
+              <button type="button" class="btn btn-secondary" id="cartPromptSignUpBtn" style="padding: 11px 24px; font-size: 0.88rem; font-weight: 800; border-color: #087f3b; color: #087f3b; background: #ffffff; display: inline-flex; align-items: center; gap: 6px;">
+                ${window.renderIcon('user')}
+                <span>Create Free Account</span>
+              </button>
             </div>
           </div>
         ` : `
-          <div class="cart-auth-verified" style="background: #f0fbf4; border: 1px solid #d1ead9; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between;">
-            <div style="font-size: 0.82rem; color: #073b1f;">
-              Ordering as: <strong>${window.CustomModal.escape(activeUser.first_name || activeUser.name || 'Valued Customer')}</strong> (${window.CustomModal.escape(activeUser.whatsapp_number || activeUser.email || '')})
+          <!-- Verified Account Delivery Details (No Forms To Fill) -->
+          <div class="cart-delivery-card" style="background: #f7fbf8; border: 1.5px solid #d1ead9; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid #d1ead9; padding-bottom: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px; color: #073b1f; font-weight: 900; font-size: 0.96rem;">
+                ${window.renderIcon('truck')}
+                <span>Delivery Details & Contact</span>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" id="cartEditProfileBtn" style="padding: 5px 12px; font-size: 0.78rem; font-weight: 700; border-color: #087f3b; color: #087f3b; background: #ffffff; display: inline-flex; align-items: center; gap: 5px;">
+                ${window.renderIcon('edit')}
+                <span>Change Address</span>
+              </button>
             </div>
-            <span style="font-size: 0.75rem; color: #087f3b; font-weight: 700;">&bull; Verified Account</span>
-          </div>
-        `}
 
-        <h3 style="color: #073b1f; font-size: 1.18rem; font-weight: 900; margin-bottom: 14px;">Delivery & Checkout</h3>
-
-        <form id="cartCheckoutForm" autocomplete="on">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-            <div class="c-input-group">
-              <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">First Name *</label>
-              <input type="text" class="c-input" id="cartFirstName" placeholder="Your first name" required value="${window.CustomModal.escape(activeUser.first_name || activeUser.name?.split(' ')[0] || '')}" style="padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1ead9; background: #ffffff;" />
-            </div>
-            <div class="c-input-group">
-              <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">Last Name *</label>
-              <input type="text" class="c-input" id="cartLastName" placeholder="Your last name" required value="${window.CustomModal.escape(activeUser.last_name || activeUser.name?.split(' ')[1] || '')}" style="padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1ead9; background: #ffffff;" />
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-            <div class="c-input-group">
-              <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">WhatsApp Number *</label>
-              <input type="tel" class="c-input" id="cartWhatsApp" placeholder="e.g. 08012345678" required value="${window.CustomModal.escape(activeUser.whatsapp_number || activeUser.phone || '')}" style="padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1ead9; background: #ffffff;" />
-            </div>
-            <div class="c-input-group">
-              <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">Email (Optional)</label>
-              <input type="email" class="c-input" id="cartEmail" placeholder="you@domain.com" value="${window.CustomModal.escape(activeUser.email || '')}" style="padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1ead9; background: #ffffff;" />
-            </div>
-          </div>
-
-          <!-- Nigeria State & LGA Pickers -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-            <div class="c-input-group">
-              <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">Delivery State *</label>
-              <div id="cartStatePickerMount"></div>
-            </div>
-            <div class="c-input-group">
-              <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">LGA *</label>
-              <div id="cartLgaPickerMount"></div>
-            </div>
-          </div>
-
-          <div class="c-input-group" style="margin-bottom: 16px;">
-            <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">Delivery Street Address *</label>
-            <input type="text" class="c-input" id="cartAddress" placeholder="House number, Street, Landmark" required value="${window.CustomModal.escape(activeUser.address || '')}" style="padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1ead9; background: #ffffff;" />
+            ${(activeUser.address && activeUser.state && activeUser.lga) ? `
+              <div style="font-size: 0.85rem; color: #1f2937; line-height: 1.6;">
+                <div><strong style="color: #073b1f;">Deliver To:</strong> ${window.CustomModal.escape((activeUser.first_name || activeUser.name || 'Valued Customer') + (activeUser.last_name ? ' ' + activeUser.last_name : ''))}</div>
+                <div><strong style="color: #073b1f;">WhatsApp:</strong> ${window.CustomModal.escape(activeUser.whatsapp_number || activeUser.phone || '')} ${activeUser.email ? `<span style="color: #5a6e62;">&bull; ${window.CustomModal.escape(activeUser.email)}</span>` : ''}</div>
+                <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #d1ead9;">
+                  <strong style="color: #073b1f;">Destination Address:</strong><br />
+                  ${window.CustomModal.escape(activeUser.address)}, ${window.CustomModal.escape(activeUser.lga)}, <strong>${window.CustomModal.escape(activeUser.state)} State</strong>
+                </div>
+              </div>
+            ` : `
+              <div style="background: #fff8f5; border: 1px solid #fed7aa; border-radius: 8px; padding: 12px; font-size: 0.84rem; color: #9a3412;">
+                <strong>Delivery address incomplete on your account.</strong><br />
+                Please set your delivery address, state, and LGA to proceed with this order.
+                <div style="margin-top: 8px;">
+                  <button type="button" class="btn btn-primary btn-sm" id="cartSetAddressBtn" style="padding: 6px 14px; font-size: 0.8rem; background-color: #087f3b; border-color: #087f3b;">
+                    Set Delivery Address
+                  </button>
+                </div>
+              </div>
+            `}
           </div>
 
           <!-- Price Summary Breakdown -->
-          <div style="background: #f7fbf8; border: 1px solid #d1ead9; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+          <div style="background: #ffffff; border: 1px solid #d1ead9; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
             <div class="cart-summary-line">
               <span>Items Subtotal (${getCartCount()} items):</span>
               <strong>${window.formatNaira(subtotal)}</strong>
             </div>
             <div class="cart-summary-line">
-              <span>Nationwide Delivery:</span>
-              <span id="cartDeliveryFeeText" style="color: #087f3b; font-weight: 700;">Select State</span>
+              <span>Nationwide Delivery (${activeUser.state ? window.CustomModal.escape(activeUser.state) + ' State' : 'Destination'}):</span>
+              <span style="color: #087f3b; font-weight: 700;">${activeUser.state ? window.formatNaira(3500) : 'Address Required'}</span>
             </div>
             <div class="cart-summary-line cart-total-line">
               <span>Grand Total:</span>
-              <strong id="cartGrandTotalText">${window.formatNaira(subtotal)}</strong>
+              <strong id="cartGrandTotalText">${window.formatNaira(subtotal + (activeUser.state ? 3500 : 0))}</strong>
             </div>
           </div>
 
-          <!-- Protected Checkout Button -->
-          <button type="submit" class="btn btn-primary btn-cart-checkout" id="cartCheckoutBtn">
+          <!-- Direct One-Click Checkout Button -->
+          <button type="button" class="btn btn-primary btn-cart-checkout" id="cartDirectCheckoutBtn">
             ${window.renderIcon('orderNow')}
-            <span>Confirm & Place Order (${window.formatNaira(subtotal)})</span>
+            <span>Confirm & Place Order (${window.formatNaira(subtotal + (activeUser.state ? 3500 : 0))})</span>
           </button>
-        </form>
+        `}
       </div>
     `;
 
@@ -1312,222 +1365,141 @@ document.addEventListener('DOMContentLoaded', async () => {
       btn.addEventListener('click', () => removeFromCart(btn.getAttribute('data-id')));
     });
 
-    // Auto-capitalize name inputs
-    const fnInput = container.querySelector('#cartFirstName');
-    const lnInput = container.querySelector('#cartLastName');
-    if (window.attachNameAutoCapitalize) {
-      window.attachNameAutoCapitalize(fnInput);
-      window.attachNameAutoCapitalize(lnInput);
+    // Unauthenticated: Direct triggers to Login / Sign Up
+    if (!isLoggedIn) {
+      container.querySelector('#cartPromptSignInBtn')?.addEventListener('click', () => {
+        if (window.AuthModal) window.AuthModal.showSignIn(() => renderCartView());
+      });
+      container.querySelector('#cartPromptSignUpBtn')?.addEventListener('click', () => {
+        if (window.AuthModal) window.AuthModal.showSignUp(() => renderCartView());
+      });
+      return;
     }
 
-    // State & LGA pickers
-    let selectedState = activeUser.state || '';
-    let selectedLga = activeUser.lga || '';
-
-    const stateMount = container.querySelector('#cartStatePickerMount');
-    const lgaMount = container.querySelector('#cartLgaPickerMount');
-
-    const updateDeliveryFee = () => {
-      const delText = container.querySelector('#cartDeliveryFeeText');
-      const totalText = container.querySelector('#cartGrandTotalText');
-      const checkoutBtn = container.querySelector('#cartCheckoutBtn');
-      if (!delText || !totalText) return;
-
-      let fee = 0;
-      if (selectedState) {
-        fee = 3500;
-        delText.textContent = window.formatNaira(fee);
-      } else {
-        delText.textContent = 'Select State';
+    // Authenticated: Address Management
+    const openAddressEditor = () => {
+      if (window.AuthModal) {
+        window.AuthModal.showProfile('profile', () => renderCartView());
       }
-      const grandTotal = subtotal + fee;
-      totalText.textContent = window.formatNaira(grandTotal);
-      if (checkoutBtn && !checkoutBtn.disabled) {
-        checkoutBtn.innerHTML = `
-          ${window.renderIcon('orderNow')}
-          <span>Confirm & Place Order (${window.formatNaira(grandTotal)})</span>
+    };
+    container.querySelector('#cartEditProfileBtn')?.addEventListener('click', openAddressEditor);
+    container.querySelector('#cartSetAddressBtn')?.addEventListener('click', openAddressEditor);
+
+    // Authenticated Direct Order Placement
+    let isSubmittingCartOrder = false;
+    const directCheckoutBtn = container.querySelector('#cartDirectCheckoutBtn');
+    if (directCheckoutBtn) {
+      directCheckoutBtn.addEventListener('click', async () => {
+        if (isSubmittingCartOrder) return;
+
+        const hasCompleteAddress = !!(activeUser.address && activeUser.state && activeUser.lga);
+        if (!hasCompleteAddress) {
+          window.CustomModal.confirm({
+            title: 'Delivery Address Required',
+            message: 'Please complete your delivery address and state in your profile so we can deliver your order.',
+            confirmText: 'Set Address Now',
+            cancelText: 'Cancel',
+            onConfirm: openAddressEditor
+          });
+          return;
+        }
+
+        isSubmittingCartOrder = true;
+        directCheckoutBtn.disabled = true;
+        directCheckoutBtn.style.cursor = 'not-allowed';
+        directCheckoutBtn.innerHTML = `
+          <span class="spinner" style="display:inline-block; width:16px; height:16px; border:2px solid #ffffff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:6px;"></span>
+          <span>Processing Order...</span>
         `;
-      }
-    };
 
-    let lgaPicker = null;
-    const initLgaPicker = (st) => {
-      const lgas = (window.NIGERIA_STATES && window.NIGERIA_STATES[st]) || [];
-      const opts = lgas.map(l => ({ value: l, label: l }));
-      if (lgaPicker) {
-        lgaPicker.updateOptions(opts, selectedLga || (lgas[0] || ''));
-      } else if (lgaMount && window.CustomPicker) {
-        lgaPicker = window.CustomPicker.create({
-          container: lgaMount,
-          title: 'Select Delivery LGA',
-          options: opts,
-          value: selectedLga,
-          placeholder: 'Select LGA',
-          searchable: true,
-          onChange: (val) => { selectedLga = val; }
-        });
-      }
-    };
+        const currentCart = getCart();
+        const itemsSummary = currentCart.map(i => `${i.title} (x${i.quantity})`).join(', ');
+        const deliveryFee = activeUser.state ? 3500 : 0;
+        const totalAmount = subtotal + deliveryFee;
+        const orderId = `ord-${Date.now()}`;
+        const coverImg = currentCart[0]?.image || 'assets/images/logo.png';
 
-    if (stateMount && window.CustomPicker) {
-      const states = Object.keys(window.NIGERIA_STATES || {}).map(s => ({ value: s, label: s }));
-      window.CustomPicker.create({
-        container: stateMount,
-        title: 'Select Delivery State',
-        options: states,
-        value: selectedState,
-        placeholder: 'Select State',
-        searchable: true,
-        onChange: (val) => {
-          selectedState = val;
-          selectedLga = '';
-          initLgaPicker(val);
-          updateDeliveryFee();
+        const firstName = activeUser.first_name || activeUser.name?.split(' ')[0] || 'Valued';
+        const lastName = activeUser.last_name || activeUser.name?.split(' ').slice(1).join(' ') || 'Customer';
+        const whatsapp = (activeUser.whatsapp_number || activeUser.phone || '').trim();
+        const email = (activeUser.email || '').trim() || null;
+        const stateName = (activeUser.state || '').trim();
+        const lgaName = (activeUser.lga || '').trim();
+        const address = (activeUser.address || '').trim();
+
+        const orderData = {
+          id: orderId,
+          retrieval_code: `NKG-${Date.now()}`,
+          user_id: activeUser.id,
+          product_id: currentCart[0]?.id || 'cart-order',
+          product_title: `Cart Order (${currentCart.length} items): ${itemsSummary}`,
+          product_price: totalAmount,
+          product_image: coverImg,
+          first_name: firstName,
+          last_name: lastName,
+          whatsapp_number: whatsapp,
+          email: email,
+          state: stateName,
+          lga: lgaName,
+          address: address,
+          status: 'pending',
+          created_at: new Date().toISOString()
+        };
+
+        try {
+          await window.SupabaseService.createOrder(orderData);
+
+          // Send rich Order Card into chat
+          if (activeUser.id) {
+            const orderChatMessage = {
+              id: `msg-ord-${orderData.id}`,
+              order_code: orderData.id,
+              user_id: activeUser.id,
+              user_name: `${firstName} ${lastName}`,
+              user_whatsapp: whatsapp,
+              sender: 'user',
+              message_type: 'order_card',
+              order_data: {
+                ...orderData,
+                id: orderData.id,
+                order_id: orderData.id,
+                first_name: firstName,
+                last_name: lastName,
+                whatsapp_number: whatsapp,
+                email: email,
+                state: stateName,
+                lga: lgaName,
+                address: address,
+                delivery_address: `${address}, ${lgaName}, ${stateName}`,
+                status: 'pending',
+                created_at: orderData.created_at
+              },
+              message: `Order Placed: ${orderData.product_title} (${window.formatNaira(totalAmount)}) - Status: Pending`,
+              image_url: null,
+              is_read_by_admin: false,
+              is_read_by_user: true,
+              deleted_for_everyone: false,
+              deleted_for_user: false,
+              deleted_for_admin: false,
+              created_at: new Date().toISOString()
+            };
+            await window.SupabaseService.sendUserChatMessage(orderChatMessage);
+          }
+
+          // Clear cart
+          saveCart([]);
+          isSubmittingCartOrder = false;
+
+          // Open Order Success Modal & Receipt Download
+          openOrderSuccessModal(orderData);
+        } catch (err) {
+          console.error('Cart order placement notice:', err);
+          saveCart([]);
+          isSubmittingCartOrder = false;
+          openOrderSuccessModal(orderData);
         }
       });
-      if (selectedState) {
-        initLgaPicker(selectedState);
-        updateDeliveryFee();
-      }
     }
-
-    // Auth Prompt Triggers in Cart
-    container.querySelector('#cartPromptSignInBtn')?.addEventListener('click', () => {
-      if (window.AuthModal) window.AuthModal.showSignIn(() => renderCartView());
-    });
-    container.querySelector('#cartPromptSignUpBtn')?.addEventListener('click', () => {
-      if (window.AuthModal) window.AuthModal.showSignUp(() => renderCartView());
-    });
-
-    // Checkout Form Submission (Double Click Prevention & Processing State)
-    let isSubmittingCartOrder = false;
-    const checkoutForm = container.querySelector('#cartCheckoutForm');
-    checkoutForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (isSubmittingCartOrder) return;
-
-      // Enforce Account Verification Before Order Placement
-      const verifiedUser = (window.SupabaseService.getCurrentUser && window.SupabaseService.getCurrentUser()) ||
-                           (window.SupabaseService.getActiveUser && window.SupabaseService.getActiveUser());
-      if (!verifiedUser || !verifiedUser.id) {
-        window.CustomModal.confirm({
-          title: 'Account Required',
-          message: 'An account is required to place your order, generate your official invoice, and track delivery progress. Would you like to sign in or register now?',
-          confirmText: 'Sign In / Register',
-          cancelText: 'Cancel',
-          onConfirm: () => {
-            if (window.AuthModal) {
-              window.AuthModal.showSignIn(() => renderCartView());
-            }
-          }
-        });
-        return;
-      }
-
-      const firstName = window.capitalizeName ? window.capitalizeName(fnInput.value) : fnInput.value.trim();
-      const lastName = window.capitalizeName ? window.capitalizeName(lnInput.value) : lnInput.value.trim();
-      const whatsapp = container.querySelector('#cartWhatsApp').value.trim();
-      const email = container.querySelector('#cartEmail').value.trim();
-      const address = container.querySelector('#cartAddress').value.trim();
-
-      if (!firstName || !lastName || !whatsapp || !address) {
-        window.CustomModal.toast({ message: 'Please fill in all required delivery fields.', type: 'danger' });
-        return;
-      }
-
-      if (!selectedState || !selectedLga) {
-        window.CustomModal.toast({ message: 'Please select your delivery State and LGA.', type: 'warning' });
-        return;
-      }
-
-      const checkoutBtn = container.querySelector('#cartCheckoutBtn');
-      isSubmittingCartOrder = true;
-      checkoutBtn.disabled = true;
-      checkoutBtn.style.cursor = 'not-allowed';
-      checkoutBtn.innerHTML = `
-        <span class="spinner" style="display:inline-block; width:16px; height:16px; border:2px solid #ffffff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:6px;"></span>
-        <span>Processing Order...</span>
-      `;
-
-      const currentCart = getCart();
-      const itemsSummary = currentCart.map(i => `${i.title} (x${i.quantity})`).join(', ');
-      const deliveryFee = selectedState ? 3500 : 0;
-      const totalAmount = subtotal + deliveryFee;
-      const orderId = `ord-${Date.now()}`;
-      const coverImg = currentCart[0]?.image || 'assets/images/logo.png';
-
-      const orderData = {
-        id: orderId,
-        retrieval_code: `NKG-${Date.now()}`,
-        user_id: verifiedUser.id,
-        product_id: currentCart[0]?.id || 'cart-order',
-        product_title: `Cart Order (${currentCart.length} items): ${itemsSummary}`,
-        product_price: totalAmount,
-        product_image: coverImg,
-        first_name: firstName,
-        last_name: lastName,
-        whatsapp_number: whatsapp,
-        email: email || null,
-        state: selectedState,
-        lga: selectedLga,
-        address: address,
-        status: 'pending',
-        created_at: new Date().toISOString()
-      };
-
-      try {
-        await window.SupabaseService.createOrder(orderData);
-
-        // Send rich Order Card into chat
-        if (activeUser.id) {
-          const orderChatMessage = {
-            id: `msg-ord-${orderData.id}`,
-            order_code: orderData.id,
-            user_id: activeUser.id,
-            user_name: `${firstName} ${lastName}`,
-            user_whatsapp: whatsapp,
-            sender: 'user',
-            message_type: 'order_card',
-            order_data: {
-              ...orderData,
-              id: orderData.id,
-              order_id: orderData.id,
-              first_name: firstName,
-              last_name: lastName,
-              whatsapp_number: whatsapp,
-              email: email || null,
-              state: selectedState,
-              lga: selectedLga,
-              address: address,
-              delivery_address: `${address}, ${selectedLga}, ${selectedState}`,
-              status: 'pending',
-              created_at: orderData.created_at
-            },
-            message: `Order Placed: ${orderData.product_title} (${window.formatNaira(totalAmount)}) - Status: Pending`,
-            image_url: null,
-            is_read_by_admin: false,
-            is_read_by_user: true,
-            deleted_for_everyone: false,
-            deleted_for_user: false,
-            deleted_for_admin: false,
-            created_at: new Date().toISOString()
-          };
-          await window.SupabaseService.sendUserChatMessage(orderChatMessage);
-        }
-
-        // Clear cart
-        saveCart([]);
-        isSubmittingCartOrder = false;
-
-        // Open Order Success Modal & Receipt Download
-        openOrderSuccessModal(orderData);
-      } catch (err) {
-        console.error('Cart order placement notice:', err);
-        saveCart([]);
-        isSubmittingCartOrder = false;
-        openOrderSuccessModal(orderData);
-      }
-    });
   }
 
   /* ==========================================================================
@@ -1909,6 +1881,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   initTabListeners();
   initViewToggle();
   initHeroRequestForm();
+
+  // Listen for user profile updates to instantly re-sync cart & account views
+  window.addEventListener('user-profile-updated', () => {
+    if (state.currentTab === 'cart') {
+      renderCartView();
+    } else if (state.currentTab === 'account') {
+      renderAccountView();
+    }
+  });
 
   // Load Initial Data
   await loadInitialData();
