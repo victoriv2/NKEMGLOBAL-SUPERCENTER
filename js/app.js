@@ -342,7 +342,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       ${!isLoggedIn ? `
         <div style="background: #f0fbf4; border: 1.5px solid #087f3b; border-radius: 12px; padding: 20px 16px; text-align: center; margin-bottom: 14px;">
-          <div style="width: 40px; height: 40px; border-radius: 50%; background: #e2f5ea; color: #087f3b; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto;">
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: #e2f5ea; color: #087f3b; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto; font-size: 19px;">
             ${window.renderIcon('user')}
           </div>
           <div style="font-weight: 800; color: #073b1f; font-size: 0.98rem; margin-bottom: 6px;">Sign In or Register to Submit</div>
@@ -1272,7 +1272,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           <!-- Account Required Gate (No Unnecessary Forms) -->
           <div class="cart-auth-gate" style="background: #f0fbf4; border: 1.5px solid #087f3b; border-radius: 12px; padding: 22px 18px; text-align: center;">
-            <div style="width: 44px; height: 44px; border-radius: 50%; background: #e2f5ea; color: #087f3b; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto;">
+            <div style="width: 44px; height: 44px; border-radius: 50%; background: #e2f5ea; color: #087f3b; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto; font-size: 20px;">
               ${window.renderIcon('user')}
             </div>
             <h4 style="font-size: 1.08rem; font-weight: 900; color: #073b1f; margin-bottom: 6px;">Sign In or Register to Checkout</h4>
