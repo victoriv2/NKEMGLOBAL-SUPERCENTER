@@ -242,16 +242,17 @@ body {
   flex-shrink: 0;
 }
 
-/* LOGO: 16:9 / 4:3 Rectangular Aspect Ratio */
+/* BRAND LOGO: True 2:1 Aspect Ratio with Transparent Background */
 .brand-logo-img {
   height: clamp(36px, 5.5vw, 46px);
   width: auto;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 2 / 1;
   object-fit: contain;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border-color);
-  background-color: #000;
+  border: none;
+  background-color: transparent;
   flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
 }
 
 .brand-text-wrap {
@@ -4091,16 +4092,17 @@ input::-webkit-credentials-auto-fill-button {
 }
 
 .admin-login-logo {
-  height: clamp(42px, 6vw, 52px);
+  height: clamp(44px, 7vw, 60px);
   width: auto;
-  max-width: 160px;
-  aspect-ratio: 16 / 9;
+  max-width: 180px;
+  aspect-ratio: 2 / 1;
   object-fit: contain;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border-color);
-  background-color: #000;
+  border: none;
+  background-color: transparent;
   margin: 0 auto 14px auto;
   display: block;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
 }
 
 .admin-login-title {
