@@ -892,8 +892,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       <div class="details-modal-content">
         <div class="details-gallery-wrap">
-          <div class="details-main-img-box" id="detailsMainImgBox" title="Click to view full image">
-            <img class="details-main-img" id="detailsMainImg" src="${currentModalSelectedImage}" alt="${window.CustomModal.escape(prod.title)}" />
+          <div class="details-main-img-box" id="detailsMainImgBox" title="Click to view full image" style="width: 100%; min-height: 280px; height: clamp(320px, 48vh, 440px); flex: 0 0 auto; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;">
+            <img class="details-main-img" id="detailsMainImg" src="${currentModalSelectedImage}" alt="${window.CustomModal.escape(prod.title)}" style="width: 100%; height: 100%; max-height: 100%; object-fit: contain; display: block;" />
             <div class="details-img-zoom-hint">
               ${window.renderIcon('search')}
               <span>Tap for Full View</span>

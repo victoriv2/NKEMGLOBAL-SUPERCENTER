@@ -1387,16 +1387,18 @@ body {
   gap: var(--space-xs);
   min-width: 0;
   width: 100%;
-  overflow: hidden;
+  flex-shrink: 0;
   box-sizing: border-box;
 }
 
 .details-main-img-box {
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 1;
-  min-height: 320px;
-  max-height: clamp(340px, 55vh, 480px);
+  height: clamp(320px, 50vh, 460px);
+  min-height: 280px;
+  max-height: 480px;
+  flex: 0 0 auto;
+  flex-shrink: 0;
   background-color: var(--bg-main);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
@@ -1410,8 +1412,10 @@ body {
 .details-main-img {
   width: 100%;
   height: 100%;
+  max-height: 100%;
   object-fit: contain; /* Full uncropped view */
   background-color: var(--bg-main);
+  display: block;
 }
 
 .details-img-zoom-hint {
@@ -2816,16 +2820,19 @@ body.admin-body .c-modal-footer {
   }
 
   .details-gallery-wrap {
-    max-width: 380px;
+    max-width: 440px;
     margin: 0 auto;
     width: 100%;
+    flex-shrink: 0;
   }
 
   .details-main-img-box {
-    aspect-ratio: 1 / 1;
-    min-height: 280px;
-    max-height: clamp(300px, 48vh, 420px);
-    width: 100%;
+    width: 100% !important;
+    height: clamp(300px, 46vh, 400px) !important;
+    min-height: 280px !important;
+    max-height: 420px !important;
+    flex: 0 0 auto !important;
+    flex-shrink: 0 !important;
     margin: 0 auto;
   }
 
@@ -2969,10 +2976,12 @@ body.admin-body .c-modal-footer {
   }
 
   .details-main-img-box {
-    aspect-ratio: 1 / 1;
-    min-height: 260px;
-    max-height: clamp(280px, 46vh, 360px);
-    width: 100%;
+    width: 100% !important;
+    height: clamp(270px, 44vh, 360px) !important;
+    min-height: 260px !important;
+    max-height: 380px !important;
+    flex: 0 0 auto !important;
+    flex-shrink: 0 !important;
     margin: 0 auto;
   }
 
@@ -5087,10 +5096,13 @@ body:not(.admin-body) .product-details-modal-box .c-modal-title {
 body:not(.admin-body) .details-main-img-box {
   background-color: #edf8f2 !important;
   border: 1px solid #d1ead9 !important;
+  border-radius: 14px !important;
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
 }
 
 body:not(.admin-body) .details-main-img {
-  background-color: #edf8f2 !important;
+  background-color: transparent !important;
 }
 
 body:not(.admin-body) .details-img-zoom-hint {
