@@ -39,6 +39,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       const targetPane = document.getElementById(tabTarget);
       if (targetPane) targetPane.classList.add('active');
 
+      try {
+        btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      } catch (err) {}
+
       if (tabTarget === 'tabChat') {
         document.documentElement.classList.add('admin-chat-tab-active');
         document.body.classList.add('admin-chat-tab-active');

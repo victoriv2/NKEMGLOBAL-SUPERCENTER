@@ -2029,6 +2029,119 @@ body.admin-body {
   padding-top: calc(clamp(56px, 8.5vw, 70px) + 48px) !important;
 }
 
+/* Admin Header Bar & Action Buttons */
+.admin-header-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+.admin-header-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 6px 12px !important;
+  height: 36px !important;
+  border-radius: var(--radius-sm) !important;
+  font-size: var(--font-xs) !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  text-decoration: none !important;
+}
+
+.admin-header-btn .svg-icon {
+  width: 15px !important;
+  height: 15px !important;
+  flex-shrink: 0 !important;
+}
+
+.admin-header-btn.admin-logout-btn {
+  color: var(--status-danger) !important;
+  border-color: rgba(220, 53, 69, 0.45) !important;
+}
+
+.admin-header-btn.admin-logout-btn:hover {
+  background-color: rgba(220, 53, 69, 0.12) !important;
+  border-color: var(--status-danger) !important;
+}
+
+/* Tablet & Mobile Admin Header System */
+@media (max-width: 768px) {
+  body.admin-body .header-bar .header-container {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    gap: 8px !important;
+  }
+
+  body.admin-body .header-bar .brand-wrap {
+    gap: 8px !important;
+    min-width: 0 !important;
+  }
+
+  body.admin-body .header-bar .brand-logo-img {
+    height: 32px !important;
+  }
+
+  body.admin-body .header-bar .brand-title {
+    font-size: 1.05rem !important;
+  }
+
+  body.admin-body .header-bar .brand-tagline {
+    display: none !important;
+  }
+}
+
+/* On mobile phones (<= 640px), keep the admin header perfectly proportioned with compact icon buttons */
+@media (max-width: 640px) {
+  body.admin-body .header-bar .header-container {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  body.admin-body .admin-header-actions {
+    gap: 6px !important;
+  }
+
+  body.admin-body .admin-header-btn {
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    padding: 0 !important;
+  }
+
+  body.admin-body .admin-header-btn-text {
+    display: none !important;
+  }
+
+  body.admin-body .admin-header-btn .svg-icon {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  body.admin-body .header-bar .brand-title {
+    font-size: 0.95rem !important;
+  }
+}
+
+@media (max-width: 360px) {
+  body.admin-body .header-bar .brand-logo-img {
+    height: 28px !important;
+  }
+
+  body.admin-body .header-bar .brand-title {
+    font-size: 0.86rem !important;
+  }
+
+  body.admin-body .admin-header-btn {
+    width: 32px !important;
+    min-width: 32px !important;
+    height: 32px !important;
+  }
+}
+
 .admin-nav-tabs {
   position: fixed !important;
   top: clamp(56px, 8.5vw, 70px) !important;
@@ -2044,8 +2157,10 @@ body.admin-body {
   background-color: var(--bg-surface) !important;
   border-bottom: 1px solid var(--border-color) !important;
   overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  scroll-behavior: smooth;
 }
 
 .admin-nav-tabs::-webkit-scrollbar {
@@ -2068,7 +2183,21 @@ body.admin-body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0 !important;
   transition: var(--transition-fast);
+}
+
+@media (max-width: 768px) {
+  .admin-nav-tabs {
+    padding: 0 10px !important;
+    gap: 2px !important;
+  }
+
+  .admin-tab-btn {
+    padding: 10px 12px !important;
+    font-size: 0.82rem !important;
+    gap: 5px !important;
+  }
 }
 
 .admin-tab-btn:hover {
