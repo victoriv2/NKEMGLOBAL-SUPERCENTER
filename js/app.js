@@ -486,54 +486,70 @@ document.addEventListener('DOMContentLoaded', async () => {
   let sortPickerInstance = null;
 
   function initToolbars() {
-    if (categoryPickerMount && window.CustomPicker && !categoryPickerInstance) {
-      const opts = [
-        { value: 'all', label: 'All Categories' },
-        ...(state.categories.map(c => ({ value: c.name, label: c.name })))
-      ];
+    try {
+      if (categoryPickerMount && window.CustomPicker) {
+        const opts = [
+          { value: 'all', label: 'All Categories' },
+          ...(state.categories.map(c => ({ value: c.name, label: c.name })))
+        ];
 
-      categoryPickerInstance = new window.CustomPicker(categoryPickerMount, {
-        title: 'Filter by Category',
-        options: opts,
-        value: state.selectedCategory,
-        placeholder: 'All Categories',
-        searchable: true,
-        onChange: (val) => {
-          state.selectedCategory = val;
-          renderShopCategoryPills();
-          applyFiltersAndSort();
+        if (!categoryPickerInstance) {
+          categoryPickerInstance = window.CustomPicker.create({
+            container: categoryPickerMount,
+            title: 'Filter by Category',
+            options: opts,
+            value: state.selectedCategory,
+            placeholder: 'All Categories',
+            searchable: true,
+            onChange: (val) => {
+              state.selectedCategory = val;
+              renderShopCategoryPills();
+              applyFiltersAndSort();
+            }
+          });
+        } else if (categoryPickerInstance.setOptions) {
+          categoryPickerInstance.setOptions(opts, true);
         }
-      });
+      }
+    } catch (e) {
+      console.warn('Category picker init notice:', e);
     }
 
-    if (sortPickerMount && window.CustomPicker && !sortPickerInstance) {
-      const sortOpts = [
-        { value: 'newest', label: 'Newest Arrivals' },
-        { value: 'price_asc', label: 'Price: Low to High' },
-        { value: 'price_desc', label: 'Price: High to Low' }
-      ];
+    try {
+      if (sortPickerMount && window.CustomPicker && !sortPickerInstance) {
+        const sortOpts = [
+          { value: 'newest', label: 'Newest Arrivals' },
+          { value: 'price_asc', label: 'Price: Low to High' },
+          { value: 'price_desc', label: 'Price: High to Low' }
+        ];
 
-      sortPickerInstance = new window.CustomPicker(sortPickerMount, {
-        title: 'Sort Catalog By',
-        options: sortOpts,
-        value: state.selectedSort,
-        placeholder: 'Sort By',
-        searchable: false,
-        onChange: (val) => {
-          state.selectedSort = val;
-          applyFiltersAndSort();
-        }
-      });
+        sortPickerInstance = window.CustomPicker.create({
+          container: sortPickerMount,
+          title: 'Sort Catalog By',
+          options: sortOpts,
+          value: state.selectedSort,
+          placeholder: 'Sort By',
+          searchable: false,
+          onChange: (val) => {
+            state.selectedSort = val;
+            applyFiltersAndSort();
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Sort picker init notice:', e);
     }
 
     // Search input listener
-    const searchInput = document.getElementById('shopSearchInput');
-    if (searchInput && !searchInput._hasListener) {
-      searchInput._hasListener = true;
-      searchInput.addEventListener('input', () => {
-        applyFiltersAndSort();
-      });
-    }
+    try {
+      const searchInput = document.getElementById('shopSearchInput');
+      if (searchInput && !searchInput._hasListener) {
+        searchInput._hasListener = true;
+        searchInput.addEventListener('input', () => {
+          applyFiltersAndSort();
+        });
+      }
+    } catch (e) {}
 
     initViewToggle();
   }
@@ -566,6 +582,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
   }
+  window.switchProductView = applyProductView;
 
   function initViewToggle() {
     const gridBtn = document.getElementById('viewGridBtn');
@@ -573,15 +590,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (gridBtn) {
       gridBtn.onclick = (e) => {
-        e.preventDefault();
+        if (e && e.preventDefault) e.preventDefault();
         applyProductView('grid');
       };
+      gridBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        applyProductView('grid');
+      });
     }
     if (listBtn) {
       listBtn.onclick = (e) => {
-        e.preventDefault();
+        if (e && e.preventDefault) e.preventDefault();
         applyProductView('list');
       };
+      listBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        applyProductView('list');
+      });
     }
     applyProductView(state.currentView);
   }
@@ -651,6 +676,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function renderProductGrid() {
     if (!productGrid) return;
+
+    // Ensure list-view class reflects state.currentView
+    if (state.currentView === 'list') {
+      productGrid.classList.add('list-view');
+    } else {
+      productGrid.classList.remove('list-view');
+    }
 
     // Clear card image timers
     Object.values(state.productCardTimers).forEach(timer => clearInterval(timer));
@@ -1229,7 +1261,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (lgaPicker) {
         lgaPicker.updateOptions(opts, selectedLga || (lgas[0] || ''));
       } else if (lgaMount && window.CustomPicker) {
-        lgaPicker = new window.CustomPicker(lgaMount, {
+        lgaPicker = window.CustomPicker.create({
+          container: lgaMount,
           title: 'Select Delivery LGA',
           options: opts,
           value: selectedLga,
@@ -1242,7 +1275,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (stateMount && window.CustomPicker) {
       const states = Object.keys(window.NIGERIA_STATES || {}).map(s => ({ value: s, label: s }));
-      new window.CustomPicker(stateMount, {
+      window.CustomPicker.create({
+        container: stateMount,
         title: 'Select Delivery State',
         options: states,
         value: selectedState,
@@ -1775,8 +1809,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Initialize Tab listeners & Hero Request Form
+  // Initialize Tab listeners, View Layout Toggle & Hero Request Form
   initTabListeners();
+  initViewToggle();
   initHeroRequestForm();
 
   // Load Initial Data
