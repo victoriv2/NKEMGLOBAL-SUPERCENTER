@@ -984,24 +984,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     detailsModalOverlay.classList.add('active');
   }
 
+  /* ==========================================================================
+     6. FULL VIEW LIGHTBOX (Strict Requirement: Only Image & X Under to Close, No Text)
+     ========================================================================== */
   function openFullViewLightbox(imgSrc) {
-    if (!fullViewLightbox) return;
+    if (!fullViewLightbox || !imgSrc) return;
+
     fullViewLightbox.innerHTML = `
-      <div class="full-view-lightbox-inner">
-        <img class="full-view-lightbox-img" src="${imgSrc}" alt="Full size preview" />
-        <div class="full-view-lightbox-close-wrap">
-          <button class="full-view-lightbox-close-btn" type="button" id="closeLightboxBtn" aria-label="Close Lightbox">
-            ${window.renderIcon('close')}
-          </button>
-        </div>
+      <div class="full-view-img-container">
+        <img class="full-view-img" src="${imgSrc}" alt="" />
       </div>
+      <button class="full-view-close-under" type="button" id="fullViewCloseUnderBtn" aria-label="Close View">
+        ${window.renderIcon('close')}
+      </button>
     `;
 
-    const closeBtn = fullViewLightbox.querySelector('#closeLightboxBtn');
-    const closeLb = () => fullViewLightbox.classList.remove('active');
-    if (closeBtn) closeBtn.onclick = closeLb;
+    const closeBtn = fullViewLightbox.querySelector('#fullViewCloseUnderBtn');
+    const closeLightbox = () => {
+      fullViewLightbox.classList.remove('active');
+      document.removeEventListener('keydown', onEsc);
+    };
+
+    const onEsc = (e) => {
+      if (e.key === 'Escape') closeLightbox();
+    };
+    document.addEventListener('keydown', onEsc);
+
+    if (closeBtn) {
+      closeBtn.onclick = (e) => {
+        e.stopPropagation();
+        closeLightbox();
+      };
+    }
+
     fullViewLightbox.onclick = (e) => {
-      if (e.target === fullViewLightbox) closeLb();
+      if (e.target === fullViewLightbox || e.target.classList.contains('full-view-img-container')) {
+        closeLightbox();
+      }
     };
 
     fullViewLightbox.classList.add('active');
@@ -1575,9 +1594,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             <span style="color: #087f3b;">${window.renderIcon('chat')}</span>
             <span>Live Support Cloud Chat</span>
           </div>
-          <span style="font-size: 0.78rem; color: #5a6e62; display: flex; align-items: center; gap: 4px;">
+          <span class="support-action-link">
             <span>Open Chat</span>
-            <span style="display: inline-flex; width: 14px; height: 14px; color: #5a6e62;">${window.renderIcon('chevronRight')}</span>
+            <svg class="support-chevron-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
           </span>
         </a>
 
@@ -1586,9 +1605,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             <span style="color: #25D366;">${window.renderIcon('whatsapp')}</span>
             <span>WhatsApp Official Support (07042087633)</span>
           </div>
-          <span style="font-size: 0.78rem; color: #5a6e62; display: flex; align-items: center; gap: 4px;">
+          <span class="support-action-link">
             <span>Chat</span>
-            <span style="display: inline-flex; width: 14px; height: 14px; color: #5a6e62;">${window.renderIcon('chevronRight')}</span>
+            <svg class="support-chevron-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
           </span>
         </a>
 
@@ -1597,9 +1616,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             <span style="color: #087f3b;">${window.renderIcon('phone')}</span>
             <span>Direct Phone Call (08155608447)</span>
           </div>
-          <span style="font-size: 0.78rem; color: #5a6e62; display: flex; align-items: center; gap: 4px;">
+          <span class="support-action-link">
             <span>Call</span>
-            <span style="display: inline-flex; width: 14px; height: 14px; color: #5a6e62;">${window.renderIcon('chevronRight')}</span>
+            <svg class="support-chevron-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
           </span>
         </a>
       </div>

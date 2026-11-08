@@ -1597,12 +1597,12 @@ body {
   word-break: break-word;
 }
 
-/* ---------------- FULL VIEW LIGHTBOX (ONLY IMAGE & X UNDER, NO TEXT) ---------------- */
+/* ---------------- FULL VIEW LIGHTBOX (STRICT: ONLY IMAGE & CIRCULAR X UNDER, NO TEXT) ---------------- */
 .full-view-lightbox {
   position: fixed !important;
   inset: 0 !important;
   z-index: 2147483647 !important;
-  background-color: rgba(0, 0, 0, 0.96) !important;
+  background-color: rgba(6, 8, 10, 0.96) !important;
   backdrop-filter: blur(8px);
   display: flex !important;
   flex-direction: column !important;
@@ -1612,6 +1612,7 @@ body {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.18s ease;
+  box-sizing: border-box !important;
 }
 
 .full-view-lightbox.active {
@@ -1620,43 +1621,59 @@ body {
 }
 
 .full-view-img-container {
-  max-width: 94vw;
-  max-height: 82vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  user-select: none;
+  max-width: min(88vw, 760px) !important;
+  max-height: 72vh !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  user-select: none !important;
+  box-sizing: border-box !important;
 }
 
 .full-view-img {
-  max-width: 100%;
-  max-height: 80vh;
-  object-fit: contain;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-color);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.85);
-  display: block;
+  max-width: 100% !important;
+  max-height: 72vh !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  border-radius: var(--radius-sm) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: none !important;
+  display: block !important;
+  background-color: #07090c !important;
 }
 
 .full-view-close-under {
-  margin-top: 16px;
-  width: 44px;
-  height: 44px;
-  background-color: #14151a;
-  border: 1px solid var(--border-strong);
-  color: #fff;
-  border-radius: var(--radius-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: var(--transition-fast);
+  margin-top: 16px !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  background-color: #14151a !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.45) !important;
+  color: #fff !important;
+  border-radius: var(--radius-full) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  flex-shrink: 0 !important;
+  transition: var(--transition-fast) !important;
 }
 
 .full-view-close-under:hover {
-  background-color: var(--status-danger);
-  border-color: var(--status-danger);
-  color: #fff;
+  background-color: var(--status-danger) !important;
+  border-color: var(--status-danger) !important;
+  color: #fff !important;
+}
+
+.full-view-close-under .svg-icon {
+  width: 20px !important;
+  height: 20px !important;
+  stroke: #ffffff !important;
+  stroke-width: 2.2 !important;
 }
 
 /* ---------------- ORDER SELECTION MODAL (WHATSAPP OR ONLINE) ---------------- */
@@ -5529,9 +5546,37 @@ body:not(.admin-body) .details-sub-images-track::-webkit-scrollbar-track {
   gap: 10px;
 }
 
-.account-support-btn .svg-icon {
+.account-support-btn .support-left .svg-icon {
   width: 20px;
   height: 20px;
+}
+
+.account-support-btn .support-action-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 0.82rem !important;
+  color: #5a6e62 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+.account-support-btn .support-action-link span {
+  display: inline-block !important;
+  line-height: 1 !important;
+}
+
+.account-support-btn .support-chevron-svg {
+  width: 14px !important;
+  height: 14px !important;
+  min-width: 14px !important;
+  min-height: 14px !important;
+  display: inline-block !important;
+  color: #5a6e62 !important;
+  stroke: currentColor !important;
+  stroke-width: 2.5 !important;
+  vertical-align: middle !important;
+  flex-shrink: 0 !important;
 }
 
 /* ---------------- 9. BOTTOM APP NAVIGATION BAR (5 TABS) ---------------- */
@@ -5659,7 +5704,7 @@ body:not(.admin-body) .details-sub-images-track::-webkit-scrollbar-track {
 
 @media (min-width: 900px) {
   .floating-whatsapp-btn {
-    bottom: 24px !important;
+    bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important;
     right: 24px !important;
     width: 54px !important;
     height: 54px !important;
