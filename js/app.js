@@ -667,8 +667,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         gridBtn.classList.add('active');
       }
     }
+    updateCardFooterLayouts();
   }
   window.switchProductView = applyProductView;
+
+  function updateCardFooterLayouts() {
+    const cards = document.querySelectorAll('.product-card');
+    cards.forEach(card => {
+      const price = card.querySelector('.product-card-price');
+      const btn = card.querySelector('.btn-add-to-cart');
+      if (price && btn) {
+        const priceRect = price.getBoundingClientRect();
+        const btnRect = btn.getBoundingClientRect();
+        // If button is on a line below the price (vertical stacking)
+        const isVertical = (btnRect.top - priceRect.top) > 10;
+        if (isVertical) {
+          card.classList.add('footer-vertical');
+        } else {
+          card.classList.remove('footer-vertical');
+        }
+      }
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    requestAnimationFrame(updateCardFooterLayouts);
+  });
 
   function initViewToggle() {
     const gridBtn = document.getElementById('viewGridBtn');
@@ -835,7 +859,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           <div class="product-card-content">
             <h3 class="product-card-title">${window.CustomModal.escape(prod.title)}</h3>
-            <p class="product-card-desc" style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; font-size: clamp(0.74rem, 2vw, 0.85rem); color: #5a6e62; line-height: 1.4; margin: 3px 0 6px 0; visibility: visible; opacity: 1;">${window.CustomModal.escape(prodDesc)}</p>
+            <p class="product-card-desc">${window.CustomModal.escape(prodDesc)}</p>
             <div class="product-card-footer">
               <span class="product-card-price">${window.formatNaira(prod.price)}</span>
               <button class="btn btn-add-to-cart" type="button" data-id="${prod.id}" title="Add to Cart">
@@ -911,8 +935,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     });
 
-    // Ensure list-view/grid-view class is accurately synced
+    // Ensure list-view/grid-view class is accurately synced and footer layout measured
     applyProductView(state.currentView);
+    requestAnimationFrame(updateCardFooterLayouts);
   }
 
   function updateSeeMoreButton() {

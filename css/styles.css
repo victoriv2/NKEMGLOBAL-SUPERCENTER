@@ -1019,14 +1019,7 @@ body {
 }
 
 .product-card-desc {
-  font-size: var(--font-xs);
-  color: var(--text-muted);
-  line-height: 1.45;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  flex: 1;
+  display: none;
 }
 
 .product-card-footer {
@@ -1114,7 +1107,14 @@ body {
 }
 
 .product-grid.list-view .product-card-desc {
-  -webkit-line-clamp: 3;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: clamp(0.74rem, 2vw, 0.82rem);
+  color: #5a6e62;
+  line-height: 1.35;
+  margin: 3px 0 5px 0;
 }
 
 .product-grid.list-view .product-card-footer {
@@ -1128,14 +1128,14 @@ body {
   width: auto;
 }
 
-/* List view responsiveness for smaller screens */
-@media (max-width: 540px) {
+/* List view responsiveness for smaller screens (Vertical arrangement = NO DESCRIPTION) */
+@media (max-width: 580px) {
   .product-grid.list-view .product-card {
-    min-height: 120px;
+    min-height: 110px;
   }
   .product-grid.list-view .product-card-img-wrap {
-    width: clamp(96px, 30vw, 130px);
-    min-width: clamp(96px, 30vw, 130px);
+    width: clamp(90px, 28vw, 120px);
+    min-width: clamp(90px, 28vw, 120px);
   }
   .product-grid.list-view .product-card-content {
     padding: 8px 10px;
@@ -1144,30 +1144,18 @@ body {
     font-size: var(--font-sm);
   }
   .product-grid.list-view .product-card-desc {
-    -webkit-line-clamp: 2;
-    font-size: 11px;
+    display: none !important;
   }
-  .product-grid.list-view .product-card-price {
-    font-size: var(--font-base);
+  .product-grid.list-view .product-card-footer {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
   }
-  .product-grid.list-view .btn-order-now {
+  .product-grid.list-view .btn-order-now,
+  .product-grid.list-view .btn-add-to-cart {
+    width: 100% !important;
     padding: 6px 10px;
     font-size: var(--font-xs);
-  }
-}
-
-@media (max-width: 360px) {
-  .product-grid.list-view .product-card-img-wrap {
-    width: 86px;
-    min-width: 86px;
-  }
-  .product-grid.list-view .product-card-desc {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    font-size: 10px;
-    line-height: 1.25;
   }
 }
 
@@ -2941,9 +2929,7 @@ body.admin-body .c-modal-footer {
   }
 
   .product-card-desc {
-    font-size: 0.72rem;
-    line-height: 1.35;
-    -webkit-line-clamp: 2;
+    display: none;
   }
 
   .product-card-footer {
@@ -3042,16 +3028,10 @@ body.admin-body .c-modal-footer {
 }
 
 @media (max-width: 360px) {
-  .product-grid:not(.list-view) .product-card-desc {
-    display: none;
-  }
+  .product-card-desc,
+  .product-grid:not(.list-view) .product-card-desc,
   .product-grid.list-view .product-card-desc {
-    display: -webkit-box !important;
-    -webkit-line-clamp: 2 !important;
-    -webkit-box-orient: vertical !important;
-    overflow: hidden !important;
-    visibility: visible !important;
-    opacity: 1 !important;
+    display: none !important;
   }
   .product-grid:not(.list-view) {
     gap: 6px;
@@ -5061,17 +5041,22 @@ body:not(.admin-body) .product-card-price {
   overflow: hidden !important;
 }
 
+/* Single line description when price and Add to Cart button are in a single horizontal line */
 .product-grid.list-view .product-card-desc {
-  display: -webkit-box !important;
-  -webkit-line-clamp: 3 !important;
-  -webkit-box-orient: vertical !important;
+  display: block !important;
+  white-space: nowrap !important;
   overflow: hidden !important;
-  font-size: clamp(0.74rem, 2vw, 0.85rem) !important;
+  text-overflow: ellipsis !important;
+  font-size: clamp(0.74rem, 2vw, 0.82rem) !important;
   color: #5a6e62 !important;
-  line-height: 1.4 !important;
-  margin: 3px 0 6px 0 !important;
-  visibility: visible !important;
-  opacity: 1 !important;
+  line-height: 1.35 !important;
+  margin: 3px 0 5px 0 !important;
+}
+
+/* When price and button are vertically arranged (stacked) in grid or list: NO DESCRIPTION */
+.product-card.footer-vertical .product-card-desc,
+.product-grid:not(.list-view) .product-card-desc {
+  display: none !important;
 }
 
 .product-grid.list-view .product-card-footer {
@@ -5083,7 +5068,6 @@ body:not(.admin-body) .product-card-price {
   margin-top: auto !important;
   padding-top: 6px !important;
   border-top: 1px solid #eef7f1 !important;
-  flex-wrap: wrap !important;
 }
 
 .product-grid.list-view .product-card-price {
@@ -5099,34 +5083,33 @@ body:not(.admin-body) .product-card-price {
   font-size: clamp(0.72rem, 2vw, 0.82rem) !important;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 580px) {
   .product-grid.list-view .product-card {
-    min-height: 120px !important;
+    min-height: 110px !important;
   }
   .product-grid.list-view .product-card-img-wrap {
-    width: 100px !important;
-    min-width: 100px !important;
-    max-width: 100px !important;
+    width: clamp(90px, 28vw, 120px) !important;
+    min-width: clamp(90px, 28vw, 120px) !important;
+    max-width: clamp(90px, 28vw, 120px) !important;
   }
   .product-grid.list-view .product-card-content {
-    padding: 10px 12px !important;
-    gap: 5px !important;
+    padding: 8px 10px !important;
+    gap: 4px !important;
   }
-  .product-grid.list-view .product-card-desc {
-    display: -webkit-box !important;
-    -webkit-line-clamp: 2 !important;
-    -webkit-box-orient: vertical !important;
-    overflow: hidden !important;
-    font-size: 0.74rem !important;
-    color: #5a6e62 !important;
-    line-height: 1.35 !important;
-    margin: 2px 0 4px 0 !important;
-    visibility: visible !important;
-    opacity: 1 !important;
+  /* Vertically arranged price & Add to Cart on mobile: NO DESCRIPTION */
+  .product-grid.list-view .product-card-desc,
+  .product-card-desc {
+    display: none !important;
+  }
+  .product-grid.list-view .product-card-footer {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+    padding-top: 4px !important;
   }
   .product-grid.list-view .btn-add-to-cart {
+    width: 100% !important;
     padding: 6px 10px !important;
-    min-width: 80px !important;
     font-size: 0.72rem !important;
   }
 }
