@@ -1367,6 +1367,37 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   box-sizing: border-box;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.details-modal-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: clamp(10px, 1.8vw, 14px) clamp(14px, 2.5vw, 24px);
+  background-color: var(--bg-surface);
+  border-top: 1px solid var(--border-color);
+  flex-shrink: 0;
+  box-sizing: border-box;
+  z-index: 10;
+}
+
+.details-modal-footer .btn-primary {
+  width: 100%;
+  justify-content: center;
+  padding: 12px 16px;
+  font-weight: 800;
+  font-size: clamp(0.88rem, 2.2vw, 1rem);
+}
+
+.details-modal-footer .details-whatsapp-btn {
+  width: 100%;
+  justify-content: center;
+  padding: 11px 16px;
+  font-weight: 700;
+  font-size: clamp(0.84rem, 2vw, 0.94rem);
+  text-decoration: none;
 }
 
 .details-modal-content::-webkit-scrollbar {
@@ -2817,6 +2848,8 @@ body.admin-body .c-modal-footer {
     padding: clamp(12px, 2.5vw, 18px);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   .details-gallery-wrap {
@@ -2969,6 +3002,8 @@ body.admin-body .c-modal-footer {
   .details-modal-content {
     padding: 10px 12px;
     gap: 12px;
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   .details-gallery-wrap {
@@ -5163,6 +5198,81 @@ body:not(.admin-body) .details-sub-images-track::-webkit-scrollbar-thumb {
 
 body:not(.admin-body) .details-sub-images-track::-webkit-scrollbar-track {
   background: #edf8f2 !important;
+}
+
+body:not(.admin-body) .details-modal-footer {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  padding: clamp(10px, 1.8vw, 14px) clamp(14px, 2.5vw, 24px) !important;
+  background-color: #ffffff !important;
+  border-top: 1px solid #d1ead9 !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+  z-index: 10 !important;
+}
+
+body:not(.admin-body) .details-modal-footer .btn-primary {
+  width: 100% !important;
+  justify-content: center !important;
+  padding: 12px 16px !important;
+  font-weight: 800 !important;
+  font-size: clamp(0.88rem, 2.2vw, 1rem) !important;
+  background-color: #087f3b !important;
+  border: 1px solid #087f3b !important;
+  color: #ffffff !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+body:not(.admin-body) .details-modal-footer .btn-primary:hover:not(:disabled) {
+  background-color: #066b31 !important;
+  border-color: #066b31 !important;
+}
+
+body:not(.admin-body) .details-modal-footer .btn-primary:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+body:not(.admin-body) .details-modal-footer .details-whatsapp-btn {
+  width: 100% !important;
+  justify-content: center !important;
+  padding: 11px 16px !important;
+  font-weight: 700 !important;
+  font-size: clamp(0.84rem, 2vw, 0.94rem) !important;
+  color: #166534 !important;
+  background-color: #f7fbf8 !important;
+  border: 1px solid #25D366 !important;
+  border-radius: 8px !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+body:not(.admin-body) .details-modal-footer .details-whatsapp-btn:hover {
+  background-color: #e2f5ea !important;
+  border-color: #166534 !important;
+}
+
+@media (min-width: 680px) {
+  body:not(.admin-body) .details-modal-footer {
+    flex-direction: row !important;
+    gap: 12px !important;
+  }
+  body:not(.admin-body) .details-modal-footer .btn-primary {
+    flex: 1.2 !important;
+  }
+  body:not(.admin-body) .details-modal-footer .details-whatsapp-btn {
+    flex: 1 !important;
+  }
 }
 
 /* ---------------- 6. CART VIEW (SHOPPING CART & CHECKOUT) ---------------- */

@@ -935,19 +935,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             <span class="details-desc-heading">Product Description</span>
             <p class="details-desc-body">${window.CustomModal.escape(prod.description || 'No detailed description available.')}</p>
           </div>
-
-          <div style="margin-top: auto; padding-top: 16px; display: flex; flex-direction: column; gap: 8px;">
-            <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-weight: 800; background-color: #087f3b; border-color: #087f3b;" type="button" id="detailsAddToCartBtn" ${!prod.in_stock ? 'disabled' : ''}>
-              ${window.renderIcon('cart')}
-              <span>Add to Cart — ${window.formatNaira(prod.price)}</span>
-            </button>
-
-            <a href="https://wa.me/2347042087633?text=${encodeURIComponent(`Hello Nkem Global, I would like to order: ${prod.title} (${window.formatNaira(prod.price)}). Is this available?`)}" target="_blank" rel="noopener" class="btn btn-secondary" style="width: 100%; justify-content: center; padding: 11px; font-weight: 700; color: #166534; border-color: #25D366; text-decoration: none;">
-              ${window.renderIcon('whatsapp')}
-              <span>Order on WhatsApp</span>
-            </a>
-          </div>
         </div>
+      </div>
+
+      <!-- Floating Docked Action Bar with Solid Boundary Separator -->
+      <div class="details-modal-footer">
+        <button class="btn btn-primary" type="button" id="detailsAddToCartBtn" ${!prod.in_stock ? 'disabled' : ''}>
+          ${window.renderIcon('cart')}
+          <span>Add to Cart — ${window.formatNaira(prod.price)}</span>
+        </button>
+
+        <a href="https://wa.me/2347042087633?text=${encodeURIComponent(`Hello Nkem Global, I would like to order: ${prod.title} (${window.formatNaira(prod.price)}). Is this available?`)}" target="_blank" rel="noopener" class="btn btn-secondary details-whatsapp-btn">
+          ${window.renderIcon('whatsapp')}
+          <span>Order on WhatsApp</span>
+        </a>
       </div>
     `;
 
