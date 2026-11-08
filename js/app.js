@@ -1,32 +1,25 @@
 // Public Storefront Engine - Nkem Global
-// Enforces Zero Emojis, Zero Shadows/Glows/Gradients, Zero Hover Lifts, Custom Pickers & Modals, Click-to-Swipe Banner
+// Complete 5-Tab Architecture: Home ("Everything Dey" & 3-Col Categories), Shop (Catalog & Add to Cart),
+// Requests (Tracking Orders & Sourcing Inquiries), Cart (Quantity Steppers, State/LGA Pickers, Checkout), Account (Profile, Live Chat, WhatsApp)
 
 document.addEventListener('DOMContentLoaded', async () => {
   // App State
   const state = {
-    banners: [],
+    currentTab: 'home',
     categories: [],
     products: [],
     filteredProducts: [],
     selectedCategory: 'all',
     selectedSort: 'newest',
-    pageSize: 16,
+    pageSize: 24,
     hasMoreProducts: false,
     isLoadingMore: false,
-    currentBannerIndex: 0,
-    bannerTimer: null,
     productCardTimers: {},
-    activeProductForOrder: null,
-    currentView: localStorage.getItem('nkem_product_view') || 'grid'
+    currentView: localStorage.getItem('nkem_product_view') || 'grid',
+    cart: []
   };
 
   // DOM Elements
-  const bannerCarousel = document.getElementById('bannerCarousel');
-  const bannerTrack = document.getElementById('bannerTrack');
-  const bannerIndicators = document.getElementById('bannerIndicators');
-  const bannerCaption = document.getElementById('bannerCaption');
-  const bannerPrevBtn = document.getElementById('bannerPrevBtn');
-  const bannerNextBtn = document.getElementById('bannerNextBtn');
   const productGrid = document.getElementById('productGrid');
   const seeMoreContainer = document.getElementById('seeMoreContainer');
   const seeMoreBtn = document.getElementById('seeMoreBtn');
@@ -34,49 +27,236 @@ document.addEventListener('DOMContentLoaded', async () => {
   const sortPickerMount = document.getElementById('sortPickerMount');
   const viewGridBtn = document.getElementById('viewGridBtn');
   const viewListBtn = document.getElementById('viewListBtn');
-  const headerAuthContainer = document.getElementById('headerAuthContainer');
-  const mobileAuthContainer = document.getElementById('mobileAuthContainer');
-  const navChatBadge = document.getElementById('navChatBadge');
-  const mobChatBadge = document.getElementById('mobChatBadge');
 
   // Modals
   const detailsModalOverlay = document.getElementById('productDetailsModal');
   const fullViewLightbox = document.getElementById('fullViewLightbox');
-  const orderChoiceModal = document.getElementById('orderChoiceModal');
-  const onlineOrderModal = document.getElementById('onlineOrderModal');
+  const customRequestModal = document.getElementById('customRequestModal');
   const orderSuccessModal = document.getElementById('orderSuccessModal');
 
   /* ==========================================================================
-     1. INITIAL DATA FETCHING (Supabase with Local Fallback)
+     1. CART ENGINE (Persisted in localStorage with Live Count Bubbles)
+     ========================================================================== */
+  function getCart() {
+    try {
+      const stored = localStorage.getItem('nkem_cart');
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveCart(cart) {
+    try {
+      localStorage.setItem('nkem_cart', JSON.stringify(cart));
+    } catch (e) {}
+    state.cart = cart;
+    updateCartBadges();
+  }
+
+  function getCartCount() {
+    const cart = getCart();
+    return cart.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+  }
+
+  function getCartTotal() {
+    const cart = getCart();
+    return cart.reduce((sum, item) => sum + ((Number(item.price) || 0) * (Number(item.quantity) || 1)), 0);
+  }
+
+  function updateCartBadges() {
+    const count = getCartCount();
+    const bottomBadge = document.getElementById('bottomCartCount');
+    const deskBadge = document.getElementById('deskCartBadge');
+
+    [bottomBadge, deskBadge].forEach(b => {
+      if (!b) return;
+      if (count > 0) {
+        b.textContent = count > 99 ? '99+' : count;
+        b.style.display = 'flex';
+      } else {
+        b.style.display = 'none';
+      }
+    });
+  }
+
+  function addToCart(prod, quantity = 1) {
+    if (!prod) return;
+    const cart = getCart();
+    const existing = cart.find(item => item.id === prod.id);
+    const coverImg = Array.isArray(prod.images) && prod.images[0] ? prod.images[0] : 'assets/images/logo.png';
+
+    if (existing) {
+      existing.quantity += quantity;
+    } else {
+      cart.push({
+        id: prod.id,
+        title: prod.title,
+        price: Number(prod.price) || 0,
+        image: coverImg,
+        category: prod.category || '',
+        quantity: quantity
+      });
+    }
+
+    saveCart(cart);
+
+    window.CustomModal.toast({
+      message: `Added "${prod.title}" to Cart!`,
+      type: 'success'
+    });
+
+    if (state.currentTab === 'cart') {
+      renderCartView();
+    }
+  }
+
+  function removeFromCart(prodId) {
+    let cart = getCart();
+    cart = cart.filter(item => item.id !== prodId);
+    saveCart(cart);
+    renderCartView();
+    window.CustomModal.toast({ message: 'Item removed from cart.', type: 'info' });
+  }
+
+  function updateCartQuantity(prodId, delta) {
+    const cart = getCart();
+    const item = cart.find(i => i.id === prodId);
+    if (!item) return;
+
+    item.quantity += delta;
+    if (item.quantity <= 0) {
+      removeFromCart(prodId);
+      return;
+    }
+    saveCart(cart);
+    renderCartView();
+  }
+
+  function clearCart() {
+    saveCart([]);
+    renderCartView();
+    window.CustomModal.toast({ message: 'Cart cleared.', type: 'info' });
+  }
+
+  /* ==========================================================================
+     2. SPA TAB NAVIGATION (Home, Shop, Requests, Cart, Account)
+     ========================================================================== */
+  window.switchAppTab = function(tabName, categoryToFilter = null) {
+    if (!tabName) tabName = 'home';
+    state.currentTab = tabName;
+
+    // Update bottom navigation bar
+    document.querySelectorAll('.bottom-nav-item').forEach(btn => {
+      if (btn.getAttribute('data-tab') === tabName) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    // Update desktop navigation
+    document.querySelectorAll('.desktop-nav-btn').forEach(btn => {
+      if (btn.getAttribute('data-tab') === tabName) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    // Show active view container, hide others
+    const views = {
+      home: document.getElementById('viewHome'),
+      shop: document.getElementById('viewShop'),
+      requests: document.getElementById('viewRequests'),
+      cart: document.getElementById('viewCart'),
+      account: document.getElementById('viewAccount')
+    };
+
+    Object.keys(views).forEach(key => {
+      const v = views[key];
+      if (!v) return;
+      if (key === tabName) {
+        v.classList.add('active');
+        v.style.display = 'block';
+      } else {
+        v.classList.remove('active');
+        v.style.display = 'none';
+      }
+    });
+
+    // Category filter override from Home Category Click
+    if (categoryToFilter) {
+      state.selectedCategory = categoryToFilter;
+    }
+
+    // Tab-specific rendering
+    if (tabName === 'home') {
+      renderHomeCategories();
+    } else if (tabName === 'shop') {
+      renderShopCategoryPills();
+      applyFiltersAndSort();
+    } else if (tabName === 'cart') {
+      renderCartView();
+    } else if (tabName === 'requests') {
+      renderRequestsView();
+    } else if (tabName === 'account') {
+      renderAccountView();
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    try {
+      history.replaceState(null, '', '#' + tabName);
+    } catch (e) {}
+  };
+
+  function initTabListeners() {
+    // Bottom nav bar tabs
+    document.querySelectorAll('.bottom-nav-item').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const tab = btn.getAttribute('data-tab');
+        window.switchAppTab(tab);
+      });
+    });
+
+    // Desktop nav buttons
+    document.querySelectorAll('.desktop-nav-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const tab = btn.getAttribute('data-tab');
+        window.switchAppTab(tab);
+      });
+    });
+  }
+
+  /* ==========================================================================
+     3. INITIAL DATA FETCHING (Supabase with Local Preload)
      ========================================================================== */
   async function loadInitialData() {
-    // 0ms INSTANT RENDER FROM LOCAL CACHE:
-    // Display banners, categories, and catalog in 0ms so page never sits empty or waits for slow network
+    // 0ms INSTANT RENDER FROM LOCAL CACHE
     try {
-      const cachedBanners = window.SupabaseService.getLocalBanners ? window.SupabaseService.getLocalBanners() : [];
       const cachedCategories = window.SupabaseService.getLocalCategories ? window.SupabaseService.getLocalCategories() : [];
       const cachedProducts = window.SupabaseService.getLocalProducts ? window.SupabaseService.getLocalProducts() : [];
 
-      if (cachedBanners.length > 0) state.banners = cachedBanners;
       if (cachedCategories.length > 0) state.categories = cachedCategories;
       if (cachedProducts.length > 0) state.products = cachedProducts;
 
-      if (state.banners.length > 0 || state.products.length > 0) {
-        initBanners();
-        renderHomeCategories();
-        initToolbars();
-        initSeeMore();
-        applyFiltersAndSort();
-        renderUserAuthHeader();
-        checkUnreadMessages();
-      }
+      renderHomeCategories();
+      renderShopCategoryPills();
+      initToolbars();
+      initSeeMore();
+      applyFiltersAndSort();
+      updateCartBadges();
+      checkUnreadMessages();
     } catch (e) {
-      console.warn('Local cache preload notice:', e);
+      console.warn('Preload notice:', e);
     }
 
+    // Fresh fetch from Supabase
     try {
-      const [banners, categories, products] = await Promise.all([
-        window.SupabaseService.getBanners(),
+      const [categories, products] = await Promise.all([
         window.SupabaseService.getCategories(),
         window.SupabaseService.getProducts({
           limit: state.pageSize,
@@ -86,419 +266,393 @@ document.addEventListener('DOMContentLoaded', async () => {
         })
       ]);
 
-      if (banners && banners.length > 0) state.banners = banners;
       if (categories && categories.length > 0) state.categories = categories;
       if (products && products.length > 0) state.products = products;
       state.hasMoreProducts = Array.isArray(products) && products.length === state.pageSize;
 
-      initBanners();
       renderHomeCategories();
+      renderShopCategoryPills();
       initToolbars();
       initSeeMore();
       applyFiltersAndSort();
-      renderUserAuthHeader();
+      updateCartBadges();
       checkUnreadMessages();
-
-      // Free-tier bandwidth protection: poll unread badge every 15s ONLY if tab is active and user is logged in
-      setInterval(() => {
-        if (!document.hidden && window.SupabaseService.getCurrentUser()) {
-          checkUnreadMessages();
-        }
-      }, 15000);
-
-      // Instantly refresh when returning to tab
-      document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && window.SupabaseService.getCurrentUser()) {
-          checkUnreadMessages();
-        }
-      });
     } catch (err) {
-      console.error('Failed to load initial data:', err);
+      console.warn('Supabase fetch notice (using cache):', err);
     }
   }
 
-  // Reactive updates on sign-in / sign-out
-  window.addEventListener('nkem_auth_changed', () => {
-    renderUserAuthHeader();
-    checkUnreadMessages();
-  });
-
   /* ==========================================================================
-     2. HERO BANNER SLIDER (Logo Banners, Click/Drag to Swipe, 2s Auto-Slide)
+     4. HOME VIEW: "EVERYTHING DEY" SOURCING REQUEST & 3-COL CATEGORIES
      ========================================================================== */
-  function initBanners() {
-    if (!state.banners || state.banners.length === 0) {
-      // Fallback logo banners if empty
-      state.banners = [
-        {
-          id: 'banner-1',
-          image_url: 'assets/images/logo.jpeg',
-          caption: 'Welcome to Nkem Global — Quality Products & Express Nationwide Delivery',
-          sort_order: 1
-        },
-        {
-          id: 'banner-2',
-          image_url: 'assets/images/logo.jpeg',
-          caption: 'Direct Orders & Customer Inquiries via WhatsApp & Online Portal',
-          sort_order: 2
-        }
-      ];
-    }
+  function initHeroRequestForm() {
+    const form = document.getElementById('heroRequestForm');
+    const input = document.getElementById('heroRequestInput');
+    if (!form || !input) return;
 
-    bannerTrack.innerHTML = state.banners.map((b, idx) => `
-      <div class="banner-slide" data-idx="${idx}">
-        <img class="banner-img" src="${b.image_url}" alt="Nkem Global Banner ${idx + 1}" draggable="false" />
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const query = input.value.trim();
+      if (!query) {
+        window.CustomModal.toast({ message: 'Please type what you are looking for.', type: 'info' });
+        input.focus();
+        return;
+      }
+      openCustomSourcingRequestModal(query);
+    });
+  }
+
+  function openCustomSourcingRequestModal(itemQuery) {
+    if (!customRequestModal) return;
+    const body = document.getElementById('customRequestModalBody');
+    if (!body) return;
+
+    const activeUser = window.SupabaseService.getActiveUser ? window.SupabaseService.getActiveUser() : {};
+
+    body.innerHTML = `
+      <div style="background: #e8f7ee; padding: 14px 16px; border-radius: 10px; border: 1.5px solid #d1ead9; margin-bottom: 16px;">
+        <div style="font-size: 0.74rem; font-weight: 800; color: #087f3b; text-transform: uppercase; letter-spacing: 0.04em;">You Are Requesting:</div>
+        <div style="font-size: 1.15rem; font-weight: 900; color: #064e26; margin-top: 3px;">${window.CustomModal.escape(itemQuery)}</div>
+        <div style="font-size: 0.78rem; color: #5a6e62; margin-top: 4px;">Our procurement team will send you 2 best options with photos within 30 minutes!</div>
       </div>
-    `).join('');
 
-    bannerIndicators.innerHTML = state.banners.map((_, idx) => `
-      <div class="banner-dot ${idx === 0 ? 'active' : ''}" data-idx="${idx}"></div>
-    `).join('');
+      <form id="customSourcingForm" autocomplete="on">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+          <div class="c-input-group">
+            <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">Your Name *</label>
+            <input type="text" class="c-input" id="reqUserName" placeholder="First and Last name" required value="${window.CustomModal.escape(activeUser.name || '')}" style="padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1ead9; background: #ffffff;" />
+          </div>
+          <div class="c-input-group">
+            <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">WhatsApp Number *</label>
+            <input type="tel" class="c-input" id="reqUserWhatsApp" placeholder="e.g. 08012345678" required value="${window.CustomModal.escape(activeUser.whatsapp_number || activeUser.phone || '')}" style="padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1ead9; background: #ffffff;" />
+          </div>
+        </div>
 
-    bannerIndicators.querySelectorAll('.banner-dot').forEach(dot => {
-      dot.addEventListener('click', () => {
-        goToBanner(parseInt(dot.getAttribute('data-idx'), 10));
-        resetBannerTimer();
+        <div class="c-input-group" style="margin-bottom: 14px;">
+          <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">Target Budget / Specific Details (Optional)</label>
+          <input type="text" class="c-input" id="reqUserNotes" placeholder="e.g. Budget ₦250k, Brand new, Size 42, Black color" style="padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1ead9; background: #ffffff;" />
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+          <button type="submit" class="btn btn-primary" id="submitSourcingBtn" style="width: 100%; justify-content: center; padding: 12px; font-weight: 800; background-color: #087f3b; border-color: #087f3b;">
+            ${window.renderIcon('send')}
+            <span>Submit Sourcing Request (Within 30 Mins)</span>
+          </button>
+
+          <a href="https://wa.me/2347042087633?text=${encodeURIComponent(`Hello Nkem Global, I am requesting: ${itemQuery}. Please send me 2 best options with pictures within 30 minutes!`)}" target="_blank" rel="noopener" class="btn btn-secondary" style="width: 100%; justify-content: center; padding: 11px; font-weight: 700; color: #166534; border-color: #25D366; text-decoration: none;">
+            ${window.renderIcon('whatsapp')}
+            <span>Send Directly on WhatsApp</span>
+          </a>
+        </div>
+      </form>
+    `;
+
+    const closeBtn = customRequestModal.querySelector('#closeCustomRequestBtn');
+    const closeModal = () => customRequestModal.classList.remove('active');
+    if (closeBtn) closeBtn.onclick = closeModal;
+
+    const form = body.querySelector('#customSourcingForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const userName = body.querySelector('#reqUserName').value.trim();
+      const userPhone = body.querySelector('#reqUserWhatsApp').value.trim();
+      const userNotes = body.querySelector('#reqUserNotes').value.trim();
+
+      if (!userName || !userPhone) {
+        window.CustomModal.toast({ message: 'Please provide your name and WhatsApp number.', type: 'danger' });
+        return;
+      }
+
+      const submitBtn = body.querySelector('#submitSourcingBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `
+        <span class="spinner" style="display:inline-block; width:16px; height:16px; border:2px solid #ffffff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:6px;"></span>
+        <span>Submitting Request...</span>
+      `;
+
+      const reqId = `req-${Date.now()}`;
+      const code = `NKG-REQ-${Date.now()}`;
+      const title = `Sourcing Request: ${itemQuery}${userNotes ? ` (${userNotes})` : ''}`;
+
+      const orderData = {
+        id: reqId,
+        retrieval_code: code,
+        user_id: activeUser.id || null,
+        product_id: 'custom-sourcing',
+        product_title: title,
+        product_price: 0,
+        product_image: 'assets/images/logo.png',
+        first_name: userName.split(' ')[0] || userName,
+        last_name: userName.split(' ')[1] || '',
+        whatsapp_number: userPhone,
+        status: 'pending',
+        created_at: new Date().toISOString()
+      };
+
+      try {
+        await window.SupabaseService.createOrder(orderData);
+      } catch (err) {}
+
+      closeModal();
+      window.CustomModal.toast({
+        message: 'Request submitted! Our team will send 2 options within 30 mins.',
+        type: 'success'
       });
+
+      // Navigate to Requests tab
+      window.switchAppTab('requests');
     });
 
-    if (bannerPrevBtn) {
-      bannerPrevBtn.addEventListener('click', () => {
-        prevBanner();
-        resetBannerTimer();
-      });
-    }
-
-    if (bannerNextBtn) {
-      bannerNextBtn.addEventListener('click', () => {
-        nextBanner();
-        resetBannerTimer();
-      });
-    }
-
-    // DESKTOP & MOBILE CLICK-TO-SWIPE (No hover to swipe)
-    initBannerSwipeGestures();
-
-    updateBannerUI();
-    startBannerTimer();
+    customRequestModal.classList.add('active');
   }
 
-  function initBannerSwipeGestures() {
-    if (!bannerCarousel) return;
-
-    let startX = 0;
-    let startY = 0;
-    let currentX = 0;
-    let currentY = 0;
-    let isSwiping = false;
-
-    // Touch events only (Mobile & Tablet Touch Gestures - mouse users use arrow buttons / dots)
-    bannerCarousel.addEventListener('touchstart', (e) => {
-      if (e.target.closest('.banner-arrow-btn') || e.target.closest('.banner-indicators')) return;
-      if (e.touches && e.touches.length > 0) {
-        isSwiping = true;
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        currentX = startX;
-        currentY = startY;
-      }
-    }, { passive: true });
-
-    bannerCarousel.addEventListener('touchmove', (e) => {
-      if (!isSwiping || !e.touches || e.touches.length === 0) return;
-      currentX = e.touches[0].clientX;
-      currentY = e.touches[0].clientY;
-    }, { passive: true });
-
-    bannerCarousel.addEventListener('touchend', () => {
-      if (!isSwiping) return;
-      isSwiping = false;
-      const diffX = currentX - startX;
-      const diffY = currentY - startY;
-
-      // Ensure horizontal swipe is distinct and greater than vertical movement
-      if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
-        if (diffX < 0) {
-          nextBanner();
-        } else {
-          prevBanner();
-        }
-        resetBannerTimer();
-      }
-    }, { passive: true });
-  }
-
-  function goToBanner(index) {
-    if (state.banners.length === 0) return;
-    if (index >= state.banners.length) {
-      state.currentBannerIndex = 0; // Loop back to start
-    } else if (index < 0) {
-      state.currentBannerIndex = state.banners.length - 1;
-    } else {
-      state.currentBannerIndex = index;
-    }
-    updateBannerUI();
-  }
-
-  function nextBanner() {
-    goToBanner(state.currentBannerIndex + 1);
-  }
-
-  function prevBanner() {
-    goToBanner(state.currentBannerIndex - 1);
-  }
-
-  function updateBannerUI() {
-    bannerTrack.style.transform = `translateX(-${state.currentBannerIndex * 100}%)`;
-    
-    // Update Indicators
-    bannerIndicators.querySelectorAll('.banner-dot').forEach((dot, idx) => {
-      dot.classList.toggle('active', idx === state.currentBannerIndex);
-    });
-
-    // Update Caption
-    const currentBanner = state.banners[state.currentBannerIndex];
-    if (currentBanner && bannerCaption) {
-      bannerCaption.innerHTML = currentBanner.caption 
-        ? `<span>${window.CustomModal.escape(currentBanner.caption)}</span>` 
-        : `<span>Welcome to Nkem Global</span> — Quality Products & Orders`;
-    }
-  }
-
-  function startBannerTimer() {
-    clearInterval(state.bannerTimer);
-    // Auto slide every 2 seconds
-    state.bannerTimer = setInterval(() => {
-      nextBanner();
-    }, 2000);
-  }
-
-  function resetBannerTimer() {
-    clearInterval(state.bannerTimer);
-    startBannerTimer();
-  }
-
-  /* ==========================================================================
-     HOME CATEGORIES GRID (Rendered from Supabase / Seed)
-     ========================================================================== */
   function renderHomeCategories() {
     const grid = document.getElementById('homeCategoriesGrid');
     if (!grid) return;
 
-    if (!state.categories || state.categories.length === 0) {
-      grid.innerHTML = '';
+    const categories = state.categories || [];
+    if (categories.length === 0) {
+      grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: #5a6e62;">Loading categories...</div>';
       return;
     }
 
-    grid.innerHTML = state.categories.map(c => {
-      const isActive = state.selectedCategory === c.id;
-      const img = c.image_url || 'assets/images/logo.jpeg';
-      const safeName = window.CustomModal ? window.CustomModal.escape(c.name) : c.name;
+    grid.innerHTML = categories.map(c => {
+      const img = c.image_url || 'assets/images/logo.png';
       return `
-        <div class="home-category-card ${isActive ? 'active' : ''}" data-cat-id="${c.id}" tabindex="0" role="button" aria-label="${safeName}">
+        <div class="home-category-card" data-cat-name="${window.CustomModal.escape(c.name)}" role="button" tabindex="0">
           <div class="home-category-img-wrap">
-            <img src="${img}" alt="${safeName}" class="home-category-img" loading="lazy" />
+            <img class="home-category-img" src="${img}" alt="${window.CustomModal.escape(c.name)}" loading="lazy" />
           </div>
-          <span class="home-category-title">${safeName}</span>
+          <span class="home-category-title">${window.CustomModal.escape(c.name)}</span>
         </div>
       `;
     }).join('');
 
     grid.querySelectorAll('.home-category-card').forEach(card => {
-      card.addEventListener('click', () => {
-        const catId = card.getAttribute('data-cat-id');
-        if (state.selectedCategory === catId) {
-          state.selectedCategory = 'all';
-        } else {
-          state.selectedCategory = catId;
-        }
-
-        if (categoryPickerInstance) {
-          categoryPickerInstance.setValue(state.selectedCategory);
-        }
-
-        renderHomeCategories();
-        reloadProducts();
-
-        const catalogEl = document.getElementById('catalogSection');
-        if (catalogEl) {
-          catalogEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const handleClick = () => {
+        const catName = card.getAttribute('data-cat-name');
+        window.switchAppTab('shop', catName);
+      };
+      card.addEventListener('click', handleClick);
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
         }
       });
     });
   }
 
   /* ==========================================================================
-     3. TOOLBARS & CUSTOM MODULAR PICKERS (Zero Native <select>)
+     5. SHOP VIEW: CATEGORY PILLS, TOOLBAR, CATALOG & ADD TO CART
      ========================================================================== */
+  function renderShopCategoryPills() {
+    const bar = document.getElementById('shopCategoryPills');
+    if (!bar) return;
+
+    const categories = state.categories || [];
+    const allPill = `
+      <button type="button" class="shop-cat-pill ${state.selectedCategory === 'all' ? 'active' : ''}" data-cat="all">
+        All Products
+      </button>
+    `;
+
+    const catPills = categories.map(c => `
+      <button type="button" class="shop-cat-pill ${state.selectedCategory === c.name || state.selectedCategory === c.id ? 'active' : ''}" data-cat="${window.CustomModal.escape(c.name)}">
+        ${window.CustomModal.escape(c.name)}
+      </button>
+    `).join('');
+
+    bar.innerHTML = allPill + catPills;
+
+    bar.querySelectorAll('.shop-cat-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cat = btn.getAttribute('data-cat');
+        state.selectedCategory = cat;
+        bar.querySelectorAll('.shop-cat-pill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        // Sync with modular dropdown picker if available
+        if (categoryPickerInstance) {
+          categoryPickerInstance.setValue(cat);
+        }
+
+        applyFiltersAndSort();
+      });
+    });
+  }
+
   let categoryPickerInstance = null;
   let sortPickerInstance = null;
 
   function initToolbars() {
-    // Categories Picker
-    const categoryOptions = [
-      { value: 'all', label: 'All Categories' },
-      ...state.categories.map(c => ({ value: c.id, label: c.name }))
-    ];
+    if (categoryPickerMount && window.CustomPicker && !categoryPickerInstance) {
+      const opts = [
+        { value: 'all', label: 'All Categories' },
+        ...(state.categories.map(c => ({ value: c.name, label: c.name })))
+      ];
 
-    categoryPickerInstance = window.CustomPicker.create({
-      container: categoryPickerMount,
-      id: 'customCategoryPicker',
-      title: 'Filter by Category',
-      options: categoryOptions,
-      value: state.selectedCategory,
-      placeholder: 'All Categories',
-      onChange: (val) => {
-        state.selectedCategory = val;
-        renderHomeCategories();
-        reloadProducts();
-      }
-    });
+      categoryPickerInstance = new window.CustomPicker(categoryPickerMount, {
+        title: 'Filter by Category',
+        options: opts,
+        value: state.selectedCategory,
+        placeholder: 'All Categories',
+        searchable: true,
+        onChange: (val) => {
+          state.selectedCategory = val;
+          renderShopCategoryPills();
+          applyFiltersAndSort();
+        }
+      });
+    }
 
-    // Sort Picker
-    const sortOptions = [
-      { value: 'newest', label: 'Newest to Oldest' },
-      { value: 'oldest', label: 'Oldest to Newest' },
-      { value: 'price_low', label: 'Price: Low to High' },
-      { value: 'price_high', label: 'Price: High to Low' },
-      { value: 'name_asc', label: 'Name: A to Z' }
-    ];
+    if (sortPickerMount && window.CustomPicker && !sortPickerInstance) {
+      const sortOpts = [
+        { value: 'newest', label: 'Newest Arrivals' },
+        { value: 'price_asc', label: 'Price: Low to High' },
+        { value: 'price_desc', label: 'Price: High to Low' }
+      ];
 
-    sortPickerInstance = window.CustomPicker.create({
-      container: sortPickerMount,
-      id: 'customSortPicker',
-      title: 'Sort Products',
-      options: sortOptions,
-      value: state.selectedSort,
-      placeholder: 'Sort By...',
-      onChange: (val) => {
-        state.selectedSort = val;
-        reloadProducts();
-      }
-    });
+      sortPickerInstance = new window.CustomPicker(sortPickerMount, {
+        title: 'Sort Catalog By',
+        options: sortOpts,
+        value: state.selectedSort,
+        placeholder: 'Sort By',
+        searchable: false,
+        onChange: (val) => {
+          state.selectedSort = val;
+          applyFiltersAndSort();
+        }
+      });
+    }
+
+    // Search input listener
+    const searchInput = document.getElementById('shopSearchInput');
+    if (searchInput && !searchInput._hasListener) {
+      searchInput._hasListener = true;
+      searchInput.addEventListener('input', () => {
+        applyFiltersAndSort();
+      });
+    }
 
     initViewToggle();
   }
 
-  /* ---------------- Grid / List View Arrangement Toggle ---------------- */
   function applyProductView(view) {
     state.currentView = view;
     try {
       localStorage.setItem('nkem_product_view', view);
-    } catch (_) {}
+    } catch (e) {}
 
-    if (view === 'list') {
-      productGrid.classList.add('list-view');
-      if (viewListBtn) viewListBtn.classList.add('active');
-      if (viewGridBtn) viewGridBtn.classList.remove('active');
-    } else {
-      productGrid.classList.remove('list-view');
-      if (viewGridBtn) viewGridBtn.classList.add('active');
-      if (viewListBtn) viewListBtn.classList.remove('active');
+    if (productGrid) {
+      if (view === 'list') {
+        productGrid.classList.add('list-view');
+      } else {
+        productGrid.classList.remove('list-view');
+      }
+    }
+
+    if (viewGridBtn && viewListBtn) {
+      if (view === 'list') {
+        viewGridBtn.classList.remove('active');
+        viewListBtn.classList.add('active');
+      } else {
+        viewListBtn.classList.remove('active');
+        viewGridBtn.classList.add('active');
+      }
     }
   }
 
   function initViewToggle() {
-    if (viewGridBtn) {
+    if (viewGridBtn && viewListBtn) {
       viewGridBtn.addEventListener('click', () => applyProductView('grid'));
-    }
-    if (viewListBtn) {
       viewListBtn.addEventListener('click', () => applyProductView('list'));
     }
-    // Default or stored view state
     applyProductView(state.currentView);
-  }
-
-  async function reloadProducts() {
-    state.products = [];
-    state.filteredProducts = [];
-    state.hasMoreProducts = false;
-    updateSeeMoreButton();
-
-    productGrid.innerHTML = `
-      <div style="grid-column: 1/-1; text-align: center; padding: 48px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
-        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 24px; height: 24px; color: var(--accent-gold); animation: spin 0.8s linear infinite; display: inline-block;"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
-        <p style="color: var(--text-muted); font-size: var(--font-sm); margin-top: 10px;">Loading collection...</p>
-      </div>
-    `;
-
-    try {
-      const prods = await window.SupabaseService.getProducts({
-        limit: state.pageSize,
-        offset: 0,
-        categoryId: state.selectedCategory,
-        sort: state.selectedSort
-      });
-
-      state.products = prods || [];
-      state.filteredProducts = [...state.products];
-      state.hasMoreProducts = Array.isArray(prods) && prods.length === state.pageSize;
-    } catch (err) {
-      console.error('Failed to reload products:', err);
-    }
-
-    renderProductGrid();
-    updateSeeMoreButton();
   }
 
   function applyFiltersAndSort() {
     let prods = [...state.products];
 
-    // Category filter
-    if (state.selectedCategory !== 'all') {
-      prods = prods.filter(p => p.category_id === state.selectedCategory);
+    // Filter by Category
+    if (state.selectedCategory && state.selectedCategory !== 'all') {
+      const targetCat = state.selectedCategory.toLowerCase().trim();
+      prods = prods.filter(p => {
+        const cat = (p.category || '').toLowerCase().trim();
+        return cat === targetCat || cat.includes(targetCat) || targetCat.includes(cat);
+      });
+    }
+
+    // Filter by Search Query
+    const searchInput = document.getElementById('shopSearchInput');
+    const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    if (query) {
+      prods = prods.filter(p => {
+        const title = (p.title || '').toLowerCase();
+        const desc = (p.description || '').toLowerCase();
+        const cat = (p.category || '').toLowerCase();
+        return title.includes(query) || desc.includes(query) || cat.includes(query);
+      });
     }
 
     // Sort
-    if (state.selectedSort === 'newest') {
-      prods.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-    } else if (state.selectedSort === 'oldest') {
-      prods.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
-    } else if (state.selectedSort === 'price_low') {
+    if (state.selectedSort === 'price_asc') {
       prods.sort((a, b) => Number(a.price) - Number(b.price));
-    } else if (state.selectedSort === 'price_high') {
+    } else if (state.selectedSort === 'price_desc') {
       prods.sort((a, b) => Number(b.price) - Number(a.price));
-    } else if (state.selectedSort === 'name_asc') {
-      prods.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    } else {
+      prods.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
     }
 
     state.filteredProducts = prods;
     renderProductGrid();
+    updateSeeMoreButton();
   }
 
-  /* ==========================================================================
-     4. PRODUCT GRID & CARDS (2s Auto-Slide on Multi-Image Cards)
-     ========================================================================== */
   function renderProductGrid() {
-    // Clear old card timers
-    Object.values(state.productCardTimers).forEach(t => clearInterval(t));
+    if (!productGrid) return;
+
+    // Clear card image timers
+    Object.values(state.productCardTimers).forEach(timer => clearInterval(timer));
     state.productCardTimers = {};
 
     if (state.filteredProducts.length === 0) {
       productGrid.innerHTML = `
-        <div style="grid-column: 1/-1; text-align: center; padding: 48px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
-          <p style="color: var(--text-muted); font-size: var(--font-base);">No products found matching your selection.</p>
+        <div class="empty-state-card" style="grid-column: 1 / -1; text-align: center; padding: 40px 20px; background: #ffffff; border-radius: 14px; border: 1px solid #d1ead9;">
+          <h4 style="color: #073b1f; font-size: 1.15rem; font-weight: 800; margin-bottom: 6px;">No matching products found</h4>
+          <p style="color: #5a6e62; font-size: 0.88rem; margin-bottom: 14px;">Try selecting another category or typing another search keyword.</p>
+          <button class="btn btn-primary" type="button" id="resetFiltersBtn" style="padding: 10px 20px;">
+            <span>View All Products</span>
+          </button>
         </div>
       `;
-      updateSeeMoreButton();
+
+      productGrid.querySelector('#resetFiltersBtn')?.addEventListener('click', () => {
+        state.selectedCategory = 'all';
+        const searchInput = document.getElementById('shopSearchInput');
+        if (searchInput) searchInput.value = '';
+        renderShopCategoryPills();
+        if (categoryPickerInstance) categoryPickerInstance.setValue('all');
+        applyFiltersAndSort();
+      });
       return;
     }
 
     productGrid.innerHTML = state.filteredProducts.map(prod => {
       const images = Array.isArray(prod.images) && prod.images.length > 0 
         ? prod.images 
-        : ['assets/images/logo.jpeg'];
-      
+        : ['assets/images/logo.png'];
       const hasMultipleImages = images.length > 1;
 
       return `
-        <article class="product-card" data-id="${prod.id}">
+        <article class="product-card" data-prod-id="${prod.id}" tabindex="0">
           <div class="product-card-img-wrap" data-prod-id="${prod.id}">
-            ${images.map((imgSrc, i) => `
+            ${images.map((img, i) => `
               <img class="product-card-img-slide ${i === 0 ? 'active' : ''}" 
-                   src="${imgSrc}" 
+                   src="${img}" 
                    alt="${window.CustomModal.escape(prod.title)} View ${i + 1}" 
-                   data-slide-idx="${i}" />
+                   data-slide-idx="${i}" 
+                   loading="lazy" />
             `).join('')}
 
             <span class="product-card-badge ${prod.in_stock ? 'in-stock' : 'out-of-stock'}">
@@ -517,9 +671,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             <p class="product-card-desc">${window.CustomModal.escape(prod.description)}</p>
             <div class="product-card-footer">
               <span class="product-card-price">${window.formatNaira(prod.price)}</span>
-              <button class="btn btn-order-now btn-card-order" type="button" data-id="${prod.id}">
-                ${window.renderIcon('orderNow')}
-                <span>Order Now</span>
+              <button class="btn btn-add-to-cart" type="button" data-id="${prod.id}" title="Add to Cart">
+                ${window.renderIcon('cart')}
+                <span>Add to Cart</span>
               </button>
             </div>
           </div>
@@ -545,34 +699,56 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             slides[currentIdx].classList.add('active');
             if (dots[currentIdx]) dots[currentIdx].classList.add('active');
-          }, 2000); // Strict 2-second auto slide
+          }, 2000);
         }
       }
     });
 
-    // Attach card click handlers (Opens details modal)
-    productGrid.querySelectorAll('.product-card').forEach(card => {
-      card.addEventListener('click', (e) => {
-        if (e.target.closest('.btn-card-order')) {
-          e.stopPropagation();
-          const prodId = card.getAttribute('data-id');
-          openOrderChoiceFlow(prodId);
-          return;
-        }
+    // "Add to Cart" Button Clicks
+    productGrid.querySelectorAll('.btn-add-to-cart').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const prodId = btn.getAttribute('data-id');
+        const prod = state.filteredProducts.find(p => p.id === prodId) || state.products.find(p => p.id === prodId);
+        if (prod) {
+          addToCart(prod, 1);
 
-        const prodId = card.getAttribute('data-id');
-        openProductDetailsModal(prodId);
+          // Animate button state
+          const originalHtml = btn.innerHTML;
+          btn.innerHTML = `
+            ${window.renderIcon('check')}
+            <span>Added!</span>
+          `;
+          btn.style.backgroundColor = '#055c2a';
+
+          setTimeout(() => {
+            btn.innerHTML = originalHtml;
+            btn.style.backgroundColor = '';
+          }, 1200);
+        }
       });
     });
 
-    updateSeeMoreButton();
+    // Card click opens details modal
+    productGrid.querySelectorAll('.product-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.btn-add-to-cart')) return;
+        const prodId = card.getAttribute('data-prod-id');
+        openProductDetailsModal(prodId);
+      });
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const prodId = card.getAttribute('data-prod-id');
+          openProductDetailsModal(prodId);
+        }
+      });
+    });
   }
 
-  /* ---------------- Batch Pagination / See More Handler ---------------- */
   function updateSeeMoreButton() {
     if (!seeMoreContainer) return;
-    if (state.hasMoreProducts && state.filteredProducts.length > 0) {
-      seeMoreContainer.style.display = 'flex';
+    if (state.hasMoreProducts) {
+      seeMoreContainer.style.display = 'block';
     } else {
       seeMoreContainer.style.display = 'none';
     }
@@ -581,92 +757,85 @@ document.addEventListener('DOMContentLoaded', async () => {
   function initSeeMore() {
     if (!seeMoreBtn) return;
     seeMoreBtn.addEventListener('click', async () => {
-      if (state.isLoadingMore || !state.hasMoreProducts) return;
+      if (state.isLoadingMore) return;
       state.isLoadingMore = true;
       seeMoreBtn.disabled = true;
       seeMoreBtn.innerHTML = `
-        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; color: var(--accent-gold); animation: spin 0.8s linear infinite;"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
+        <span class="spinner" style="display:inline-block; width:16px; height:16px; border:2px solid #087f3b; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:6px;"></span>
         <span>Loading More Products...</span>
       `;
 
       try {
-        const offset = state.products.length;
-        const nextBatch = await window.SupabaseService.getProducts({
+        const nextProducts = await window.SupabaseService.getProducts({
           limit: state.pageSize,
-          offset: offset,
+          offset: state.products.length,
           categoryId: state.selectedCategory,
           sort: state.selectedSort
         });
 
-        if (nextBatch && nextBatch.length > 0) {
-          const newItems = nextBatch.filter(nb => !state.products.some(p => p.id === nb.id));
-          state.products = [...state.products, ...newItems];
-          state.filteredProducts = [...state.products];
-          state.hasMoreProducts = (nextBatch.length === state.pageSize);
-          renderProductGrid();
+        if (Array.isArray(nextProducts) && nextProducts.length > 0) {
+          state.products = [...state.products, ...nextProducts];
+          state.hasMoreProducts = nextProducts.length === state.pageSize;
+          applyFiltersAndSort();
         } else {
           state.hasMoreProducts = false;
+          updateSeeMoreButton();
         }
       } catch (err) {
-        console.error('Failed to load more products:', err);
+        console.error('See More notice:', err);
       } finally {
         state.isLoadingMore = false;
         seeMoreBtn.disabled = false;
         seeMoreBtn.innerHTML = `<span>See More Products</span>`;
-        updateSeeMoreButton();
       }
     });
   }
 
   /* ==========================================================================
-     5. FULL PRODUCT DETAILS MODAL (No Auto 2s Slide, Clickable Sub-Thumbnails)
+     6. PRODUCT DETAILS MODAL & FULL VIEW LIGHTBOX
      ========================================================================== */
   let currentModalSelectedImage = '';
 
   function openProductDetailsModal(prodId) {
-    const prod = state.products.find(p => p.id === prodId);
-    if (!prod) return;
+    const prod = state.products.find(p => p.id === prodId) || state.filteredProducts.find(p => p.id === prodId);
+    if (!prod || !detailsModalOverlay) return;
 
     state.activeProductForOrder = prod;
     const images = Array.isArray(prod.images) && prod.images.length > 0 
       ? prod.images 
-      : ['assets/images/logo.jpeg'];
-
+      : ['assets/images/logo.png'];
     currentModalSelectedImage = images[0];
 
     const modalContent = detailsModalOverlay.querySelector('.product-details-modal-box');
     modalContent.innerHTML = `
-      <div class="c-modal-header">
-        <h3 class="c-modal-title">Product Details</h3>
-        <button class="c-modal-close-btn" type="button" id="closeDetailsModalBtn" aria-label="Close">
+      <div class="details-modal-layout">
+        <button class="c-modal-close-btn details-close-btn" type="button" id="closeDetailsModalBtn" aria-label="Close Product Details">
           ${window.renderIcon('close')}
         </button>
-      </div>
 
-      <div class="details-modal-content">
         <div class="details-gallery-wrap">
-          <div class="details-main-img-box" id="detailsMainImgBox" title="Click to view full image">
-            <img class="details-main-img" id="detailsMainImg" src="${currentModalSelectedImage}" alt="${window.CustomModal.escape(prod.title)}" />
-            <div class="details-img-zoom-hint">
+          <div class="details-main-img-box" id="detailsMainImgContainer" title="Click to view full image in lightbox">
+            <img class="details-main-img" id="detailsMainImg" src="${images[0]}" alt="${window.CustomModal.escape(prod.title)}" />
+            <button class="details-zoom-btn" type="button" id="zoomLightboxBtn" title="Full View Lightbox">
               ${window.renderIcon('search')}
-              <span>Tap for Full View</span>
-            </div>
+            </button>
           </div>
 
-          <!-- Slideable Sub Images Under Preview (With arrows, zero native scrollbars) -->
           ${images.length > 1 ? `
             <div class="details-sub-images-wrap">
-              <button class="details-thumb-nav-btn prev" type="button" id="thumbNavPrevBtn" aria-label="Previous image">
+              <button class="details-thumb-nav-btn details-thumb-prev" type="button" id="thumbNavPrevBtn" aria-label="Previous image">
                 ${window.renderIcon('chevronLeft')}
               </button>
-              <div class="details-sub-images-track" id="detailsSubImagesTrack">
-                ${images.map((src, idx) => `
-                  <div class="details-sub-thumb ${idx === 0 ? 'active' : ''}" data-src="${src}" role="button" tabindex="0" aria-label="Thumbnail ${idx + 1}">
-                    <img src="${src}" alt="Thumb ${idx + 1}" />
-                  </div>
+              <div class="details-sub-images" id="detailsSubImagesTrack">
+                ${images.map((img, idx) => `
+                  <img class="details-sub-thumb ${idx === 0 ? 'active' : ''}" 
+                       src="${img}" 
+                       data-src="${img}" 
+                       alt="Thumbnail ${idx + 1}" 
+                       tabindex="0" />
                 `).join('')}
               </div>
-              <button class="details-thumb-nav-btn next" type="button" id="thumbNavNextBtn" aria-label="Next image">
+              <button class="details-thumb-nav-btn details-thumb-next" type="button" id="thumbNavNextBtn" aria-label="Next image">
                 ${window.renderIcon('chevronRight')}
               </button>
             </div>
@@ -689,372 +858,338 @@ document.addEventListener('DOMContentLoaded', async () => {
             <p class="details-desc-body">${window.CustomModal.escape(prod.description)}</p>
           </div>
 
-          <div style="margin-top: auto; padding-top: 16px;">
-            <button class="btn btn-order-now btn-primary" style="width: 100%; justify-content: center;" type="button" id="detailsOrderNowBtn">
-              ${window.renderIcon('orderNow')}
-              <span>Order Now — ${window.formatNaira(prod.price)}</span>
+          <div style="margin-top: auto; padding-top: 16px; display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-weight: 800; background-color: #087f3b;" type="button" id="detailsAddToCartBtn">
+              ${window.renderIcon('cart')}
+              <span>Add to Cart — ${window.formatNaira(prod.price)}</span>
             </button>
+
+            <a href="https://wa.me/2347042087633?text=${encodeURIComponent(`Hello Nkem Global, I want to order this product: ${prod.title} (${window.formatNaira(prod.price)})`)}" target="_blank" rel="noopener" class="btn btn-secondary" style="width: 100%; justify-content: center; padding: 11px; font-weight: 700; color: #166534; border-color: #25D366; text-decoration: none;">
+              ${window.renderIcon('whatsapp')}
+              <span>Order on WhatsApp</span>
+            </a>
           </div>
         </div>
       </div>
     `;
 
-    // Click sub-image to change main image
+    // Click thumbnail to change main image
     const mainImg = modalContent.querySelector('#detailsMainImg');
     const thumbs = modalContent.querySelectorAll('.details-sub-thumb');
-    const track = modalContent.querySelector('#detailsSubImagesTrack');
-    const thumbPrevBtn = modalContent.querySelector('#thumbNavPrevBtn');
-    const thumbNextBtn = modalContent.querySelector('#thumbNavNextBtn');
-
     thumbs.forEach(thumb => {
-      const selectThumb = () => {
+      thumb.addEventListener('click', () => {
         thumbs.forEach(t => t.classList.remove('active'));
         thumb.classList.add('active');
         const src = thumb.getAttribute('data-src');
         currentModalSelectedImage = src;
         mainImg.src = src;
-        thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-      };
-      thumb.addEventListener('click', selectThumb);
-      thumb.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          selectThumb();
-        }
       });
     });
 
-    // Arrow navigation for thumbnails
-    if (track && thumbPrevBtn && thumbNextBtn) {
-      thumbPrevBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        track.scrollBy({ left: -140, behavior: 'smooth' });
-      });
-      thumbNextBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        track.scrollBy({ left: 140, behavior: 'smooth' });
-      });
-    }
-
-    // Click main image -> Full View Lightbox (Only image & X under)
-    modalContent.querySelector('#detailsMainImgBox').addEventListener('click', () => {
+    // Lightbox zoom
+    const mainImgBox = modalContent.querySelector('#detailsMainImgContainer');
+    const zoomBtn = modalContent.querySelector('#zoomLightboxBtn');
+    if (mainImgBox) mainImgBox.addEventListener('click', () => openFullViewLightbox(currentModalSelectedImage));
+    if (zoomBtn) zoomBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
       openFullViewLightbox(currentModalSelectedImage);
     });
 
-    // Close Details Modal
-    modalContent.querySelector('#closeDetailsModalBtn').addEventListener('click', () => {
+    // Add to Cart
+    modalContent.querySelector('#detailsAddToCartBtn')?.addEventListener('click', () => {
+      addToCart(prod, 1);
       detailsModalOverlay.classList.remove('active');
     });
 
-    // Order Now from Details
-    modalContent.querySelector('#detailsOrderNowBtn').addEventListener('click', () => {
-      detailsModalOverlay.classList.remove('active');
-      openOrderChoiceFlow(prod.id);
-    });
+    // Close Modal
+    const closeModal = () => detailsModalOverlay.classList.remove('active');
+    modalContent.querySelector('#closeDetailsModalBtn')?.addEventListener('click', closeModal);
 
     detailsModalOverlay.classList.add('active');
   }
 
-  /* ==========================================================================
-     6. FULL VIEW LIGHTBOX (Strict Requirement: Only Image & X Under to Close, No Text)
-     ========================================================================== */
   function openFullViewLightbox(imgSrc) {
-    if (!fullViewLightbox || !imgSrc) return;
-
+    if (!fullViewLightbox) return;
     fullViewLightbox.innerHTML = `
-      <div class="full-view-img-container">
-        <img class="full-view-img" src="${imgSrc}" alt="" />
+      <div class="full-view-lightbox-inner">
+        <img class="full-view-lightbox-img" src="${imgSrc}" alt="Full size preview" />
+        <div class="full-view-lightbox-close-wrap">
+          <button class="full-view-lightbox-close-btn" type="button" id="closeLightboxBtn" aria-label="Close Lightbox">
+            ${window.renderIcon('close')}
+          </button>
+        </div>
       </div>
-      <button class="full-view-close-under" type="button" id="fullViewCloseUnderBtn" aria-label="Close View">
-        ${window.renderIcon('close')}
-      </button>
     `;
 
-    const closeBtn = fullViewLightbox.querySelector('#fullViewCloseUnderBtn');
-    const closeLightbox = () => {
-      fullViewLightbox.classList.remove('active');
-      document.removeEventListener('keydown', onEsc);
+    const closeBtn = fullViewLightbox.querySelector('#closeLightboxBtn');
+    const closeLb = () => fullViewLightbox.classList.remove('active');
+    if (closeBtn) closeBtn.onclick = closeLb;
+    fullViewLightbox.onclick = (e) => {
+      if (e.target === fullViewLightbox) closeLb();
     };
-
-    const onEsc = (e) => {
-      if (e.key === 'Escape') closeLightbox();
-    };
-    document.addEventListener('keydown', onEsc);
-
-    if (closeBtn) {
-      closeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        closeLightbox();
-      });
-    }
-
-    fullViewLightbox.addEventListener('click', (e) => {
-      if (e.target === fullViewLightbox || e.target.classList.contains('full-view-img-container')) {
-        closeLightbox();
-      }
-    });
 
     fullViewLightbox.classList.add('active');
   }
 
   /* ==========================================================================
-     7. ORDER NOW MODAL FLOW (WhatsApp vs Online Order with Custom State & LGA Pickers)
+     7. CART VIEW (Items, Totals, Delivery Info & Protected Checkout)
      ========================================================================== */
-  function openOrderChoiceFlow(prodId) {
-    const prod = state.products.find(p => p.id === prodId) || state.products[0];
-    if (!prod) return;
-    state.activeProductForOrder = prod;
+  function renderCartView() {
+    const container = document.getElementById('cartContentContainer');
+    const clearBtn = document.getElementById('cartClearBtn');
+    if (!container) return;
 
-    orderChoiceModal.innerHTML = `
-      <div class="c-modal-box">
-        <div class="c-modal-header">
-          <h3 class="c-modal-title">Select Order Method</h3>
-          <button class="c-modal-close-btn" type="button" id="closeChoiceModalBtn">
-            ${window.renderIcon('close')}
+    const cart = getCart();
+    if (cart.length === 0) {
+      if (clearBtn) clearBtn.style.display = 'none';
+      container.innerHTML = `
+        <div class="cart-empty-state">
+          <div class="cart-empty-icon">${window.renderIcon('cart')}</div>
+          <h3 class="cart-empty-title">Your Shopping Cart is Empty</h3>
+          <p class="cart-empty-sub">Explore our catalog and add the items you need to your cart.</p>
+          <button class="btn btn-primary" type="button" id="cartStartShoppingBtn" style="padding: 12px 28px; font-weight: 800; background-color: #087f3b; border-color: #087f3b;">
+            ${window.renderIcon('shop')}
+            <span>Start Shopping Now</span>
           </button>
         </div>
-        <div class="c-modal-body">
-          <p style="color: var(--text-muted); font-size: var(--font-sm); margin-bottom: 8px;">
-            Ordering: <strong style="color: var(--text-main);">${window.CustomModal.escape(prod.title)}</strong> (${window.formatNaira(prod.price)})
-          </p>
-          <div class="order-choice-box">
-            <div class="order-choice-card whatsapp" id="chooseWhatsAppBtn">
-              <div class="order-choice-icon">${window.renderIcon('whatsapp')}</div>
-              <h4 class="order-choice-title">Order via WhatsApp</h4>
-              <p class="order-choice-sub">Direct instant chat with our sales team</p>
+      `;
+      container.querySelector('#cartStartShoppingBtn')?.addEventListener('click', () => {
+        window.switchAppTab('shop');
+      });
+      return;
+    }
+
+    if (clearBtn) clearBtn.style.display = 'block';
+
+    const subtotal = getCartTotal();
+    const activeUser = window.SupabaseService.getActiveUser ? window.SupabaseService.getActiveUser() : {};
+
+    container.innerHTML = `
+      <div class="cart-items-list" id="cartItemsList">
+        ${cart.map(item => `
+          <div class="cart-item-card" data-item-id="${item.id}">
+            <img src="${item.image || 'assets/images/logo.png'}" alt="${window.CustomModal.escape(item.title)}" class="cart-item-thumb" />
+            <div class="cart-item-info">
+              <h4 class="cart-item-title">${window.CustomModal.escape(item.title)}</h4>
+              <div class="cart-item-unit-price">${window.formatNaira(item.price)} each</div>
+              <div style="font-size: 0.78rem; color: #5a6e62; margin-top: 2px;">Total: <strong style="color: #087f3b;">${window.formatNaira(item.price * item.quantity)}</strong></div>
             </div>
-            <div class="order-choice-card online" id="chooseOnlineBtn">
-              <div class="order-choice-icon">${window.renderIcon('orderNow')}</div>
-              <h4 class="order-choice-title">Order Online</h4>
-              <p class="order-choice-sub">Fill details & receive official order receipt</p>
+            <div class="cart-item-actions">
+              <div class="cart-qty-group">
+                <button type="button" class="cart-qty-btn cart-qty-minus" data-id="${item.id}" aria-label="Decrease quantity">&minus;</button>
+                <span class="cart-qty-value">${item.quantity}</span>
+                <button type="button" class="cart-qty-btn cart-qty-plus" data-id="${item.id}" aria-label="Increase quantity">&plus;</button>
+              </div>
+              <button type="button" class="cart-item-remove-btn" data-id="${item.id}" title="Remove item" aria-label="Remove item">
+                ${window.renderIcon('trash')}
+              </button>
             </div>
           </div>
-        </div>
+        `).join('')}
       </div>
-    `;
 
-    orderChoiceModal.querySelector('#closeChoiceModalBtn').addEventListener('click', () => {
-      orderChoiceModal.classList.remove('active');
-    });
+      <div class="cart-checkout-card">
+        <h3 style="color: #073b1f; font-size: 1.18rem; font-weight: 900; margin-bottom: 14px;">Delivery & Checkout</h3>
 
-    // 1. WhatsApp Order Flow
-    orderChoiceModal.querySelector('#chooseWhatsAppBtn').addEventListener('click', () => {
-      orderChoiceModal.classList.remove('active');
-      const msg = `Hello Nkem Global, I would like to order: ${prod.title} (${window.formatNaira(prod.price)}). Please assist me with my order.`;
-      const waUrl = `https://wa.me/2347042087633?text=${encodeURIComponent(msg)}`;
-      window.open(waUrl, '_blank');
-    });
-
-    // 2. Online Order Flow
-    orderChoiceModal.querySelector('#chooseOnlineBtn').addEventListener('click', () => {
-      orderChoiceModal.classList.remove('active');
-      const currentUser = window.SupabaseService.getCurrentUser();
-      if (!currentUser) {
-        window.CustomModal.toast({ 
-          message: 'Please sign in or create an account to place your order.', 
-          type: 'info' 
-        });
-        window.AuthModal.showSignIn((authedUser) => {
-          openOnlineOrderForm(prod, authedUser);
-        });
-        return;
-      }
-      openOnlineOrderForm(prod, currentUser);
-    });
-
-    orderChoiceModal.classList.add('active');
-  }
-
-  /* Online Order Form Modal (Prefilled with Authenticated User Information) */
-  let statePickerInstance = null;
-  let lgaPickerInstance = null;
-
-  function openOnlineOrderForm(prod, user) {
-    const activeUser = user || window.SupabaseService.getCurrentUser() || {};
-
-    onlineOrderModal.innerHTML = `
-      <div class="c-modal-box" style="max-width: 560px;">
-        <div class="c-modal-header">
-          <div class="c-modal-title-wrap">
-            <h3 class="c-modal-title">Confirm Delivery & Order</h3>
+        <form id="cartCheckoutForm" autocomplete="on">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+            <div class="c-input-group">
+              <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">First Name *</label>
+              <input type="text" class="c-input" id="cartFirstName" placeholder="Your first name" required value="${window.CustomModal.escape(activeUser.first_name || activeUser.name?.split(' ')[0] || '')}" style="padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1ead9; background: #ffffff;" />
+            </div>
+            <div class="c-input-group">
+              <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">Last Name *</label>
+              <input type="text" class="c-input" id="cartLastName" placeholder="Your last name" required value="${window.CustomModal.escape(activeUser.last_name || activeUser.name?.split(' ')[1] || '')}" style="padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1ead9; background: #ffffff;" />
+            </div>
           </div>
-          <button class="c-modal-close-btn" type="button" id="closeOnlineOrderBtn">
-            ${window.renderIcon('close')}
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+            <div class="c-input-group">
+              <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">WhatsApp Number *</label>
+              <input type="tel" class="c-input" id="cartWhatsApp" placeholder="e.g. 08012345678" required value="${window.CustomModal.escape(activeUser.whatsapp_number || activeUser.phone || '')}" style="padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1ead9; background: #ffffff;" />
+            </div>
+            <div class="c-input-group">
+              <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">Email (Optional)</label>
+              <input type="email" class="c-input" id="cartEmail" placeholder="you@domain.com" value="${window.CustomModal.escape(activeUser.email || '')}" style="padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1ead9; background: #ffffff;" />
+            </div>
+          </div>
+
+          <!-- Nigeria State & LGA Pickers -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+            <div class="c-input-group">
+              <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">Delivery State *</label>
+              <div id="cartStatePickerMount"></div>
+            </div>
+            <div class="c-input-group">
+              <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">LGA *</label>
+              <div id="cartLgaPickerMount"></div>
+            </div>
+          </div>
+
+          <div class="c-input-group" style="margin-bottom: 16px;">
+            <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">Delivery Street Address *</label>
+            <input type="text" class="c-input" id="cartAddress" placeholder="House number, Street, Landmark" required value="${window.CustomModal.escape(activeUser.address || '')}" style="padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1ead9; background: #ffffff;" />
+          </div>
+
+          <!-- Price Summary Breakdown -->
+          <div style="background: #f7fbf8; border: 1px solid #d1ead9; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+            <div class="cart-summary-line">
+              <span>Items Subtotal (${getCartCount()} items):</span>
+              <strong>${window.formatNaira(subtotal)}</strong>
+            </div>
+            <div class="cart-summary-line">
+              <span>Nationwide Delivery:</span>
+              <span id="cartDeliveryFeeText" style="color: #087f3b; font-weight: 700;">Select State</span>
+            </div>
+            <div class="cart-summary-line cart-total-line">
+              <span>Grand Total:</span>
+              <strong id="cartGrandTotalText">${window.formatNaira(subtotal)}</strong>
+            </div>
+          </div>
+
+          <!-- Protected Checkout Button -->
+          <button type="submit" class="btn btn-primary btn-cart-checkout" id="cartCheckoutBtn">
+            ${window.renderIcon('orderNow')}
+            <span>Confirm & Place Order (${window.formatNaira(subtotal)})</span>
           </button>
-        </div>
-
-        <form id="onlineOrderForm" class="c-modal-body" style="display: flex; flex-direction: column; gap: 14px;">
-          <div style="background: var(--bg-main); padding: 10px 14px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: var(--font-xs); color: var(--text-muted);">
-            Item: <strong style="color: var(--accent-gold);">${window.CustomModal.escape(prod.title)}</strong> &bull; Total: <strong style="color: var(--text-main);">${window.formatNaira(prod.price)}</strong>
-          </div>
-
-          <div class="order-form-grid">
-            <div class="form-group">
-              <label class="form-label">First Name <span class="req">*</span></label>
-              <input type="text" class="input-field" id="orderFirstName" required value="${window.CustomModal.escape(activeUser.first_name || '')}" placeholder="First Name" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Last Name <span class="req">*</span></label>
-              <input type="text" class="input-field" id="orderLastName" required value="${window.CustomModal.escape(activeUser.last_name || '')}" placeholder="Last Name" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">WhatsApp Number <span class="req">*</span></label>
-              <input type="tel" class="input-field" id="orderWhatsApp" required value="${window.CustomModal.escape(activeUser.whatsapp_number || '')}" placeholder="WhatsApp Phone" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Email (Optional)</label>
-              <input type="email" class="input-field" id="orderEmail" value="${window.CustomModal.escape(activeUser.email || '')}" placeholder="customer@gmail.com" />
-            </div>
-
-            <!-- Custom Modal / Bottom Sheet Pickers for State & LGA (Zero native <select>) -->
-            <div class="form-group">
-              <label class="form-label">State <span class="req">*</span></label>
-              <div id="mountOrderStatePicker" class="c-picker-container"></div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Local Government Area (LGA) <span class="req">*</span></label>
-              <div id="mountOrderLgaPicker" class="c-picker-container"></div>
-            </div>
-
-            <div class="form-group col-span-2">
-              <label class="form-label">Street / Delivery Address <span class="req">*</span></label>
-              <textarea class="textarea-field" id="orderAddress" required placeholder="Enter house number, street name, landmarks...">${window.CustomModal.escape(activeUser.address || '')}</textarea>
-            </div>
-          </div>
-
-          <div class="c-modal-footer dual-actions" style="margin: 0 -16px -16px -16px; padding: 12px 16px;">
-            <button class="btn btn-secondary" type="button" id="cancelOnlineOrderBtn">Cancel</button>
-            <button class="btn btn-primary" type="submit" id="submitOnlineOrderBtn">
-              ${window.renderIcon('send')}
-              <span>Place Order (${window.formatNaira(prod.price)})</span>
-            </button>
-          </div>
         </form>
       </div>
     `;
 
-    // Initialize State & LGA Custom Pickers (Strictly Zero Default State or LGA)
-    const statesData = window.NIGERIA_STATES_DATA || {};
-    const stateNames = Object.keys(statesData).sort();
-
-    let selectedState = activeUser.state && statesData[activeUser.state] ? activeUser.state : '';
-    let currentLgas = selectedState ? (statesData[selectedState] || []) : [];
-    let selectedLga = activeUser.lga && currentLgas.includes(activeUser.lga) ? activeUser.lga : '';
-
-    const stateMount = onlineOrderModal.querySelector('#mountOrderStatePicker');
-    const lgaMount = onlineOrderModal.querySelector('#mountOrderLgaPicker');
-
-    statePickerInstance = window.CustomPicker.create({
-      container: stateMount,
-      title: 'Select Destination State',
-      options: stateNames.map(s => ({ value: s, label: s })),
-      value: selectedState,
-      placeholder: 'Choose State...',
-      onChange: (newState) => {
-        selectedState = newState;
-        const newLgas = statesData[selectedState] || [];
-        selectedLga = '';
-        if (lgaPickerInstance) {
-          lgaPickerInstance.setOptions(newLgas.map(l => ({ value: l, label: l })));
-          lgaPickerInstance.setValue('');
-          if (lgaPickerInstance.setDisabled) {
-            lgaPickerInstance.setDisabled(!newState);
-          }
-        }
-      }
+    // Quantity controls
+    container.querySelectorAll('.cart-qty-minus').forEach(btn => {
+      btn.addEventListener('click', () => updateCartQuantity(btn.getAttribute('data-id'), -1));
+    });
+    container.querySelectorAll('.cart-qty-plus').forEach(btn => {
+      btn.addEventListener('click', () => updateCartQuantity(btn.getAttribute('data-id'), 1));
+    });
+    container.querySelectorAll('.cart-item-remove-btn').forEach(btn => {
+      btn.addEventListener('click', () => removeFromCart(btn.getAttribute('data-id')));
     });
 
-    lgaPickerInstance = window.CustomPicker.create({
-      container: lgaMount,
-      title: 'Select Local Government Area (LGA)',
-      options: currentLgas.map(l => ({ value: l, label: l })),
-      value: selectedLga,
-      placeholder: selectedState ? 'Choose LGA...' : 'Choose State First...',
-      onChange: (newLga) => {
-        selectedLga = newLga;
-      }
-    });
-
-    if (lgaPickerInstance && !selectedState && lgaPickerInstance.setDisabled) {
-      lgaPickerInstance.setDisabled(true);
-    }
-
-    let isSubmittingOrder = false;
-    const closeForm = () => {
-      if (isSubmittingOrder) return;
-      onlineOrderModal.classList.remove('active');
-    };
-    onlineOrderModal.querySelector('#closeOnlineOrderBtn').addEventListener('click', closeForm);
-    onlineOrderModal.querySelector('#cancelOnlineOrderBtn').addEventListener('click', closeForm);
-
-    const orderFnInput = document.getElementById('orderFirstName');
-    const orderLnInput = document.getElementById('orderLastName');
+    // Auto-capitalize name inputs
+    const fnInput = container.querySelector('#cartFirstName');
+    const lnInput = container.querySelector('#cartLastName');
     if (window.attachNameAutoCapitalize) {
-      window.attachNameAutoCapitalize(orderFnInput);
-      window.attachNameAutoCapitalize(orderLnInput);
+      window.attachNameAutoCapitalize(fnInput);
+      window.attachNameAutoCapitalize(lnInput);
     }
 
-    const form = onlineOrderModal.querySelector('#onlineOrderForm');
-    const submitBtn = form.querySelector('#submitOnlineOrderBtn');
-    const cancelBtn = form.querySelector('#cancelOnlineOrderBtn');
-    const closeBtn = onlineOrderModal.querySelector('#closeOnlineOrderBtn');
+    // State & LGA pickers
+    let selectedState = activeUser.state || '';
+    let selectedLga = activeUser.lga || '';
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    const stateMount = container.querySelector('#cartStatePickerMount');
+    const lgaMount = container.querySelector('#cartLgaPickerMount');
 
-      if (isSubmittingOrder) return;
+    const updateDeliveryFee = () => {
+      const delText = container.querySelector('#cartDeliveryFeeText');
+      const totalText = container.querySelector('#cartGrandTotalText');
+      const checkoutBtn = container.querySelector('#cartCheckoutBtn');
+      if (!delText || !totalText) return;
 
-      const firstName = window.capitalizeName ? window.capitalizeName(orderFnInput.value) : orderFnInput.value.trim();
-      const lastName = window.capitalizeName ? window.capitalizeName(orderLnInput.value) : orderLnInput.value.trim();
-      const whatsapp = document.getElementById('orderWhatsApp').value.trim();
-      const email = document.getElementById('orderEmail').value.trim();
-      const address = document.getElementById('orderAddress').value.trim();
-
-      if (!firstName || !lastName || !whatsapp || !address) {
-        window.CustomModal.toast({ message: 'Please fill in all required fields.', type: 'danger' });
-        return;
+      let fee = 0;
+      if (selectedState) {
+        fee = 3500;
+        delText.textContent = window.formatNaira(fee);
+      } else {
+        delText.textContent = 'Select State';
       }
-
-      if (!selectedState) {
-        window.CustomModal.toast({ message: 'Please select a delivery State.', type: 'warning' });
-        return;
-      }
-
-      if (!selectedLga) {
-        window.CustomModal.toast({ message: 'Please select a Local Government Area (LGA).', type: 'warning' });
-        return;
-      }
-
-      // Lock form and display high-end processing indicator
-      isSubmittingOrder = true;
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.style.opacity = '0.85';
-        submitBtn.style.cursor = 'not-allowed';
-        submitBtn.innerHTML = `
-          <span style="display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(0,0,0,0.3); border-top-color: #0b0c0e; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px;"></span>
-          <span>Processing Order...</span>
+      const grandTotal = subtotal + fee;
+      totalText.textContent = window.formatNaira(grandTotal);
+      if (checkoutBtn && !checkoutBtn.disabled) {
+        checkoutBtn.innerHTML = `
+          ${window.renderIcon('orderNow')}
+          <span>Confirm & Place Order (${window.formatNaira(grandTotal)})</span>
         `;
       }
-      if (cancelBtn) {
-        cancelBtn.disabled = true;
-        cancelBtn.style.opacity = '0.5';
-        cancelBtn.style.cursor = 'not-allowed';
+    };
+
+    let lgaPicker = null;
+    const initLgaPicker = (st) => {
+      const lgas = (window.NIGERIA_STATES && window.NIGERIA_STATES[st]) || [];
+      const opts = lgas.map(l => ({ value: l, label: l }));
+      if (lgaPicker) {
+        lgaPicker.updateOptions(opts, selectedLga || (lgas[0] || ''));
+      } else if (lgaMount && window.CustomPicker) {
+        lgaPicker = new window.CustomPicker(lgaMount, {
+          title: 'Select Delivery LGA',
+          options: opts,
+          value: selectedLga,
+          placeholder: 'Select LGA',
+          searchable: true,
+          onChange: (val) => { selectedLga = val; }
+        });
       }
-      if (closeBtn) {
-        closeBtn.disabled = true;
+    };
+
+    if (stateMount && window.CustomPicker) {
+      const states = Object.keys(window.NIGERIA_STATES || {}).map(s => ({ value: s, label: s }));
+      new window.CustomPicker(stateMount, {
+        title: 'Select Delivery State',
+        options: states,
+        value: selectedState,
+        placeholder: 'Select State',
+        searchable: true,
+        onChange: (val) => {
+          selectedState = val;
+          selectedLga = '';
+          initLgaPicker(val);
+          updateDeliveryFee();
+        }
+      });
+      if (selectedState) {
+        initLgaPicker(selectedState);
+        updateDeliveryFee();
+      }
+    }
+
+    // Checkout Form Submission (Double Click Prevention & Processing State)
+    let isSubmittingCartOrder = false;
+    const checkoutForm = container.querySelector('#cartCheckoutForm');
+    checkoutForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (isSubmittingCartOrder) return;
+
+      const firstName = window.capitalizeName ? window.capitalizeName(fnInput.value) : fnInput.value.trim();
+      const lastName = window.capitalizeName ? window.capitalizeName(lnInput.value) : lnInput.value.trim();
+      const whatsapp = container.querySelector('#cartWhatsApp').value.trim();
+      const email = container.querySelector('#cartEmail').value.trim();
+      const address = container.querySelector('#cartAddress').value.trim();
+
+      if (!firstName || !lastName || !whatsapp || !address) {
+        window.CustomModal.toast({ message: 'Please fill in all required delivery fields.', type: 'danger' });
+        return;
       }
 
-      const coverImg = Array.isArray(prod.images) && prod.images[0] ? prod.images[0] : 'assets/images/logo.jpeg';
+      if (!selectedState || !selectedLga) {
+        window.CustomModal.toast({ message: 'Please select your delivery State and LGA.', type: 'warning' });
+        return;
+      }
 
+      const checkoutBtn = container.querySelector('#cartCheckoutBtn');
+      isSubmittingCartOrder = true;
+      checkoutBtn.disabled = true;
+      checkoutBtn.style.cursor = 'not-allowed';
+      checkoutBtn.innerHTML = `
+        <span class="spinner" style="display:inline-block; width:16px; height:16px; border:2px solid #ffffff; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-right:6px;"></span>
+        <span>Processing Order...</span>
+      `;
+
+      const currentCart = getCart();
+      const itemsSummary = currentCart.map(i => `${i.title} (x${i.quantity})`).join(', ');
+      const deliveryFee = selectedState ? 3500 : 0;
+      const totalAmount = subtotal + deliveryFee;
       const orderId = `ord-${Date.now()}`;
+      const coverImg = currentCart[0]?.image || 'assets/images/logo.png';
+
       const orderData = {
         id: orderId,
         retrieval_code: `NKG-${Date.now()}`,
         user_id: activeUser.id || null,
-        product_id: prod.id,
-        product_title: prod.title,
-        product_price: prod.price,
+        product_id: currentCart[0]?.id || 'cart-order',
+        product_title: `Cart Order (${currentCart.length} items): ${itemsSummary}`,
+        product_price: totalAmount,
         product_image: coverImg,
         first_name: firstName,
         last_name: lastName,
@@ -1070,7 +1205,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         await window.SupabaseService.createOrder(orderData);
 
-        // Send rich Order Card directly into customer <-> admin chat
+        // Send rich Order Card into chat
         if (activeUser.id) {
           const orderChatMessage = {
             id: `msg-ord-${orderData.id}`,
@@ -1084,10 +1219,6 @@ document.addEventListener('DOMContentLoaded', async () => {
               ...orderData,
               id: orderData.id,
               order_id: orderData.id,
-              product_id: prod.id,
-              product_title: prod.title,
-              product_price: prod.price,
-              product_image: coverImg,
               first_name: firstName,
               last_name: lastName,
               whatsapp_number: whatsapp,
@@ -1099,7 +1230,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               status: 'pending',
               created_at: orderData.created_at
             },
-            message: `Order Request: ${prod.title} (${window.formatNaira(prod.price)}) - Status: Pending`,
+            message: `Order Placed: ${orderData.product_title} (${window.formatNaira(totalAmount)}) - Status: Pending`,
             image_url: null,
             is_read_by_admin: false,
             is_read_by_user: true,
@@ -1111,29 +1242,272 @@ document.addEventListener('DOMContentLoaded', async () => {
           await window.SupabaseService.sendUserChatMessage(orderChatMessage);
         }
 
-        isSubmittingOrder = false;
-        onlineOrderModal.classList.remove('active');
+        // Clear cart
+        saveCart([]);
+        isSubmittingCartOrder = false;
+
+        // Open Order Success Modal & Receipt Download
         openOrderSuccessModal(orderData);
       } catch (err) {
-        console.error('Order placement notice:', err);
-        isSubmittingOrder = false;
-        onlineOrderModal.classList.remove('active');
+        console.error('Cart order placement notice:', err);
+        saveCart([]);
+        isSubmittingCartOrder = false;
         openOrderSuccessModal(orderData);
       }
     });
-
-    onlineOrderModal.classList.add('active');
   }
 
   /* ==========================================================================
-     8. ORDER CONFIRMATION MODAL & RECEIPT IMAGE DOWNLOAD (Zero Retrieval Code)
+     8. REQUESTS VIEW (Orders & Sourcing Requests Tracking)
+     ========================================================================== */
+  async function renderRequestsView() {
+    const container = document.getElementById('requestsListContainer');
+    if (!container) return;
+
+    container.innerHTML = `
+      <div style="text-align: center; padding: 30px; color: #5a6e62;">
+        <span class="spinner" style="display:inline-block; width:24px; height:24px; border:2.5px solid #087f3b; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-bottom:8px;"></span>
+        <div>Loading your orders and sourcing requests...</div>
+      </div>
+    `;
+
+    const activeUser = window.SupabaseService.getActiveUser ? window.SupabaseService.getActiveUser() : {};
+    let orders = [];
+
+    try {
+      if (window.SupabaseService.getUserOrdersSync) {
+        orders = window.SupabaseService.getUserOrdersSync(activeUser.id, activeUser.phone, activeUser.email);
+      }
+    } catch (e) {}
+
+    try {
+      if (window.SupabaseService.getUserOrders) {
+        const fresh = await window.SupabaseService.getUserOrders(activeUser.id, activeUser.phone, activeUser.email, 2000);
+        if (fresh && fresh.length > 0) orders = fresh;
+      }
+    } catch (e) {}
+
+    const searchInput = document.getElementById('requestsSearchInput');
+    const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+    let filtered = orders;
+    if (query) {
+      filtered = orders.filter(o => {
+        const title = (o.product_title || '').toLowerCase();
+        const code = (o.retrieval_code || o.id || '').toLowerCase();
+        return title.includes(query) || code.includes(query);
+      });
+    }
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div class="cart-empty-state">
+          <div class="cart-empty-icon">${window.renderIcon('requests')}</div>
+          <h3 class="cart-empty-title">No Orders or Requests Found</h3>
+          <p class="cart-empty-sub">When you place orders or submit sourcing requests via "Everything Dey", they will appear here with live tracking.</p>
+          <button class="btn btn-primary" type="button" id="reqStartShoppingBtn" style="padding: 12px 28px; font-weight: 800; background-color: #087f3b; border-color: #087f3b;">
+            ${window.renderIcon('shop')}
+            <span>Start Shopping Now</span>
+          </button>
+        </div>
+      `;
+      container.querySelector('#reqStartShoppingBtn')?.addEventListener('click', () => {
+        window.switchAppTab('shop');
+      });
+      return;
+    }
+
+    container.innerHTML = filtered.map(o => {
+      const status = (o.status || 'pending').toLowerCase();
+      const code = o.retrieval_code || o.id || '';
+      const dateStr = o.created_at ? new Date(o.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent';
+
+      return `
+        <div class="requests-card">
+          <div class="request-card-top">
+            <div>
+              <h4 class="request-card-title">${window.CustomModal.escape(o.product_title || 'Order')}</h4>
+              <div style="font-size: 0.78rem; color: #5a6e62; margin-top: 2px;">Placed on ${dateStr}</div>
+            </div>
+            <span class="request-status-pill ${status}">${status}</span>
+          </div>
+
+          <div class="request-card-info">
+            <div><strong>Code:</strong> <span class="request-code-badge">${code}</span></div>
+            <div><strong>Amount:</strong> <span style="color: #087f3b; font-weight: 800;">${Number(o.product_price) > 0 ? window.formatNaira(o.product_price) : 'Quote Pending'}</span></div>
+            ${o.state ? `<div><strong>Destination:</strong> ${window.CustomModal.escape(o.lga || '')}, ${window.CustomModal.escape(o.state)}</div>` : ''}
+          </div>
+
+          <div class="request-card-actions">
+            ${Number(o.product_price) > 0 ? `
+              <button type="button" class="btn btn-secondary btn-sm req-download-btn" data-id="${o.id}" style="padding: 6px 12px; font-size: 0.78rem;">
+                ${window.renderIcon('download')}
+                <span>Download Receipt</span>
+              </button>
+            ` : ''}
+            <a href="https://wa.me/2347042087633?text=${encodeURIComponent(`Hello Nkem Global, I am inquiring about my request (${code}): ${o.product_title}`)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 0.78rem; color: #166534; border-color: #25D366; text-decoration: none;">
+              ${window.renderIcon('whatsapp')}
+              <span>WhatsApp Support</span>
+            </a>
+            <button type="button" class="btn btn-secondary btn-sm req-copy-btn" data-code="${code}" style="padding: 6px 12px; font-size: 0.78rem;">
+              ${window.renderIcon('copy')}
+              <span>Copy Code</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Attach listeners
+    container.querySelectorAll('.req-download-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const orderId = btn.getAttribute('data-id');
+        const order = filtered.find(o => o.id === orderId);
+        if (order) {
+          window.CustomModal.toast({ message: 'Generating official receipt...', type: 'info' });
+          await window.ReceiptGenerator.downloadReceiptImage(order);
+          window.CustomModal.toast({ message: 'Receipt downloaded!', type: 'success' });
+        }
+      });
+    });
+
+    container.querySelectorAll('.req-copy-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const code = btn.getAttribute('data-code');
+        navigator.clipboard?.writeText(code);
+        window.CustomModal.toast({ message: `Copied code: ${code}`, type: 'success' });
+      });
+    });
+  }
+
+  /* ==========================================================================
+     9. ACCOUNT VIEW (Profile, Live Chat, WhatsApp & Support)
+     ========================================================================== */
+  function renderAccountView() {
+    const container = document.getElementById('accountContentContainer');
+    if (!container) return;
+
+    const activeUser = window.SupabaseService.getActiveUser ? window.SupabaseService.getActiveUser() : null;
+    const isLoggedIn = !!(activeUser && activeUser.id);
+    const orders = window.SupabaseService.getLocalOrders ? window.SupabaseService.getLocalOrders() : [];
+
+    container.innerHTML = `
+      <div class="account-card-box">
+        <div class="account-profile-header">
+          <div class="account-avatar-circle">
+            ${isLoggedIn ? (activeUser.name ? activeUser.name.charAt(0).toUpperCase() : 'U') : `${window.renderIcon('account')}`}
+          </div>
+          <div>
+            <h3 class="account-user-name">${isLoggedIn ? window.CustomModal.escape(activeUser.name || `${activeUser.first_name || ''} ${activeUser.last_name || ''}`) : 'Welcome to Nkem Global'}</h3>
+            <div class="account-user-phone">${isLoggedIn ? window.CustomModal.escape(activeUser.phone || activeUser.email || 'Verified Customer') : 'Sign in to track orders, manage your profile and chat.'}</div>
+          </div>
+        </div>
+
+        ${isLoggedIn ? `
+          <div style="background: #f7fbf8; border: 1px solid #d1ead9; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; display: flex; justify-content: space-around; text-align: center;">
+            <div>
+              <div style="font-size: 1.25rem; font-weight: 900; color: #087f3b;">${orders.length}</div>
+              <div style="font-size: 0.74rem; color: #5a6e62; font-weight: 700;">Orders / Requests</div>
+            </div>
+            <div style="border-left: 1px solid #d1ead9;"></div>
+            <div>
+              <div style="font-size: 1.25rem; font-weight: 900; color: #087f3b;">${activeUser.state || 'NG'}</div>
+              <div style="font-size: 0.74rem; color: #5a6e62; font-weight: 700;">Delivery State</div>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary btn-sm" id="accountEditProfileBtn" style="flex: 1; justify-content: center; padding: 9px 12px;">
+              ${window.renderIcon('edit')}
+              <span>Change Password / Profile</span>
+            </button>
+            <button type="button" class="btn btn-danger btn-sm" id="accountLogoutBtn" style="padding: 9px 14px; justify-content: center;">
+              <span>Log Out</span>
+            </button>
+          </div>
+        ` : `
+          <div style="display: flex; gap: 10px;">
+            <button type="button" class="btn btn-primary" id="accountSignInBtn" style="flex: 1; justify-content: center; padding: 11px; background-color: #087f3b; border-color: #087f3b;">
+              <span>Sign In</span>
+            </button>
+            <button type="button" class="btn btn-secondary" id="accountRegisterBtn" style="flex: 1; justify-content: center; padding: 11px;">
+              <span>Create Account</span>
+            </button>
+          </div>
+        `}
+      </div>
+
+      <!-- Support & Direct Communication Card -->
+      <div class="account-card-box">
+        <h4 style="color: #073b1f; font-size: 1.05rem; font-weight: 800; margin-bottom: 12px;">Support & Contact Channels</h4>
+
+        <a href="chat.html" class="account-support-btn">
+          <div class="support-left">
+            <span style="color: #087f3b;">${window.renderIcon('chat')}</span>
+            <span>Live Support Cloud Chat</span>
+          </div>
+          <span style="font-size: 0.78rem; color: #5a6e62;">Open Chat &rarr;</span>
+        </a>
+
+        <a href="https://wa.me/2347042087633?text=Hello%20Nkem%20Global%2C%20I%20am%20inquiring%20about%20my%20account" target="_blank" rel="noopener" class="account-support-btn">
+          <div class="support-left">
+            <span style="color: #25D366;">${window.renderIcon('whatsapp')}</span>
+            <span>WhatsApp Official Support (07042087633)</span>
+          </div>
+          <span style="font-size: 0.78rem; color: #5a6e62;">Chat &rarr;</span>
+        </a>
+
+        <a href="tel:08155608447" class="account-support-btn">
+          <div class="support-left">
+            <span style="color: #087f3b;">${window.renderIcon('phone')}</span>
+            <span>Direct Phone Call (08155608447)</span>
+          </div>
+          <span style="font-size: 0.78rem; color: #5a6e62;">Call &rarr;</span>
+        </a>
+      </div>
+
+      <!-- Admin Portal Access (Discreet) -->
+      <div style="text-align: center; margin-top: 18px;">
+        <a href="admin.html" style="font-size: 0.78rem; color: #7d9285; text-decoration: none;">
+          Store Admin Portal &rarr;
+        </a>
+      </div>
+    `;
+
+    // Hook up buttons
+    container.querySelector('#accountSignInBtn')?.addEventListener('click', () => {
+      if (window.AuthModal) window.AuthModal.openSignIn();
+    });
+    container.querySelector('#accountRegisterBtn')?.addEventListener('click', () => {
+      if (window.AuthModal) window.AuthModal.openRegister();
+    });
+    container.querySelector('#accountEditProfileBtn')?.addEventListener('click', () => {
+      if (window.AuthModal) window.AuthModal.openProfileEditor();
+    });
+    container.querySelector('#accountLogoutBtn')?.addEventListener('click', () => {
+      window.CustomModal.confirm({
+        title: 'Confirm Logout',
+        message: 'Are you sure you want to log out of your Nkem Global account?',
+        confirmText: 'Log Out',
+        onConfirm: () => {
+          window.SupabaseService.logoutUser();
+          renderAccountView();
+          window.CustomModal.toast({ message: 'Logged out successfully.', type: 'info' });
+        }
+      });
+    });
+  }
+
+  /* ==========================================================================
+     10. ORDER CONFIRMATION MODAL & RECEIPT DOWNLOAD
      ========================================================================== */
   function openOrderSuccessModal(order) {
+    if (!orderSuccessModal) return;
     orderSuccessModal.innerHTML = `
       <div class="c-modal-box" style="max-width: 500px;">
         <div class="c-modal-header">
           <div class="c-modal-title-wrap">
-            <h3 class="c-modal-title">Order Request Received!</h3>
+            <h3 class="c-modal-title" style="color: #087f3b;">Order Request Received!</h3>
           </div>
           <button class="c-modal-close-btn" type="button" id="closeSuccessModalBtn">
             ${window.renderIcon('close')}
@@ -1145,28 +1519,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             Thank you, <strong>${window.CustomModal.escape(order.first_name)} ${window.CustomModal.escape(order.last_name)}</strong>! Your order request for <strong>${window.CustomModal.escape(order.product_title)}</strong> has been recorded.
           </p>
 
-          <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; margin: 10px 0; font-size: var(--font-xs); line-height: 1.6; text-align: left;">
+          <div style="background: #f7fbf8; border: 1.5px solid #d1ead9; border-radius: 10px; padding: 14px; margin: 12px 0; font-size: 0.85rem; line-height: 1.6; text-align: left;">
             <div><strong>Item:</strong> ${window.CustomModal.escape(order.product_title)}</div>
-            <div><strong>Total:</strong> <span style="color: var(--accent-gold); font-weight: 700;">${window.formatNaira(order.product_price)}</span></div>
-            <div><strong>Destination:</strong> ${window.CustomModal.escape(order.lga)}, ${window.CustomModal.escape(order.state)} State</div>
+            <div><strong>Total:</strong> <span style="color: #087f3b; font-weight: 800;">${window.formatNaira(order.product_price)}</span></div>
+            <div><strong>Destination:</strong> ${window.CustomModal.escape(order.lga || '')}, ${window.CustomModal.escape(order.state || '')}</div>
             <div><strong>WhatsApp:</strong> ${window.CustomModal.escape(order.whatsapp_number)}</div>
+            <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #d1ead9;">
+              <strong>Retrieval Code:</strong> <span style="font-family: monospace; font-weight: 700; background: #e8f7ee; padding: 2px 6px; border-radius: 4px; color: #064e26;">${order.retrieval_code || order.id}</span>
+            </div>
           </div>
 
           <div class="code-actions-row">
-            <button class="btn btn-primary" type="button" id="downloadReceiptImgBtn" style="flex: 1; justify-content: center;">
+            <button class="btn btn-primary" type="button" id="downloadReceiptImgBtn" style="flex: 1; justify-content: center; padding: 12px; font-weight: 800; background-color: #087f3b; border-color: #087f3b;">
               ${window.renderIcon('download')}
               <span>Download Official Receipt</span>
             </button>
           </div>
 
-          <p style="font-size: var(--font-xs); color: var(--text-muted); margin-top: 8px;">
+          <p style="font-size: 0.78rem; color: #5a6e62; margin-top: 8px;">
             The downloaded receipt carries Nkem Global brand logo, shop contact info, and complete order specifications.
           </p>
 
-          <div style="padding-top: 12px; border-top: 1px solid var(--border-color); margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
-            <button class="btn btn-primary" style="width: 100%; justify-content: center;" type="button" id="trackInOrdersBtn">
-              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-              <span>Track in My Orders</span>
+          <div style="padding-top: 12px; border-top: 1px solid #d1ead9; margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn btn-primary" style="width: 100%; justify-content: center; background-color: #065f2c; border-color: #065f2c;" type="button" id="trackInOrdersBtn">
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              <span>Track in Requests Tab</span>
             </button>
             <a href="chat.html" class="btn btn-secondary" style="width: 100%; justify-content: center; text-decoration: none;">
               ${window.renderIcon('chat')}
@@ -1180,21 +1557,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>
     `;
 
-    orderSuccessModal.querySelector('#downloadReceiptImgBtn').addEventListener('click', async () => {
+    orderSuccessModal.querySelector('#downloadReceiptImgBtn')?.addEventListener('click', async () => {
       window.CustomModal.toast({ message: 'Generating receipt with Nkem Global contact info...', type: 'info' });
       await window.ReceiptGenerator.downloadReceiptImage(order);
       window.CustomModal.toast({ message: 'Receipt image downloaded!', type: 'success' });
     });
 
     const closeSuccess = () => orderSuccessModal.classList.remove('active');
-    orderSuccessModal.querySelector('#closeSuccessModalBtn').addEventListener('click', closeSuccess);
-    orderSuccessModal.querySelector('#closeSuccessBtn').addEventListener('click', closeSuccess);
+    orderSuccessModal.querySelector('#closeSuccessModalBtn')?.addEventListener('click', closeSuccess);
+    orderSuccessModal.querySelector('#closeSuccessBtn')?.addEventListener('click', closeSuccess);
 
     const trackBtn = orderSuccessModal.querySelector('#trackInOrdersBtn');
     if (trackBtn) {
       trackBtn.addEventListener('click', () => {
         closeSuccess();
-        openMyOrdersModal();
+        window.switchAppTab('requests');
       });
     }
 
@@ -1202,677 +1579,53 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   /* ==========================================================================
-     9. MY ORDERS MODAL (Track Status, Live Cancel Before Approval)
+     11. REALTIME CHAT UNREAD BADGE & URL HASH INITIALIZATION
      ========================================================================== */
-  async function openMyOrdersModal() {
-    const user = window.SupabaseService.getCurrentUser();
-    if (!user) {
-      window.AuthModal.showSignIn();
-      return;
-    }
-
-    // Remove any existing modal overlay to prevent duplicates
-    const oldModal = document.getElementById('myOrdersModalOverlay');
-    if (oldModal && oldModal.parentNode) oldModal.parentNode.removeChild(oldModal);
-
-    const modalOverlay = document.createElement('div');
-    modalOverlay.className = 'c-modal-overlay active';
-    modalOverlay.id = 'myOrdersModalOverlay';
-
-    modalOverlay.innerHTML = `
-      <div class="c-modal-box" style="max-width: 680px; max-height: 88vh; display: flex; flex-direction: column;">
-        <div class="c-modal-header">
-          <div>
-            <h3 class="c-modal-title">My Orders</h3>
-            <span style="font-size: var(--font-xs); color: var(--text-muted);">Track your order requests and live delivery status</span>
-          </div>
-          <button class="c-modal-close-btn" type="button" id="closeMyOrdersBtn" aria-label="Close">
-            ${window.renderIcon('close')}
-          </button>
-        </div>
-
-        <!-- Obsidian Filter Pills matching Admin Panel -->
-        <div class="user-orders-filter-row" style="padding: 10px 16px; border-bottom: 1px solid var(--border-color); background: var(--bg-surface-elevated); display: flex; align-items: center; justify-content: flex-start; gap: 8px;">
-          <div class="user-orders-pills-wrap" id="userOrderFilterPills" style="display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; width: 100%;">
-            <button type="button" class="admin-filter-pill active" data-status="all">
-              <span>All</span>
-              <span class="pill-badge" id="userCountAll">0</span>
-            </button>
-            <button type="button" class="admin-filter-pill" data-status="pending">
-              <span>Pending</span>
-              <span class="pill-badge" id="userCountPending">0</span>
-            </button>
-            <button type="button" class="admin-filter-pill" data-status="approved">
-              <span>Approved</span>
-              <span class="pill-badge" id="userCountApproved">0</span>
-            </button>
-            <button type="button" class="admin-filter-pill" data-status="shipping">
-              <span>Shipping</span>
-              <span class="pill-badge" id="userCountShipping">0</span>
-            </button>
-            <button type="button" class="admin-filter-pill" data-status="delivered">
-              <span>Delivered</span>
-              <span class="pill-badge" id="userCountDelivered">0</span>
-            </button>
-            <button type="button" class="admin-filter-pill" data-status="declined">
-              <span>Declined</span>
-              <span class="pill-badge" id="userCountDeclined">0</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="c-modal-body" id="myOrdersListContainer" style="overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; flex: 1;">
-          <!-- Orders rendered immediately in 0ms without delay -->
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(modalOverlay);
-
-    let activeFilterStatus = 'all';
-    let currentOrdersList = [];
-
-    const statusUpdateHandler = () => {
-      if (modalOverlay.parentNode) {
-        renderFilteredOrders();
-      }
-    };
-    window.addEventListener('nkem_order_status_updated', statusUpdateHandler);
-
-    const closeModal = () => {
-      window.removeEventListener('nkem_order_status_updated', statusUpdateHandler);
-      if (modalOverlay.parentNode) modalOverlay.parentNode.removeChild(modalOverlay);
-    };
-
-    modalOverlay.querySelector('#closeMyOrdersBtn').addEventListener('click', closeModal);
-    modalOverlay.addEventListener('click', (e) => {
-      if (e.target === modalOverlay) closeModal();
-    });
-
-    // Wire up filter pill clicks
-    const pillsWrap = modalOverlay.querySelector('#userOrderFilterPills');
-    if (pillsWrap) {
-      pillsWrap.addEventListener('click', (e) => {
-        const pill = e.target.closest('.admin-filter-pill');
-        if (!pill) return;
-        activeFilterStatus = pill.getAttribute('data-status') || 'all';
-        pillsWrap.querySelectorAll('.admin-filter-pill').forEach(p => p.classList.remove('active'));
-        pill.classList.add('active');
-        renderFilteredOrders();
-      });
-    }
-
-    const container = modalOverlay.querySelector('#myOrdersListContainer');
-
-    function cleanDeliveryAddress(rawDelivery, lga, state) {
-      let text = String(rawDelivery || '').trim();
-      if (!text) {
-        text = [lga, state ? `${state} State` : ''].filter(Boolean).join(', ');
-      }
-      if (!text) return 'Address on file';
-
-      const parts = text.split(',').map(s => s.trim()).filter(Boolean);
-      const seen = new Set();
-      const cleaned = [];
-
-      for (const part of parts) {
-        const norm = part.toLowerCase().replace(/\s+state$/i, '').trim();
-        if (norm && !seen.has(norm)) {
-          seen.add(norm);
-          cleaned.push(part);
-        }
-      }
-
-      if (state) {
-        const normState = state.toLowerCase().replace(/\s+state$/i, '').trim();
-        if (!seen.has(normState)) {
-          seen.add(normState);
-          cleaned.push(`${state.replace(/\s+state$/i, '').trim()} State`);
-        }
-      }
-
-      return cleaned.join(', ') || 'Address on file';
-    }
-
-    function renderFilteredOrders() {
-      try {
-        // Calculate counts
-        const counts = {
-          all: currentOrdersList.length,
-          pending: 0,
-          approved: 0,
-          shipping: 0,
-          delivered: 0,
-          declined: 0
-        };
-
-        currentOrdersList.forEach(o => {
-          let st = 'pending';
-          if (window.SupabaseService && window.SupabaseService.getOrderStatus) {
-            st = window.SupabaseService.getOrderStatus(o.id || o.order_id);
-          } else {
-            st = String(o.status || 'pending').toLowerCase();
-          }
-          if (st === 'pending') counts.pending++;
-          else if (st === 'approved') counts.approved++;
-          else if (st === 'shipping' || st === 'shipped') counts.shipping++;
-          else if (st === 'delivered') counts.delivered++;
-          else if (st === 'declined') counts.declined++;
-        });
-
-        // Update pill count labels
-        const cAll = modalOverlay.querySelector('#userCountAll');
-        const cPen = modalOverlay.querySelector('#userCountPending');
-        const cApp = modalOverlay.querySelector('#userCountApproved');
-        const cShip = modalOverlay.querySelector('#userCountShipping');
-        const cDeliv = modalOverlay.querySelector('#userCountDelivered');
-        const cDec = modalOverlay.querySelector('#userCountDeclined');
-        if (cAll) cAll.textContent = counts.all;
-        if (cPen) cPen.textContent = counts.pending;
-        if (cApp) cApp.textContent = counts.approved;
-        if (cShip) cShip.textContent = counts.shipping;
-        if (cDeliv) cDeliv.textContent = counts.delivered;
-        if (cDec) cDec.textContent = counts.declined;
-
-        // Filter orders
-        const filtered = currentOrdersList.filter(o => {
-          if (activeFilterStatus === 'all') return true;
-          let st = 'pending';
-          if (window.SupabaseService && window.SupabaseService.getOrderStatus) {
-            st = window.SupabaseService.getOrderStatus(o.id || o.order_id);
-          } else {
-            st = String(o.status || 'pending').toLowerCase();
-          }
-          if (activeFilterStatus === 'shipping') return st === 'shipping' || st === 'shipped';
-          return st === activeFilterStatus;
-        });
-
-        if (currentOrdersList.length === 0) {
-          container.innerHTML = `
-            <div style="text-align: center; padding: 48px; background: var(--bg-surface-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
-              <p style="color: var(--text-muted); font-size: var(--font-sm); margin: 0 0 14px 0;">You have not placed any orders yet.</p>
-              <button class="btn btn-primary btn-sm" type="button" id="browseProdsBtn">
-                <span>Browse Products</span>
-              </button>
-            </div>
-          `;
-          container.querySelector('#browseProdsBtn')?.addEventListener('click', () => {
-            closeModal();
-            document.getElementById('catalogSection')?.scrollIntoView({ behavior: 'smooth' });
-          });
-          return;
-        }
-
-        if (filtered.length === 0) {
-          container.innerHTML = `
-            <div style="text-align: center; padding: 48px; background: var(--bg-surface-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
-              <p style="color: var(--text-muted); font-size: var(--font-sm); margin: 0 0 14px 0;">No orders found in this category.</p>
-              <button class="btn btn-secondary btn-sm" type="button" id="resetUserFilterBtn">
-                <span>View All Orders</span>
-              </button>
-            </div>
-          `;
-          container.querySelector('#resetUserFilterBtn')?.addEventListener('click', () => {
-            activeFilterStatus = 'all';
-            pillsWrap.querySelectorAll('.admin-filter-pill').forEach(p => {
-              if (p.getAttribute('data-status') === 'all') p.classList.add('active');
-              else p.classList.remove('active');
-            });
-            renderFilteredOrders();
-          });
-          return;
-        }
-
-        container.innerHTML = filtered.map(ord => {
-          const prod = (state && state.products ? state.products : []).find(p => p.id === ord.product_id);
-          const coverImg = (prod && Array.isArray(prod.images) && prod.images[0]) || ord.product_image || 'assets/images/logo.jpeg';
-          
-          let dateStr = 'Recently';
-          try {
-            if (ord.created_at) {
-              dateStr = new Date(ord.created_at).toLocaleString();
-            }
-          } catch (e) {
-            dateStr = 'Recently';
-          }
-
-          let status = 'pending';
-          if (window.SupabaseService && window.SupabaseService.getOrderStatus) {
-            status = window.SupabaseService.getOrderStatus(ord.id || ord.order_id);
-          } else {
-            status = String(ord.status || 'pending').toLowerCase();
-          }
-          const isPending = status === 'pending';
-
-          let statusBadge = '';
-          if (status === 'pending') {
-            statusBadge = `<span class="order-status-badge status-pending">Pending Admin Approval</span>`;
-          } else if (status === 'approved') {
-            statusBadge = `<span class="order-status-badge status-approved">Approved &bull; Order Confirmed</span>`;
-          } else if (status === 'shipping' || status === 'shipped') {
-            statusBadge = `<span class="order-status-badge status-shipping">In Transit &bull; Shipping</span>`;
-          } else if (status === 'delivered') {
-            statusBadge = `<span class="order-status-badge status-delivered">Delivered Successfully</span>`;
-          } else if (status === 'declined') {
-            statusBadge = `<span class="order-status-badge status-declined">Order Declined</span>`;
-          } else if (status === 'cancelled') {
-            statusBadge = `<span class="order-status-badge status-cancelled">Order Cancelled</span>`;
-          } else {
-            statusBadge = `<span class="order-status-badge status-pending">${window.CustomModal ? window.CustomModal.escape(status) : status}</span>`;
-          }
-
-          const safePrice = window.formatNaira ? window.formatNaira(ord.product_price || 0) : '₦' + (ord.product_price || 0);
-          const safeTitle = window.CustomModal ? window.CustomModal.escape(ord.product_title || 'Nkem Global Product') : (ord.product_title || 'Nkem Global Product');
-          const safeId = String(ord.id || ord.order_id || '').toUpperCase();
-          const cleanAddr = cleanDeliveryAddress(ord.delivery_address || ord.address || '', ord.lga, ord.state);
-          const safeDelivery = window.CustomModal ? window.CustomModal.escape(cleanAddr) : cleanAddr;
-
-          return `
-            <div class="user-order-card" data-order-id="${ord.id}" style="cursor: pointer;">
-              <div class="user-order-card-header">
-                <span class="user-order-ref">Order #${safeId}</span>
-                <span class="user-order-date">${dateStr}</span>
-              </div>
-
-              <div class="user-order-body">
-                <img src="${coverImg}" class="user-order-thumb" alt="${safeTitle}" style="cursor: pointer;" title="Click to view image" />
-                <div class="user-order-info">
-                  <h4 class="user-order-title">${safeTitle}</h4>
-                  <div class="user-order-price">${safePrice}</div>
-                  <div class="user-order-addr" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
-                    Delivery: ${safeDelivery}
-                  </div>
-                </div>
-              </div>
-
-              <div class="user-order-footer">
-                <div class="user-order-status-wrap">
-                  ${statusBadge}
-                </div>
-
-                <div class="user-order-actions" style="display: flex; gap: 6px; flex-wrap: wrap;">
-                  <button class="btn btn-secondary btn-sm btn-view-receipt" type="button" data-id="${ord.id}" title="View order details and download official receipt">
-                    ${window.renderIcon('download')}
-                    <span>Receipt</span>
-                  </button>
-                  ${isPending ? `
-                    <button class="btn btn-secondary btn-sm btn-cancel-order" type="button" data-id="${ord.id}" style="color: var(--status-danger); border-color: rgba(220, 53, 69, 0.4);">
-                      <span>Cancel Order</span>
-                    </button>
-                  ` : ''}
-                  <a href="chat.html" class="btn btn-secondary btn-sm" style="gap: 4px;">
-                    <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                    <span>Chat with Admin</span>
-                  </a>
-                </div>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-        // Order card click -> Open full order details modal
-        container.querySelectorAll('.user-order-card').forEach(card => {
-          card.addEventListener('click', (e) => {
-            if (e.target.closest('button') || e.target.closest('a') || e.target.closest('.user-order-thumb')) return;
-            const ordId = card.getAttribute('data-order-id');
-            const found = currentOrdersList.find(o => o.id === ordId);
-            if (found && window.openChatOrderDetailsModal) {
-              window.openChatOrderDetailsModal(found, false);
-            }
-          });
-        });
-
-        // Thumbnail image click -> Full View Lightbox
-        container.querySelectorAll('.user-order-thumb').forEach(thumb => {
-          thumb.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const src = thumb.getAttribute('src');
-            if (window.openFullViewLightbox) {
-              window.openFullViewLightbox(src);
-            }
-          });
-        });
-
-        // Receipt modal / download listener
-        container.querySelectorAll('.btn-view-receipt').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const ordId = btn.getAttribute('data-id');
-            const found = currentOrdersList.find(o => o.id === ordId);
-            if (found && window.openChatOrderDetailsModal) {
-              window.openChatOrderDetailsModal(found, false);
-            } else if (found && window.ReceiptGenerator) {
-              window.ReceiptGenerator.downloadReceiptImage(found);
-            }
-          });
-        });
-
-        // Cancel button listeners
-        container.querySelectorAll('.btn-cancel-order').forEach(btn => {
-          btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const orderId = btn.getAttribute('data-id');
-            const confirmed = await window.CustomModal.confirm({
-              title: 'Cancel Order',
-              message: 'Are you sure you want to cancel this order request? This action cannot be undone.',
-              confirmText: 'Yes, Cancel Order',
-              isDanger: true
-            });
-
-            if (confirmed) {
-              btn.disabled = true;
-              btn.innerHTML = `<span>Cancelling...</span>`;
-              try {
-                await window.SupabaseService.cancelUserOrder(orderId, user.id);
-
-                // Post status update to live chat
-                await window.SupabaseService.sendUserChatMessage({
-                  id: `msg-cancel-${orderId}-${Date.now()}`,
-                  order_code: orderId,
-                  user_id: user.id,
-                  user_name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Customer',
-                  user_whatsapp: user.whatsapp_number,
-                  sender: 'user',
-                  message: `Order Cancelled: Order #${orderId} was cancelled by the customer.`,
-                  image_url: null,
-                  is_read_by_admin: false,
-                  is_read_by_user: true,
-                  deleted_for_everyone: false,
-                  deleted_for_user: false,
-                  deleted_for_admin: false,
-                  created_at: new Date().toISOString()
-                });
-
-                window.CustomModal.toast({ message: 'Order has been cancelled.', type: 'info' });
-                closeModal();
-                openMyOrdersModal();
-              } catch (err) {
-                window.CustomModal.toast({ message: err.message || 'Failed to cancel order.', type: 'danger' });
-                btn.disabled = false;
-                btn.innerHTML = `<span>Cancel Order</span>`;
-              }
-            }
-          });
-        });
-      } catch (renderErr) {
-        console.error('renderFilteredOrders error:', renderErr);
-        container.innerHTML = `
-          <div style="text-align: center; padding: 36px; color: var(--text-muted); font-size: var(--font-sm);">
-            <p>Could not display orders.</p>
-            <button class="btn btn-secondary btn-sm" onclick="this.closest('.c-modal-overlay').remove()">Close</button>
-          </div>
-        `;
-      }
-    }
-
-    function setOrdersData(ordersRaw) {
-      const seenOrderIds = new Set();
-      const deduped = [];
-      (ordersRaw || []).forEach(o => {
-        if (!o) return;
-        const cid = String(o.id || o.order_id || o.order_code || o.retrieval_code || '').trim().toLowerCase();
-        if (cid && !seenOrderIds.has(cid)) {
-          seenOrderIds.add(cid);
-          deduped.push(o);
-        }
-      });
-      currentOrdersList = deduped;
-      renderFilteredOrders();
-    }
-
-    // Step 1: Render cached local orders immediately (0ms instant display - ZERO waiting)
-    const userPhone = user.whatsapp_number || user.phone || user.whatsapp || '';
-    let localOrders = [];
-    try {
-      if (window.SupabaseService && window.SupabaseService.getUserOrdersSync) {
-        localOrders = window.SupabaseService.getUserOrdersSync(user.id, userPhone, user.email);
-      }
-    } catch (syncErr) {
-      console.warn('getUserOrdersSync error:', syncErr);
-    }
-
-    setOrdersData(localOrders);
-
-    // Step 2: Fetch fresh orders from Supabase with background sync
-    try {
-      window.SupabaseService.getUserOrders(user.id, userPhone, user.email, 2500).then(fresh => {
-        if (modalOverlay.parentNode && Array.isArray(fresh) && fresh.length > 0) {
-          setOrdersData(fresh);
-        }
-      }).catch(e => console.warn('Background fresh orders sync notice (using local):', e));
-    } catch (err) {
-      console.warn('Background fresh orders sync notice (using local):', err);
-    }
-  }
-
-  /* ==========================================================================
-     10. USER AUTH STATUS & UNREAD MESSAGE NOTIFICATION BADGE
-     ========================================================================== */
-  function renderUserAuthHeader() {
-    const user = window.SupabaseService.getCurrentUser();
-    const navMyOrders = document.getElementById('navMyOrdersLink');
-    const mobMyOrders = document.getElementById('mobMyOrdersLink');
-
-    if (user) {
-      if (navMyOrders) {
-        navMyOrders.style.display = 'inline-flex';
-        navMyOrders.onclick = (e) => {
-          e.preventDefault();
-          openMyOrdersModal();
-        };
-      }
-      if (mobMyOrders) {
-        mobMyOrders.style.display = 'block';
-        mobMyOrders.onclick = (e) => {
-          e.preventDefault();
-          const mobModal = document.getElementById('mobileMenuModal');
-          if (mobModal) mobModal.classList.remove('active');
-          openMyOrdersModal();
-        };
-      }
-    } else {
-      if (navMyOrders) navMyOrders.style.display = 'none';
-      if (mobMyOrders) mobMyOrders.style.display = 'none';
-    }
-
-    // Desktop Header
-    if (headerAuthContainer) {
-      if (!user) {
-        headerAuthContainer.innerHTML = `
-          <button class="btn btn-secondary btn-sm" type="button" id="deskSignInBtn">
-            <span>Sign In</span>
-          </button>
-        `;
-        headerAuthContainer.querySelector('#deskSignInBtn').addEventListener('click', () => {
-          window.AuthModal.showSignIn();
-        });
-      } else {
-        headerAuthContainer.innerHTML = `
-          <div class="user-pill" style="cursor: pointer;" id="deskUserPill" title="View Profile & Settings">
-            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <span class="user-pill-name">${window.CustomModal.escape(user.first_name)}</span>
-            <button class="btn-pill-logout" type="button" id="deskLogoutBtn" title="Logout">Logout</button>
-          </div>
-        `;
-        headerAuthContainer.querySelector('.user-pill-name').addEventListener('click', (e) => {
-          e.stopPropagation();
-          window.AuthModal.showProfile();
-        });
-        headerAuthContainer.querySelector('#deskLogoutBtn').addEventListener('click', (e) => {
-          e.stopPropagation();
-          window.CustomModal.confirm({
-            title: 'Sign Out',
-            message: 'Are you sure you want to sign out?',
-            confirmText: 'Sign Out',
-            onConfirm: () => {
-              window.SupabaseService.logoutUser();
-              window.CustomModal.toast({ message: 'Signed out successfully.', type: 'info' });
-            }
-          });
-        });
-      }
-    }
-
-    // Mobile Drawer
-    if (mobileAuthContainer) {
-      if (!user) {
-        mobileAuthContainer.innerHTML = `
-          <button class="btn btn-secondary btn-sm" type="button" id="mobSignInBtn" style="width: 100%; justify-content: center;">
-            <span>Sign In / Create Account</span>
-          </button>
-        `;
-        mobileAuthContainer.querySelector('#mobSignInBtn').addEventListener('click', () => {
-          const mobModal = document.getElementById('mobileMenuModal');
-          if (mobModal) mobModal.classList.remove('active');
-          window.AuthModal.showSignIn();
-        });
-      } else {
-        mobileAuthContainer.innerHTML = `
-          <div style="display: flex; flex-direction: column; gap: 8px; font-size: var(--font-xs);">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                <strong style="color: var(--accent-gold);">${window.CustomModal.escape(user.first_name)} ${window.CustomModal.escape(user.last_name)}</strong>
-              </div>
-              <button class="btn-pill-logout" type="button" id="mobLogoutBtn" style="color: var(--status-danger);">Logout</button>
-            </div>
-            <button class="btn btn-secondary btn-sm" type="button" id="mobProfileBtn" style="width: 100%; justify-content: center;">
-              <span>Profile & Account Settings</span>
-            </button>
-          </div>
-        `;
-        mobileAuthContainer.querySelector('#mobProfileBtn').addEventListener('click', () => {
-          const mobModal = document.getElementById('mobileMenuModal');
-          if (mobModal) mobModal.classList.remove('active');
-          window.AuthModal.showProfile();
-        });
-        mobileAuthContainer.querySelector('#mobLogoutBtn').addEventListener('click', () => {
-          const mobModal = document.getElementById('mobileMenuModal');
-          if (mobModal) mobModal.classList.remove('active');
-          window.CustomModal.confirm({
-            title: 'Sign Out',
-            message: 'Are you sure you want to sign out?',
-            confirmText: 'Sign Out',
-            onConfirm: () => {
-              window.SupabaseService.logoutUser();
-              window.CustomModal.toast({ message: 'Signed out successfully.', type: 'info' });
-            }
-          });
-        });
-      }
-    }
-  }
-
   async function checkUnreadMessages() {
-    const user = window.SupabaseService.getCurrentUser();
-    if (!user) {
-      if (navChatBadge) navChatBadge.style.display = 'none';
-      if (mobChatBadge) mobChatBadge.style.display = 'none';
-      return;
-    }
-
     try {
-      const count = await window.SupabaseService.getUnreadCountForUser(user.id);
-      if (count > 0) {
-        if (navChatBadge) {
-          navChatBadge.textContent = count;
-          navChatBadge.style.display = 'inline-flex';
-        }
-        if (mobChatBadge) {
-          mobChatBadge.textContent = count;
-          mobChatBadge.style.display = 'inline-flex';
-        }
-      } else {
-        if (navChatBadge) navChatBadge.style.display = 'none';
-        if (mobChatBadge) mobChatBadge.style.display = 'none';
+      const activeUser = window.SupabaseService.getActiveUser ? window.SupabaseService.getActiveUser() : null;
+      if (!activeUser || !activeUser.id) return;
+      const count = await window.SupabaseService.getUnreadCountForUser(activeUser.id);
+      const deskAccountBtn = document.getElementById('deskAccountNavBtn');
+      if (deskAccountBtn && activeUser.name) {
+        deskAccountBtn.textContent = activeUser.name.split(' ')[0] || 'Account';
       }
-    } catch (_) {}
+    } catch (e) {}
   }
 
-  // Expose lightbox helper globally for full view image clicks
-  window.openFullViewLightbox = openFullViewLightbox;
-
-  // Smart Top Bar Hide on Scroll Down, Reveal Instantly on the Slightest Scroll Up
-  function initSmartHeaderScroll() {
-    const headerBar = document.querySelector('.header-bar');
-    if (!headerBar) return;
-
-    let lastScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
-    let touchStartY = 0;
-
-    function showHeader() {
-      headerBar.classList.remove('header-hidden');
-    }
-
-    function hideHeader() {
-      headerBar.classList.add('header-hidden');
-    }
-
-    function evaluateScroll() {
-      const currentScrollY = Math.max(0, window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0);
-
-      // Always show near top
-      if (currentScrollY <= 30) {
-        showHeader();
-        lastScrollY = currentScrollY;
-        return;
-      }
-
-      const diff = currentScrollY - lastScrollY;
-
-      // Scrolling UP (even 1 pixel): instantly show
-      if (diff < -1) {
-        showHeader();
-      }
-      // Scrolling DOWN past header threshold: hide
-      else if (diff > 3 && currentScrollY > 50) {
-        hideHeader();
-      }
-
-      lastScrollY = currentScrollY;
-    }
-
-    // Scroll listener (covers keyboard, scrollbar drag, programmatic, mouse, momentum)
-    window.addEventListener('scroll', evaluateScroll, { passive: true });
-
-    // Wheel listener (covers trackpad & mouse wheel before scroll settles)
-    window.addEventListener('wheel', (e) => {
-      const currentScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
-      if (e.deltaY < -1) {
-        showHeader();
-      } else if (e.deltaY > 1 && currentScrollY > 50) {
-        hideHeader();
-      }
-    }, { passive: true });
-
-    // Touch listeners (covers mobile gestures with zero latency)
-    window.addEventListener('touchstart', (e) => {
-      if (e.touches && e.touches[0]) {
-        touchStartY = e.touches[0].clientY;
-      }
-    }, { passive: true });
-
-    window.addEventListener('touchmove', (e) => {
-      if (!e.touches || !e.touches[0]) return;
-      const currentTouchY = e.touches[0].clientY;
-      const touchDelta = currentTouchY - touchStartY;
-      const currentScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
-
-      // Swiping DOWN on screen = scrolling UP page: reveal immediately
-      if (touchDelta > 5) {
-        showHeader();
-        touchStartY = currentTouchY;
-      }
-      // Swiping UP on screen = scrolling DOWN page: hide
-      else if (touchDelta < -8 && currentScrollY > 50) {
-        hideHeader();
-        touchStartY = currentTouchY;
-      }
-    }, { passive: true });
+  // Setup Search in Requests Tab
+  const reqSearchInput = document.getElementById('requestsSearchInput');
+  if (reqSearchInput) {
+    reqSearchInput.addEventListener('input', () => {
+      renderRequestsView();
+    });
   }
 
-  initSmartHeaderScroll();
+  // Setup Clear Cart Button
+  const cartClearBtn = document.getElementById('cartClearBtn');
+  if (cartClearBtn) {
+    cartClearBtn.addEventListener('click', () => {
+      window.CustomModal.confirm({
+        title: 'Clear Shopping Cart',
+        message: 'Are you sure you want to remove all items from your cart?',
+        confirmText: 'Clear Cart',
+        onConfirm: clearCart
+      });
+    });
+  }
 
-  // Initial Boot
+  // Initialize Tab listeners & Hero Request Form
+  initTabListeners();
+  initHeroRequestForm();
+
+  // Load Initial Data
   await loadInitialData();
+
+  // Handle URL hash on load (e.g. #shop, #cart, #requests, #account, #home)
+  const hash = (window.location.hash || '').replace('#', '').toLowerCase();
+  if (['home', 'shop', 'requests', 'cart', 'account'].includes(hash)) {
+    window.switchAppTab(hash);
+  } else {
+    window.switchAppTab('home');
+  }
 });
