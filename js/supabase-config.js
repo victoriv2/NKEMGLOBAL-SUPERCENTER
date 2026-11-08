@@ -36,14 +36,36 @@ window.SupabaseService = {
   },
 
   // ---------------- CATEGORIES ----------------
+  _getDefaultCategories() {
+    return [
+      { id: "cat-groceries",   name: "Groceries & Provisions",       sort_order: 1,  image_url: "assets/categories/cat-groceries.png" },
+      { id: "cat-phones",      name: "Phones",                       sort_order: 2,  image_url: "assets/categories/cat-phones.png" },
+      { id: "cat-computers",   name: "Computers",                    sort_order: 3,  image_url: "assets/categories/cat-computers.png" },
+      { id: "cat-electronics", name: "Electronics",                  sort_order: 4,  image_url: "assets/categories/cat-electronics.png" },
+      { id: "cat-properties",  name: "Properties",                   sort_order: 5,  image_url: "assets/categories/cat-properties.png" },
+      { id: "cat-land",        name: "Land",                         sort_order: 6,  image_url: "assets/categories/cat-land.png" },
+      { id: "cat-vehicles",    name: "Vehicles",                     sort_order: 7,  image_url: "assets/categories/cat-vehicles.png" },
+      { id: "cat-tricycles",   name: "Tricycles & Transportation",   sort_order: 8,  image_url: "assets/categories/cat-tricycles.png" },
+      { id: "cat-inverters",   name: "Buses & Inverters",            sort_order: 9,  image_url: "assets/categories/cat-inverters.png" },
+      { id: "cat-building",    name: "Building Materials",           sort_order: 10, image_url: "assets/categories/cat-building.png" },
+      { id: "cat-services",    name: "Services & Cleaning",          sort_order: 11, image_url: "assets/categories/cat-services.png" },
+      { id: "cat-clothes",     name: "Clothes & Shoes",              sort_order: 12, image_url: "assets/categories/cat-clothes.png" },
+      { id: "cat-beauty",      name: "Beauty & Ladies Attire",       sort_order: 13, image_url: "assets/categories/cat-beauty.png" },
+      { id: "cat-babies",      name: "Babies & Kids",                sort_order: 14, image_url: "assets/categories/cat-babies.png" },
+      { id: "cat-agriculture", name: "Agricultural & Farming",       sort_order: 15, image_url: "assets/categories/cat-agriculture.png" },
+      { id: "cat-animals",     name: "Animals & Pets",               sort_order: 16, image_url: "assets/categories/cat-animals.png" },
+      { id: "cat-jobs",        name: "Jobs",                         sort_order: 17, image_url: "assets/categories/cat-jobs.png" },
+      { id: "cat-handbags",    name: "Hand Bags & Luggage",          sort_order: 18, image_url: "assets/categories/cat-handbags.png" },
+      { id: "cat-baggage",     name: "Baggage",                      sort_order: 19, image_url: "assets/categories/cat-baggage.png" }
+    ];
+  },
+
   getLocalCategories() {
     try {
       const local = localStorage.getItem('nkem_local_categories');
-      return local ? JSON.parse(local) : [
-        { id: 'cat-suits', name: 'Italian Suits', sort_order: 1 }
-      ];
+      return local ? JSON.parse(local) : this._getDefaultCategories();
     } catch (e) {
-      return [{ id: 'cat-suits', name: 'Italian Suits', sort_order: 1 }];
+      return this._getDefaultCategories();
     }
   },
 
@@ -54,9 +76,7 @@ window.SupabaseService = {
       return cloud;
     }
     const local = localStorage.getItem('nkem_local_categories');
-    return local ? JSON.parse(local) : [
-      { id: 'cat-suits', name: 'Italian Suits', sort_order: 1 }
-    ];
+    return local ? JSON.parse(local) : this._getDefaultCategories();
   },
 
   async saveCategory(cat) {

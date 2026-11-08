@@ -63,6 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (state.banners.length > 0 || state.products.length > 0) {
         initBanners();
+        renderHomeCategories();
         initToolbars();
         initSeeMore();
         applyFiltersAndSort();
@@ -91,6 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       state.hasMoreProducts = Array.isArray(products) && products.length === state.pageSize;
 
       initBanners();
+      renderHomeCategories();
       initToolbars();
       initSeeMore();
       applyFiltersAndSort();
@@ -277,6 +279,56 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   /* ==========================================================================
+     HOME CATEGORIES GRID (Rendered from Supabase / Seed)
+     ========================================================================== */
+  function renderHomeCategories() {
+    const grid = document.getElementById('homeCategoriesGrid');
+    if (!grid) return;
+
+    if (!state.categories || state.categories.length === 0) {
+      grid.innerHTML = '';
+      return;
+    }
+
+    grid.innerHTML = state.categories.map(c => {
+      const isActive = state.selectedCategory === c.id;
+      const img = c.image_url || 'assets/images/logo.jpeg';
+      const safeName = window.CustomModal ? window.CustomModal.escape(c.name) : c.name;
+      return `
+        <div class="home-category-card ${isActive ? 'active' : ''}" data-cat-id="${c.id}" tabindex="0" role="button" aria-label="${safeName}">
+          <div class="home-category-img-wrap">
+            <img src="${img}" alt="${safeName}" class="home-category-img" loading="lazy" />
+          </div>
+          <span class="home-category-title">${safeName}</span>
+        </div>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('.home-category-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const catId = card.getAttribute('data-cat-id');
+        if (state.selectedCategory === catId) {
+          state.selectedCategory = 'all';
+        } else {
+          state.selectedCategory = catId;
+        }
+
+        if (categoryPickerInstance) {
+          categoryPickerInstance.setValue(state.selectedCategory);
+        }
+
+        renderHomeCategories();
+        reloadProducts();
+
+        const catalogEl = document.getElementById('catalogSection');
+        if (catalogEl) {
+          catalogEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  }
+
+  /* ==========================================================================
      3. TOOLBARS & CUSTOM MODULAR PICKERS (Zero Native <select>)
      ========================================================================== */
   let categoryPickerInstance = null;
@@ -298,6 +350,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       placeholder: 'All Categories',
       onChange: (val) => {
         state.selectedCategory = val;
+        renderHomeCategories();
         reloadProducts();
       }
     });

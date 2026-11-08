@@ -455,6 +455,88 @@ body {
   border-color: var(--accent-gold);
 }
 
+/* ==========================================================================
+   SHOP BY CATEGORY (Dynamic Grid Mockup Styling)
+   ========================================================================== */
+.home-categories-section {
+  padding: clamp(20px, 3.5vw, 36px) 0;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.home-categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: clamp(10px, 1.8vw, 16px);
+  margin-top: 14px;
+}
+
+@media (max-width: 680px) {
+  .home-categories-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+}
+
+.home-category-card {
+  background-color: #ffffff !important;
+  border: 1px solid #d4ede0;
+  border-radius: 12px;
+  padding: 8px 6px 10px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+  outline: none;
+  min-height: 100px;
+}
+
+.home-category-card:hover,
+.home-category-card:focus {
+  border-color: #055a29;
+}
+
+.home-category-card.active {
+  border-color: #055a29 !important;
+  background-color: #f2fbf5 !important;
+}
+
+.home-category-img-wrap {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: transparent;
+}
+
+.home-category-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.home-category-title {
+  font-size: clamp(0.68rem, 1.8vw, 0.78rem);
+  font-weight: 700;
+  color: #053b1b;
+  line-height: 1.25;
+  margin-top: auto;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+}
+
 /* ---------------- SECTION HEADER, SORT & FILTER BAR ---------------- */
 .catalog-toolbar-section {
   padding-top: var(--space-lg);

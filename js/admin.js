@@ -410,10 +410,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     adminState.categories.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
     categoryListContainer.innerHTML = adminState.categories.map((c, idx) => `
-      <div class="admin-item-row" data-id="${c.id}">
-        <div class="admin-item-details" style="padding-left: 8px;">
-          <span class="admin-item-title">${window.CustomModal.escape(c.name)}</span>
-          <span class="admin-item-sub">Order Position: #${idx + 1} &bull; ID: ${c.id}</span>
+      <div class="admin-item-row" data-id="${c.id}" style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+          <img src="${c.image_url || 'assets/images/logo.jpeg'}" alt="${window.CustomModal.escape(c.name)}" style="width: 46px; height: 34px; object-fit: contain; border-radius: 4px; border: 1px solid var(--border-color); background: #fff; flex-shrink: 0;" />
+          <div class="admin-item-details">
+            <span class="admin-item-title">${window.CustomModal.escape(c.name)}</span>
+            <span class="admin-item-sub">Order Position: #${idx + 1} &bull; ID: ${c.id}</span>
+          </div>
         </div>
         <div class="admin-item-actions">
           <button class="btn-icon-square" type="button" data-action="cat-up" data-idx="${idx}" title="Move Up" ${idx === 0 ? 'disabled style="opacity:0.3;"' : ''}>
@@ -422,7 +425,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <button class="btn-icon-square" type="button" data-action="cat-down" data-idx="${idx}" title="Move Down" ${idx === adminState.categories.length - 1 ? 'disabled style="opacity:0.3;"' : ''}>
             ${window.renderIcon('arrowDown')}
           </button>
-          <button class="btn-icon-square" type="button" data-action="cat-edit" data-id="${c.id}" title="Rename Category">
+          <button class="btn-icon-square" type="button" data-action="cat-edit" data-id="${c.id}" title="Edit Category & Image">
             ${window.renderIcon('edit')}
           </button>
           <button class="btn-icon-square danger" type="button" data-action="cat-delete" data-id="${c.id}" title="Remove Category">
@@ -462,25 +465,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     });
 
-    // Cat Edit
+    // Cat Edit Dialog
     categoryListContainer.querySelectorAll('[data-action="cat-edit"]').forEach(btn => {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
         const c = adminState.categories.find(x => x.id === id);
-        if (!c) return;
-
-        const newName = await window.CustomModal.prompt({
-          title: 'Rename Category',
-          message: 'Enter new category title:',
-          defaultValue: c.name
-        });
-
-        if (newName && newName.trim()) {
-          c.name = newName.trim();
-          await window.SupabaseService.saveCategory(c);
-          renderCategoriesManager();
-          window.CustomModal.toast({ message: 'Category renamed.', type: 'success' });
-        }
+        if (c) openCategoryEditDialog(c, false);
       });
     });
 
@@ -505,6 +495,155 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  const categoryEditModal = document.getElementById('adminCategoryEditModal');
+
+  /* Category Edit Dialog with Image Upload & Auto-Compression to <=100KB */
+  function openCategoryEditDialog(category = null, isNew = false) {
+    if (!categoryEditModal) return;
+
+    let catDraft = category ? { ...category } : {
+      id: `cat-${Date.now()}`,
+      name: '',
+      sort_order: adminState.categories.length + 1,
+      image_url: ''
+    };
+    let catImageDraft = catDraft.image_url || '';
+
+    categoryEditModal.innerHTML = `
+      <div class="c-modal-box" style="max-width: 520px;">
+        <div class="c-modal-header">
+          <h3 class="c-modal-title">${isNew ? 'Create New Category' : 'Edit Category'}</h3>
+          <button class="c-modal-close" type="button" id="closeCatEditModalBtn" aria-label="Close dialog">
+            ${window.renderIcon('x')}
+          </button>
+        </div>
+
+        <form id="categoryEditForm" style="display: flex; flex-direction: column; gap: 16px; padding: 16px;">
+          <div class="form-group">
+            <label class="form-label">Category Title <span class="req">*</span></label>
+            <input type="text" class="c-input" id="catModalTitleInput" required placeholder="e.g. Phones, Groceries, Watches" value="${window.CustomModal.escape(catDraft.name || '')}" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Category Image (Auto-compressed &le; 100KB)</label>
+            <input type="file" id="catModalFileInput" accept="image/*" style="display: none;" />
+            <div id="catImgPreviewMount" style="margin-top: 6px;"></div>
+          </div>
+
+          <div class="c-modal-footer dual-actions" style="margin: 0 -16px -16px -16px; padding: 12px 16px;">
+            <button class="btn btn-secondary" type="button" id="cancelCatEditBtn">Cancel</button>
+            <button class="btn btn-primary" type="submit">
+              ${window.renderIcon('check')}
+              <span>${isNew ? 'Create Category' : 'Save Changes'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    categoryEditModal.classList.add('active');
+
+    const previewMount = categoryEditModal.querySelector('#catImgPreviewMount');
+    const fileInput = categoryEditModal.querySelector('#catModalFileInput');
+
+    function renderCatPreview() {
+      if (catImageDraft) {
+        previewMount.innerHTML = `
+          <div style="position: relative; display: inline-block; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border-color); background: #fff;">
+            <img src="${catImageDraft}" alt="Category Image" style="width: 140px; height: 90px; object-fit: contain; display: block;" />
+            <button type="button" id="removeCatImgBtn" style="position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.7); color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none;">
+              ${window.renderIcon('x')}
+            </button>
+          </div>
+          <div style="margin-top: 8px;">
+            <button type="button" class="btn btn-secondary btn-sm" id="changeCatImgBtn">
+              ${window.renderIcon('upload')}
+              <span>Change Image</span>
+            </button>
+          </div>
+        `;
+        previewMount.querySelector('#removeCatImgBtn').addEventListener('click', () => {
+          catImageDraft = '';
+          renderCatPreview();
+        });
+        previewMount.querySelector('#changeCatImgBtn').addEventListener('click', () => fileInput.click());
+      } else {
+        previewMount.innerHTML = `
+          <div id="catModalDropzone" style="border: 2px dashed var(--border-color); border-radius: var(--radius-sm); padding: 22px; text-align: center; cursor: pointer; background: var(--bg-surface-elevated); transition: border-color 0.2s ease;">
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 28px; height: 28px; color: var(--accent-gold); margin-bottom: 6px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <div style="font-weight: 600; font-size: var(--font-sm); color: var(--text-main); margin-bottom: 2px;">Click to Choose Category Image</div>
+            <div style="font-size: var(--font-xs); color: var(--text-muted);">Supports JPG, PNG, WEBP &bull; Auto-compressed to &le; 100KB</div>
+          </div>
+        `;
+        previewMount.querySelector('#catModalDropzone').addEventListener('click', () => fileInput.click());
+      }
+    }
+
+    renderCatPreview();
+
+    // Auto-compression on file select (<= 100KB)
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      window.CustomModal.toast({ message: 'Optimizing and compressing category image to <= 100KB...', type: 'info' });
+
+      try {
+        const compressed = await window.ImageCompressor.compress(file);
+        catImageDraft = compressed.dataUrl;
+        renderCatPreview();
+        window.CustomModal.toast({
+          message: `Category image compressed (${compressed.sizeKb} KB - optimized under 100KB)`,
+          type: 'success'
+        });
+      } catch (err) {
+        window.CustomModal.toast({ message: `Failed to compress image: ${err.message}`, type: 'danger' });
+      }
+
+      fileInput.value = '';
+    });
+
+    // Close Dialog
+    const closeModal = () => categoryEditModal.classList.remove('active');
+    categoryEditModal.querySelector('#closeCatEditModalBtn').addEventListener('click', closeModal);
+    categoryEditModal.querySelector('#cancelCatEditBtn').addEventListener('click', closeModal);
+
+    // Form Submit
+    const form = categoryEditModal.querySelector('#categoryEditForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const titleInput = categoryEditModal.querySelector('#catModalTitleInput');
+      const title = titleInput.value.trim();
+      if (!title) {
+        window.CustomModal.toast({ message: 'Please enter a category title.', type: 'danger' });
+        return;
+      }
+
+      catDraft.name = title;
+      catDraft.image_url = catImageDraft;
+
+      if (isNew) {
+        adminState.categories.push(catDraft);
+      } else {
+        const idx = adminState.categories.findIndex(c => c.id === catDraft.id);
+        if (idx >= 0) adminState.categories[idx] = catDraft;
+      }
+
+      closeModal();
+      renderCategoriesManager();
+
+      try {
+        await window.SupabaseService.saveCategory(catDraft);
+        window.CustomModal.toast({
+          message: isNew ? 'Category created and synced.' : 'Category updated and synced.',
+          type: 'success'
+        });
+      } catch (err) {
+        window.CustomModal.toast({ message: `Cloud sync error: ${err.message}`, type: 'danger' });
+      }
+    });
+  }
+
   let _catSyncTimer = null;
   function queuePersistCategoriesOrder() {
     clearTimeout(_catSyncTimer);
@@ -520,26 +659,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 250);
   }
 
-  // Create Category
+  // Create Category Button
   if (addCategoryBtn) {
-    addCategoryBtn.addEventListener('click', async () => {
-      const name = await window.CustomModal.prompt({
-        title: 'New Category',
-        message: 'Enter category name:',
-        placeholder: 'e.g. Suits, Shoes, Watches, Fragrances'
-      });
-
-      if (name && name.trim()) {
-        const newCat = {
-          id: `cat-${Date.now()}`,
-          name: name.trim(),
-          sort_order: adminState.categories.length + 1
-        };
-        adminState.categories.push(newCat);
-        await window.SupabaseService.saveCategory(newCat);
-        renderCategoriesManager();
-        window.CustomModal.toast({ message: 'Category created.', type: 'success' });
-      }
+    addCategoryBtn.addEventListener('click', () => {
+      openCategoryEditDialog(null, true);
     });
   }
 
