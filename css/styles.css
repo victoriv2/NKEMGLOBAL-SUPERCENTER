@@ -1395,7 +1395,8 @@ body {
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
-  max-height: clamp(260px, 42vh, 380px);
+  min-height: 320px;
+  max-height: clamp(340px, 55vh, 480px);
   background-color: var(--bg-main);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
@@ -2822,7 +2823,8 @@ body.admin-body .c-modal-footer {
 
   .details-main-img-box {
     aspect-ratio: 1 / 1;
-    max-height: clamp(240px, 36vh, 320px);
+    min-height: 280px;
+    max-height: clamp(300px, 48vh, 420px);
     width: 100%;
     margin: 0 auto;
   }
@@ -2967,7 +2969,11 @@ body.admin-body .c-modal-footer {
   }
 
   .details-main-img-box {
-    max-height: clamp(210px, 32vh, 260px);
+    aspect-ratio: 1 / 1;
+    min-height: 260px;
+    max-height: clamp(280px, 46vh, 360px);
+    width: 100%;
+    margin: 0 auto;
   }
 
   .details-sub-thumb {
