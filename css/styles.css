@@ -2126,7 +2126,7 @@ body {
 /* ---------------- TOAST NOTIFICATIONS (FLAT, HIGH Z-INDEX) ---------------- */
 #custom-toast-container {
   position: fixed !important;
-  bottom: var(--space-md) !important;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
   right: var(--space-md) !important;
   z-index: 2147483647 !important;
   display: flex;
@@ -2905,7 +2905,7 @@ body.admin-body .c-modal-footer {
   #custom-toast-container {
     left: var(--space-sm) !important;
     right: var(--space-sm) !important;
-    bottom: var(--space-sm) !important;
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   .c-toast-item {
@@ -3777,8 +3777,9 @@ body.admin-body .c-modal-footer {
 .btn-toggle-password:focus,
 .btn-toggle-password:active {
   transform: none !important;
-  color: var(--accent-gold) !important;
-  background: rgba(255, 255, 255, 0.06) !important;
+  color: #087f3b !important;
+  background: rgba(8, 127, 59, 0.08) !important;
+  border-radius: 50% !important;
 }
 
 .btn-toggle-password .svg-icon {
@@ -3790,15 +3791,47 @@ body.admin-body .c-modal-footer {
   overflow: visible !important;
 }
 
-/* Dark Luxury Autofill Override & Native Controls Suppression */
+/* Storefront Clean Mint & Emerald Autofill (Matching Input Fields) */
 input:-webkit-autofill,
-input:-webkit-autofill:hover, 
-input:-webkit-autofill:focus, 
-input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px #14151a inset !important;
-  -webkit-text-fill-color: #f5f5f7 !important;
-  caret-color: #f5f5f7 !important;
-  border-color: var(--border-color) !important;
+input:-webkit-autofill:hover,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:active,
+input:autofill,
+input:autofill:hover,
+input:autofill:active,
+textarea:autofill,
+textarea:autofill:hover,
+textarea:autofill:active,
+select:autofill,
+select:autofill:hover,
+select:autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #edf8f2 inset !important;
+  box-shadow: 0 0 0 1000px #edf8f2 inset !important;
+  -webkit-text-fill-color: #064e26 !important;
+  color: #064e26 !important;
+  caret-color: #064e26 !important;
+  border-color: #a1d7b3 !important;
+  font-family: inherit !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill:focus,
+input:autofill:focus,
+textarea:autofill:focus,
+select:autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #064e26 !important;
+  color: #064e26 !important;
+  caret-color: #064e26 !important;
+  border-color: #087f3b !important;
   transition: background-color 5000s ease-in-out 0s;
 }
 
