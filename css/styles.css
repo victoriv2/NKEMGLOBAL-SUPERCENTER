@@ -4932,24 +4932,63 @@ body:not(.admin-body) .product-card-price {
   align-items: stretch !important;
   min-height: clamp(120px, 16vw, 160px) !important;
   width: 100% !important;
+  background-color: #ffffff !important;
+  border: 1px solid #d1ead9 !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
 }
 
 .product-grid.list-view .product-card-img-wrap {
-  width: clamp(100px, 24vw, 160px) !important;
-  min-width: clamp(100px, 24vw, 160px) !important;
-  height: 100% !important;
-  min-height: 120px !important;
+  width: clamp(110px, 26vw, 180px) !important;
+  min-width: clamp(110px, 26vw, 180px) !important;
+  max-width: clamp(110px, 26vw, 180px) !important;
+  aspect-ratio: auto !important;
+  height: auto !important;
+  align-self: stretch !important;
   flex-shrink: 0 !important;
   position: relative !important;
+  overflow: hidden !important;
+  background-color: #edf8f2 !important;
+}
+
+.product-grid.list-view .product-card-img-wrap .product-card-img-slide {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
 }
 
 .product-grid.list-view .product-card-content {
-  flex: 1 !important;
+  flex: 1 1 auto !important;
   min-width: 0 !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: space-between !important;
   padding: clamp(10px, 1.8vw, 16px) !important;
+  gap: 6px !important;
+}
+
+.product-grid.list-view .product-card-title {
+  font-size: clamp(0.85rem, 2.5vw, 1.05rem) !important;
+  font-weight: 700 !important;
+  color: #073b1f !important;
+  line-height: 1.3 !important;
+  margin-bottom: 2px !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+
+.product-grid.list-view .product-card-desc {
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  font-size: clamp(0.74rem, 2vw, 0.84rem) !important;
+  color: #5a6e62 !important;
+  line-height: 1.4 !important;
 }
 
 .product-grid.list-view .product-card-footer {
@@ -4957,19 +4996,138 @@ body:not(.admin-body) .product-card-price {
   flex-direction: row !important;
   align-items: center !important;
   justify-content: space-between !important;
-  gap: 10px !important;
+  gap: 8px !important;
   margin-top: auto !important;
+  padding-top: 4px !important;
+  flex-wrap: wrap !important;
+}
+
+.product-grid.list-view .product-card-price {
+  font-size: clamp(0.92rem, 2.8vw, 1.15rem) !important;
+  font-weight: 800 !important;
+  color: #087f3b !important;
 }
 
 .product-grid.list-view .btn-add-to-cart {
   width: auto !important;
-  min-width: 120px !important;
-  padding: 8px 16px !important;
+  min-width: 100px !important;
+  padding: 7px 14px !important;
+  font-size: clamp(0.72rem, 2vw, 0.82rem) !important;
+}
+
+@media (max-width: 480px) {
+  .product-grid.list-view .product-card {
+    min-height: 105px !important;
+  }
+  .product-grid.list-view .product-card-img-wrap {
+    width: 95px !important;
+    min-width: 95px !important;
+    max-width: 95px !important;
+  }
+  .product-grid.list-view .product-card-content {
+    padding: 8px 10px !important;
+    gap: 4px !important;
+  }
+  .product-grid.list-view .product-card-desc {
+    display: none !important;
+  }
+  .product-grid.list-view .btn-add-to-cart {
+    padding: 6px 10px !important;
+    min-width: 80px !important;
+    font-size: 0.72rem !important;
+  }
 }
 
 .view-toggle-btn.active {
   color: #087f3b !important;
   background-color: #e2f5ea !important;
+}
+
+/* ---------------- PRODUCT DETAILS MODAL THEME CUSTOMIZATION ---------------- */
+body:not(.admin-body) .product-details-modal-box {
+  background-color: #ffffff !important;
+  border: 1px solid #d1ead9 !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+}
+
+body:not(.admin-body) .product-details-modal-box .c-modal-header {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #d1ead9 !important;
+  color: #073b1f !important;
+}
+
+body:not(.admin-body) .product-details-modal-box .c-modal-title {
+  color: #073b1f !important;
+}
+
+body:not(.admin-body) .details-main-img-box {
+  background-color: #edf8f2 !important;
+  border: 1px solid #d1ead9 !important;
+}
+
+body:not(.admin-body) .details-main-img {
+  background-color: #edf8f2 !important;
+}
+
+body:not(.admin-body) .details-img-zoom-hint {
+  background-color: rgba(7, 94, 47, 0.88) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+body:not(.admin-body) .details-desc-box {
+  background-color: #f7fbf8 !important;
+  border: 1px solid #d1ead9 !important;
+}
+
+body:not(.admin-body) .details-desc-heading {
+  color: #5a6e62 !important;
+}
+
+body:not(.admin-body) .details-desc-body {
+  color: #2d3748 !important;
+}
+
+body:not(.admin-body) .details-product-title {
+  color: #073b1f !important;
+}
+
+body:not(.admin-body) .details-product-price {
+  color: #087f3b !important;
+}
+
+body:not(.admin-body) .details-sub-thumb {
+  background-color: #ffffff !important;
+  border: 1px solid #d1ead9 !important;
+}
+
+body:not(.admin-body) .details-sub-thumb.active {
+  border-color: #087f3b !important;
+  border-width: 2px !important;
+}
+
+body:not(.admin-body) .details-thumb-nav-btn {
+  background-color: #f7fbf8 !important;
+  border: 1px solid #d1ead9 !important;
+  color: #087f3b !important;
+}
+
+body:not(.admin-body) .details-thumb-nav-btn:hover {
+  background-color: #e2f5ea !important;
+  border-color: #087f3b !important;
+}
+
+body:not(.admin-body) .details-sub-images-track {
+  scrollbar-color: #087f3b #edf8f2 !important;
+}
+
+body:not(.admin-body) .details-sub-images-track::-webkit-scrollbar-thumb {
+  background: #087f3b !important;
+}
+
+body:not(.admin-body) .details-sub-images-track::-webkit-scrollbar-track {
+  background: #edf8f2 !important;
 }
 
 /* ---------------- 6. CART VIEW (SHOPPING CART & CHECKOUT) ---------------- */
@@ -5462,10 +5620,10 @@ body:not(.admin-body) .product-card-price {
 /* ---------------- 10. FLOATING WHATSAPP BUTTON (MOCKUP RIGHT CIRCLE) ---------------- */
 .floating-whatsapp-btn {
   position: fixed !important;
-  bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
-  right: 16px !important;
-  width: 50px !important;
-  height: 50px !important;
+  bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important;
+  right: 18px !important;
+  width: 52px !important;
+  height: 52px !important;
   border-radius: 50% !important;
   background-color: #25D366 !important;
   color: #ffffff !important;
@@ -5476,6 +5634,7 @@ body:not(.admin-body) .product-card-price {
   border: 2px solid #ffffff !important;
   box-shadow: none !important;
   text-decoration: none !important;
+  pointer-events: auto !important;
   transition: background-color 0.15s ease !important;
 }
 

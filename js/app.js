@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     filteredProducts: [],
     selectedCategory: 'all',
     selectedSort: 'newest',
-    pageSize: 24,
+    pageSize: 16, // STRICT 16-ROW CATALOG RULE
     hasMoreProducts: false,
     isLoadingMore: false,
     productCardTimers: {},
@@ -539,38 +539,49 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function applyProductView(view) {
-    state.currentView = view;
+    state.currentView = view || 'grid';
     try {
-      localStorage.setItem('nkem_product_view', view);
+      localStorage.setItem('nkem_product_view', state.currentView);
     } catch (e) {}
 
-    if (productGrid) {
-      if (view === 'list') {
-        productGrid.classList.add('list-view');
+    const pGrid = document.getElementById('productGrid');
+    const gridBtn = document.getElementById('viewGridBtn');
+    const listBtn = document.getElementById('viewListBtn');
+
+    if (pGrid) {
+      if (state.currentView === 'list') {
+        pGrid.classList.add('list-view');
       } else {
-        productGrid.classList.remove('list-view');
+        pGrid.classList.remove('list-view');
       }
     }
 
-    if (viewGridBtn && viewListBtn) {
-      if (view === 'list') {
-        viewGridBtn.classList.remove('active');
-        viewListBtn.classList.add('active');
+    if (gridBtn && listBtn) {
+      if (state.currentView === 'list') {
+        gridBtn.classList.remove('active');
+        listBtn.classList.add('active');
       } else {
-        viewListBtn.classList.remove('active');
-        viewGridBtn.classList.add('active');
+        listBtn.classList.remove('active');
+        gridBtn.classList.add('active');
       }
     }
   }
 
   function initViewToggle() {
-    if (viewGridBtn && !viewGridBtn._hasViewToggleListener) {
-      viewGridBtn._hasViewToggleListener = true;
-      viewGridBtn.addEventListener('click', () => applyProductView('grid'));
+    const gridBtn = document.getElementById('viewGridBtn');
+    const listBtn = document.getElementById('viewListBtn');
+
+    if (gridBtn) {
+      gridBtn.onclick = (e) => {
+        e.preventDefault();
+        applyProductView('grid');
+      };
     }
-    if (viewListBtn && !viewListBtn._hasViewToggleListener) {
-      viewListBtn._hasViewToggleListener = true;
-      viewListBtn.addEventListener('click', () => applyProductView('list'));
+    if (listBtn) {
+      listBtn.onclick = (e) => {
+        e.preventDefault();
+        applyProductView('list');
+      };
     }
     applyProductView(state.currentView);
   }
@@ -772,6 +783,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       });
     });
+
+    // Ensure list-view/grid-view class is accurately synced
+    applyProductView(state.currentView);
   }
 
   function updateSeeMoreButton() {
@@ -837,34 +851,37 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const modalContent = detailsModalOverlay.querySelector('.product-details-modal-box');
     modalContent.innerHTML = `
-      <div class="details-modal-layout">
-        <button class="c-modal-close-btn details-close-btn" type="button" id="closeDetailsModalBtn" aria-label="Close Product Details">
+      <div class="c-modal-header">
+        <h3 class="c-modal-title">Product Details</h3>
+        <button class="c-modal-close-btn" type="button" id="closeDetailsModalBtn" aria-label="Close Product Details">
           ${window.renderIcon('close')}
         </button>
+      </div>
 
+      <div class="details-modal-content">
         <div class="details-gallery-wrap">
-          <div class="details-main-img-box" id="detailsMainImgContainer" title="Click to view full image in lightbox">
-            <img class="details-main-img" id="detailsMainImg" src="${images[0]}" alt="${window.CustomModal.escape(prod.title)}" />
-            <button class="details-zoom-btn" type="button" id="zoomLightboxBtn" title="Full View Lightbox">
+          <div class="details-main-img-box" id="detailsMainImgBox" title="Click to view full image">
+            <img class="details-main-img" id="detailsMainImg" src="${currentModalSelectedImage}" alt="${window.CustomModal.escape(prod.title)}" />
+            <div class="details-img-zoom-hint">
               ${window.renderIcon('search')}
-            </button>
+              <span>Tap for Full View</span>
+            </div>
           </div>
 
+          <!-- Slideable Sub Images Under Preview -->
           ${images.length > 1 ? `
             <div class="details-sub-images-wrap">
-              <button class="details-thumb-nav-btn details-thumb-prev" type="button" id="thumbNavPrevBtn" aria-label="Previous image">
+              <button class="details-thumb-nav-btn prev" type="button" id="thumbNavPrevBtn" aria-label="Previous image">
                 ${window.renderIcon('chevronLeft')}
               </button>
-              <div class="details-sub-images" id="detailsSubImagesTrack">
-                ${images.map((img, idx) => `
-                  <img class="details-sub-thumb ${idx === 0 ? 'active' : ''}" 
-                       src="${img}" 
-                       data-src="${img}" 
-                       alt="Thumbnail ${idx + 1}" 
-                       tabindex="0" />
+              <div class="details-sub-images-track" id="detailsSubImagesTrack">
+                ${images.map((src, idx) => `
+                  <div class="details-sub-thumb ${idx === 0 ? 'active' : ''}" data-src="${src}" role="button" tabindex="0" aria-label="Thumbnail ${idx + 1}">
+                    <img src="${src}" alt="Thumb ${idx + 1}" />
+                  </div>
                 `).join('')}
               </div>
-              <button class="details-thumb-nav-btn details-thumb-next" type="button" id="thumbNavNextBtn" aria-label="Next image">
+              <button class="details-thumb-nav-btn next" type="button" id="thumbNavNextBtn" aria-label="Next image">
                 ${window.renderIcon('chevronRight')}
               </button>
             </div>
@@ -884,16 +901,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           <div class="details-desc-box">
             <span class="details-desc-heading">Product Description</span>
-            <p class="details-desc-body">${window.CustomModal.escape(prod.description)}</p>
+            <p class="details-desc-body">${window.CustomModal.escape(prod.description || 'No detailed description available.')}</p>
           </div>
 
           <div style="margin-top: auto; padding-top: 16px; display: flex; flex-direction: column; gap: 8px;">
-            <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-weight: 800; background-color: #087f3b;" type="button" id="detailsAddToCartBtn">
+            <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-weight: 800; background-color: #087f3b; border-color: #087f3b;" type="button" id="detailsAddToCartBtn" ${!prod.in_stock ? 'disabled' : ''}>
               ${window.renderIcon('cart')}
               <span>Add to Cart — ${window.formatNaira(prod.price)}</span>
             </button>
 
-            <a href="https://wa.me/2347042087633?text=${encodeURIComponent(`Hello Nkem Global, I want to order this product: ${prod.title} (${window.formatNaira(prod.price)})`)}" target="_blank" rel="noopener" class="btn btn-secondary" style="width: 100%; justify-content: center; padding: 11px; font-weight: 700; color: #166534; border-color: #25D366; text-decoration: none;">
+            <a href="https://wa.me/2347042087633?text=${encodeURIComponent(`Hello Nkem Global, I would like to order: ${prod.title} (${window.formatNaira(prod.price)}). Is this available?`)}" target="_blank" rel="noopener" class="btn btn-secondary" style="width: 100%; justify-content: center; padding: 11px; font-weight: 700; color: #166534; border-color: #25D366; text-decoration: none;">
               ${window.renderIcon('whatsapp')}
               <span>Order on WhatsApp</span>
             </a>
@@ -902,25 +919,45 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>
     `;
 
-    // Click thumbnail to change main image
+    // Click sub-image to change main image
     const mainImg = modalContent.querySelector('#detailsMainImg');
     const thumbs = modalContent.querySelectorAll('.details-sub-thumb');
+    const track = modalContent.querySelector('#detailsSubImagesTrack');
+    const thumbPrevBtn = modalContent.querySelector('#thumbNavPrevBtn');
+    const thumbNextBtn = modalContent.querySelector('#thumbNavNextBtn');
+
     thumbs.forEach(thumb => {
-      thumb.addEventListener('click', () => {
+      const selectThumb = () => {
         thumbs.forEach(t => t.classList.remove('active'));
         thumb.classList.add('active');
         const src = thumb.getAttribute('data-src');
         currentModalSelectedImage = src;
         mainImg.src = src;
+        thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      };
+      thumb.addEventListener('click', selectThumb);
+      thumb.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          selectThumb();
+        }
       });
     });
 
-    // Lightbox zoom
-    const mainImgBox = modalContent.querySelector('#detailsMainImgContainer');
-    const zoomBtn = modalContent.querySelector('#zoomLightboxBtn');
-    if (mainImgBox) mainImgBox.addEventListener('click', () => openFullViewLightbox(currentModalSelectedImage));
-    if (zoomBtn) zoomBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
+    // Arrow navigation for thumbnails
+    if (track && thumbPrevBtn && thumbNextBtn) {
+      thumbPrevBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        track.scrollBy({ left: -140, behavior: 'smooth' });
+      });
+      thumbNextBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        track.scrollBy({ left: 140, behavior: 'smooth' });
+      });
+    }
+
+    // Click main image -> Full View Lightbox (Only image & X under)
+    modalContent.querySelector('#detailsMainImgBox')?.addEventListener('click', () => {
       openFullViewLightbox(currentModalSelectedImage);
     });
 
@@ -933,6 +970,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Close Modal
     const closeModal = () => detailsModalOverlay.classList.remove('active');
     modalContent.querySelector('#closeDetailsModalBtn')?.addEventListener('click', closeModal);
+
+    // Backdrop click close
+    if (!detailsModalOverlay._hasBackdropListener) {
+      detailsModalOverlay._hasBackdropListener = true;
+      detailsModalOverlay.addEventListener('click', (e) => {
+        if (e.target === detailsModalOverlay) {
+          detailsModalOverlay.classList.remove('active');
+        }
+      });
+    }
 
     detailsModalOverlay.classList.add('active');
   }
@@ -1511,6 +1558,11 @@ document.addEventListener('DOMContentLoaded', async () => {
               <span>Create Account</span>
             </button>
           </div>
+          <div style="text-align: center; margin-top: 10px;">
+            <button type="button" id="accountForgotBtn" style="background: none; border: none; color: #087f3b; font-size: 0.84rem; font-weight: 700; cursor: pointer; text-decoration: underline; padding: 4px 8px;">
+              Forgot Password?
+            </button>
+          </div>
         `}
       </div>
 
@@ -1523,7 +1575,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             <span style="color: #087f3b;">${window.renderIcon('chat')}</span>
             <span>Live Support Cloud Chat</span>
           </div>
-          <span style="font-size: 0.78rem; color: #5a6e62;">Open Chat &rarr;</span>
+          <span style="font-size: 0.78rem; color: #5a6e62; display: flex; align-items: center; gap: 4px;">
+            <span>Open Chat</span>
+            <span style="display: inline-flex; width: 14px; height: 14px; color: #5a6e62;">${window.renderIcon('chevronRight')}</span>
+          </span>
         </a>
 
         <a href="https://wa.me/2347042087633?text=Hello%20Nkem%20Global%2C%20I%20am%20inquiring%20about%20my%20account" target="_blank" rel="noopener" class="account-support-btn">
@@ -1531,7 +1586,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             <span style="color: #25D366;">${window.renderIcon('whatsapp')}</span>
             <span>WhatsApp Official Support (07042087633)</span>
           </div>
-          <span style="font-size: 0.78rem; color: #5a6e62;">Chat &rarr;</span>
+          <span style="font-size: 0.78rem; color: #5a6e62; display: flex; align-items: center; gap: 4px;">
+            <span>Chat</span>
+            <span style="display: inline-flex; width: 14px; height: 14px; color: #5a6e62;">${window.renderIcon('chevronRight')}</span>
+          </span>
         </a>
 
         <a href="tel:08155608447" class="account-support-btn">
@@ -1539,7 +1597,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             <span style="color: #087f3b;">${window.renderIcon('phone')}</span>
             <span>Direct Phone Call (08155608447)</span>
           </div>
-          <span style="font-size: 0.78rem; color: #5a6e62;">Call &rarr;</span>
+          <span style="font-size: 0.78rem; color: #5a6e62; display: flex; align-items: center; gap: 4px;">
+            <span>Call</span>
+            <span style="display: inline-flex; width: 14px; height: 14px; color: #5a6e62;">${window.renderIcon('chevronRight')}</span>
+          </span>
         </a>
       </div>
     `;
@@ -1553,6 +1614,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     container.querySelector('#accountRegisterBtn')?.addEventListener('click', () => {
       if (window.AuthModal) {
         window.AuthModal.showSignUp(() => renderAccountView());
+      }
+    });
+    container.querySelector('#accountForgotBtn')?.addEventListener('click', () => {
+      if (window.AuthModal && window.AuthModal.showForgotPassword) {
+        window.AuthModal.showForgotPassword(() => renderAccountView());
       }
     });
     container.querySelector('#accountEditProfileBtn')?.addEventListener('click', () => {
