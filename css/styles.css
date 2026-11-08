@@ -1162,7 +1162,12 @@ body {
     min-width: 86px;
   }
   .product-grid.list-view .product-card-desc {
-    display: none;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 10px;
+    line-height: 1.25;
   }
 }
 
@@ -5050,12 +5055,13 @@ body:not(.admin-body) .product-card-price {
 
 .product-grid.list-view .product-card-desc {
   display: -webkit-box !important;
-  -webkit-line-clamp: 2 !important;
+  -webkit-line-clamp: 3 !important;
   -webkit-box-orient: vertical !important;
   overflow: hidden !important;
-  font-size: clamp(0.74rem, 2vw, 0.84rem) !important;
+  font-size: clamp(0.74rem, 2vw, 0.85rem) !important;
   color: #5a6e62 !important;
   line-height: 1.4 !important;
+  margin: 2px 0 4px 0 !important;
 }
 
 .product-grid.list-view .product-card-footer {
@@ -5065,7 +5071,8 @@ body:not(.admin-body) .product-card-price {
   justify-content: space-between !important;
   gap: 8px !important;
   margin-top: auto !important;
-  padding-top: 4px !important;
+  padding-top: 6px !important;
+  border-top: 1px solid #eef7f1 !important;
   flex-wrap: wrap !important;
 }
 
@@ -5084,19 +5091,26 @@ body:not(.admin-body) .product-card-price {
 
 @media (max-width: 480px) {
   .product-grid.list-view .product-card {
-    min-height: 105px !important;
+    min-height: 120px !important;
   }
   .product-grid.list-view .product-card-img-wrap {
-    width: 95px !important;
-    min-width: 95px !important;
-    max-width: 95px !important;
+    width: 100px !important;
+    min-width: 100px !important;
+    max-width: 100px !important;
   }
   .product-grid.list-view .product-card-content {
-    padding: 8px 10px !important;
-    gap: 4px !important;
+    padding: 10px 12px !important;
+    gap: 5px !important;
   }
   .product-grid.list-view .product-card-desc {
-    display: none !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    font-size: 0.74rem !important;
+    color: #5a6e62 !important;
+    line-height: 1.35 !important;
+    margin: 2px 0 !important;
   }
   .product-grid.list-view .btn-add-to-cart {
     padding: 6px 10px !important;
