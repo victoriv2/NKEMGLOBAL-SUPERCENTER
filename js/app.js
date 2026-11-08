@@ -467,9 +467,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     customRequestModal.classList.add('active');
   }
 
-    customRequestModal.classList.add('active');
-  }
-
   function renderHomeCategories() {
     const grid = document.getElementById('homeCategoriesGrid');
     if (!grid) return;
