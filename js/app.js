@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     products: [],
     filteredProducts: [],
     selectedCategory: 'all',
+    homePromotedCategory: null,
     selectedSort: 'newest',
     pageSize: 16, // STRICT 16-ROW CATALOG RULE
     hasMoreProducts: false,
@@ -188,6 +189,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Category filter override from Home Category Click
     if (categoryToFilter) {
       state.selectedCategory = categoryToFilter;
+      state.homePromotedCategory = categoryToFilter;
+    } else if (tabName === 'shop') {
+      state.homePromotedCategory = null;
     }
 
     // Tab-specific rendering
@@ -469,26 +473,70 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!bar) return;
 
     const categories = state.categories || [];
+
+    // Check if a category was clicked from the Home Screen and needs promotion to the first position
+    let promotedCat = null;
+    let otherCategories = [...categories];
+
+    if (state.homePromotedCategory) {
+      const targetStr = String(state.homePromotedCategory).toLowerCase().trim();
+      const matchIdx = otherCategories.findIndex(c => 
+        (c.name && c.name.toLowerCase().trim() === targetStr) ||
+        (c.id && c.id.toLowerCase().trim() === targetStr)
+      );
+      if (matchIdx >= 0) {
+        promotedCat = otherCategories[matchIdx];
+        otherCategories.splice(matchIdx, 1);
+      }
+    }
+
+    const isCatActive = (c) => {
+      if (!c) return false;
+      const cur = String(state.selectedCategory || '').toLowerCase().trim();
+      return (c.name && c.name.toLowerCase().trim() === cur) || 
+             (c.id && c.id.toLowerCase().trim() === cur);
+    };
+
+    const promotedPill = promotedCat ? `
+      <button type="button" class="shop-cat-pill ${isCatActive(promotedCat) ? 'active' : ''}" data-cat="${window.CustomModal.escape(promotedCat.name)}" data-is-promoted="true">
+        ${window.CustomModal.escape(promotedCat.name)}
+      </button>
+    ` : '';
+
     const allPill = `
       <button type="button" class="shop-cat-pill ${state.selectedCategory === 'all' ? 'active' : ''}" data-cat="all">
         All Products
       </button>
     `;
 
-    const catPills = categories.map(c => `
-      <button type="button" class="shop-cat-pill ${state.selectedCategory === c.name || state.selectedCategory === c.id ? 'active' : ''}" data-cat="${window.CustomModal.escape(c.name)}">
+    const catPills = otherCategories.map(c => `
+      <button type="button" class="shop-cat-pill ${isCatActive(c) ? 'active' : ''}" data-cat="${window.CustomModal.escape(c.name)}">
         ${window.CustomModal.escape(c.name)}
       </button>
     `).join('');
 
-    bar.innerHTML = allPill + catPills;
+    bar.innerHTML = promotedPill + allPill + catPills;
 
     bar.querySelectorAll('.shop-cat-pill').forEach(btn => {
       btn.addEventListener('click', () => {
         const cat = btn.getAttribute('data-cat');
+        
+        // If clicking any other category or 'all', restore buttons to their original positions
+        if (state.homePromotedCategory) {
+          const isSamePromoted = promotedCat && (
+            cat === promotedCat.name || cat === promotedCat.id ||
+            String(cat).toLowerCase().trim() === String(promotedCat.name).toLowerCase().trim()
+          );
+          if (!isSamePromoted) {
+            state.homePromotedCategory = null;
+          }
+        }
+
         state.selectedCategory = cat;
-        bar.querySelectorAll('.shop-cat-pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+
+        // Re-render pills immediately so that if homePromotedCategory was cleared,
+        // the promoted button returns to its original position
+        renderShopCategoryPills();
 
         // Sync with modular dropdown picker if available
         if (categoryPickerInstance) {
@@ -498,6 +546,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         applyFiltersAndSort();
       });
     });
+
+    // If promoted from home, scroll pill container to show the promoted button at the start
+    if (promotedCat) {
+      try {
+        bar.scrollTo({ left: 0, behavior: 'smooth' });
+      } catch (_) {
+        bar.scrollLeft = 0;
+      }
+    }
   }
 
   let categoryPickerInstance = null;
@@ -520,6 +577,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             placeholder: 'All Categories',
             searchable: true,
             onChange: (val) => {
+              if (state.homePromotedCategory) {
+                const targetStr = String(state.homePromotedCategory).toLowerCase().trim();
+                const isSame = (val && (
+                  val.toLowerCase().trim() === targetStr ||
+                  (state.categories || []).some(c => 
+                    (c.name.toLowerCase().trim() === targetStr || c.id.toLowerCase().trim() === targetStr) &&
+                    (c.name === val || c.id === val)
+                  )
+                ));
+                if (!isSame) state.homePromotedCategory = null;
+              }
               state.selectedCategory = val;
               renderShopCategoryPills();
               applyFiltersAndSort();
@@ -718,6 +786,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       `;
 
       productGrid.querySelector('#resetFiltersBtn')?.addEventListener('click', () => {
+        state.homePromotedCategory = null;
         state.selectedCategory = 'all';
         const searchInput = document.getElementById('shopSearchInput');
         if (searchInput) searchInput.value = '';
