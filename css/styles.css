@@ -5074,8 +5074,7 @@ body:not(.admin-body) .product-card-price {
   opacity: 1 !important;
 }
 
-/* When price and button are vertically arranged: NO DESCRIPTION */
-.product-card.footer-vertical .product-card-desc,
+/* Grid view cards do not show descriptions */
 .product-grid:not(.list-view) .product-card-desc {
   display: none !important;
 }
@@ -5118,14 +5117,33 @@ body:not(.admin-body) .product-card-price {
     padding: 10px 12px !important;
     gap: 5px !important;
   }
-  /* Vertically arranged on small screens: NO DESCRIPTION */
-  .product-grid.list-view .product-card-desc {
-    display: none !important;
-  }
   .product-grid.list-view .btn-add-to-cart {
     padding: 6px 10px !important;
     min-width: 80px !important;
     font-size: 0.72rem !important;
+  }
+}
+
+/* From 326px to 480px the description should show */
+@media (min-width: 326px) and (max-width: 480px) {
+  .product-grid.list-view .product-card-desc {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    font-size: 0.74rem !important;
+    color: #5a6e62 !important;
+    line-height: 1.35 !important;
+    margin: 2px 0 4px 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Only below 326px (extremely small devices) */
+@media (max-width: 325px) {
+  .product-grid.list-view .product-card-desc {
+    display: none !important;
   }
 }
 

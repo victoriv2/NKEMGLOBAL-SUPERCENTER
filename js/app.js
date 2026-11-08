@@ -667,32 +667,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         gridBtn.classList.add('active');
       }
     }
-    updateCardFooterLayouts();
   }
   window.switchProductView = applyProductView;
-
-  function updateCardFooterLayouts() {
-    const cards = document.querySelectorAll('.product-card');
-    cards.forEach(card => {
-      const price = card.querySelector('.product-card-price');
-      const btn = card.querySelector('.btn-add-to-cart');
-      if (price && btn) {
-        const priceRect = price.getBoundingClientRect();
-        const btnRect = btn.getBoundingClientRect();
-        // If button is on a line below the price (vertical stacking)
-        const isVertical = (btnRect.top - priceRect.top) > 10;
-        if (isVertical) {
-          card.classList.add('footer-vertical');
-        } else {
-          card.classList.remove('footer-vertical');
-        }
-      }
-    });
-  }
-
-  window.addEventListener('resize', () => {
-    requestAnimationFrame(updateCardFooterLayouts);
-  });
 
   function initViewToggle() {
     const gridBtn = document.getElementById('viewGridBtn');
@@ -935,9 +911,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     });
 
-    // Ensure list-view/grid-view class is accurately synced and footer layout measured
+    // Ensure list-view/grid-view class is accurately synced
     applyProductView(state.currentView);
-    requestAnimationFrame(updateCardFooterLayouts);
   }
 
   function updateSeeMoreButton() {
