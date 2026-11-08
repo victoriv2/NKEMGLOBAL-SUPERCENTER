@@ -564,8 +564,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function initViewToggle() {
-    if (viewGridBtn && viewListBtn) {
+    if (viewGridBtn && !viewGridBtn._hasViewToggleListener) {
+      viewGridBtn._hasViewToggleListener = true;
       viewGridBtn.addEventListener('click', () => applyProductView('grid'));
+    }
+    if (viewListBtn && !viewListBtn._hasViewToggleListener) {
+      viewListBtn._hasViewToggleListener = true;
       viewListBtn.addEventListener('click', () => applyProductView('list'));
     }
     applyProductView(state.currentView);
@@ -576,10 +580,35 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Filter by Category
     if (state.selectedCategory && state.selectedCategory !== 'all') {
-      const targetCat = state.selectedCategory.toLowerCase().trim();
+      const rawTarget = String(state.selectedCategory).toLowerCase().trim();
+      const targetCatObj = (state.categories || []).find(c => 
+        (c.id && c.id.toLowerCase() === rawTarget) ||
+        (c.name && c.name.toLowerCase() === rawTarget)
+      );
+      const targetId = targetCatObj ? targetCatObj.id.toLowerCase() : rawTarget;
+      const targetName = targetCatObj ? targetCatObj.name.toLowerCase() : rawTarget;
+
       prods = prods.filter(p => {
-        const cat = (p.category || '').toLowerCase().trim();
-        return cat === targetCat || cat.includes(targetCat) || targetCat.includes(cat);
+        const prodCatId = String(p.category_id || '').toLowerCase().trim();
+        const prodCatField = String(p.category || '').toLowerCase().trim();
+        const prodCatNameField = String(p.category_name || '').toLowerCase().trim();
+
+        // If product has category_id, resolve its category name from state.categories
+        let resolvedCatName = '';
+        if (prodCatId) {
+          const match = (state.categories || []).find(c => c.id.toLowerCase() === prodCatId);
+          if (match) resolvedCatName = match.name.toLowerCase();
+        }
+
+        const candidateValues = [prodCatId, prodCatField, prodCatNameField, resolvedCatName].filter(Boolean);
+        if (candidateValues.length === 0) return false;
+
+        return candidateValues.some(val => 
+          val === targetId || 
+          val === targetName ||
+          (val.length >= 4 && targetName.includes(val)) ||
+          (targetName.length >= 4 && val.includes(targetName))
+        );
       });
     }
 
@@ -590,7 +619,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       prods = prods.filter(p => {
         const title = (p.title || '').toLowerCase();
         const desc = (p.description || '').toLowerCase();
-        const cat = (p.category || '').toLowerCase();
+        const cat = (p.category_name || p.category || p.category_id || '').toLowerCase();
         return title.includes(query) || desc.includes(query) || cat.includes(query);
       });
     }
@@ -962,7 +991,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (clearBtn) clearBtn.style.display = 'block';
 
     const subtotal = getCartTotal();
-    const activeUser = window.SupabaseService.getActiveUser ? window.SupabaseService.getActiveUser() : {};
+    const activeUser = (window.SupabaseService.getCurrentUser && window.SupabaseService.getCurrentUser()) || 
+                       (window.SupabaseService.getActiveUser && window.SupabaseService.getActiveUser()) || {};
+    const isLoggedIn = !!(activeUser && activeUser.id);
 
     container.innerHTML = `
       <div class="cart-items-list" id="cartItemsList">
@@ -989,6 +1020,26 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>
 
       <div class="cart-checkout-card">
+        ${!isLoggedIn ? `
+          <div class="cart-auth-notice" style="background: #f0fbf4; border: 1.5px solid #087f3b; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+            <div style="font-weight: 800; color: #073b1f; font-size: 0.94rem; margin-bottom: 4px;">Account Required for Order Placement</div>
+            <p style="font-size: 0.82rem; color: #5a6e62; margin-bottom: 12px; line-height: 1.4;">
+              To protect your orders and provide instant tracking codes, please sign in or create your free account before completing checkout.
+            </p>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" class="btn btn-primary btn-sm" id="cartPromptSignInBtn" style="padding: 7px 16px; font-size: 0.82rem;">Sign In</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="cartPromptSignUpBtn" style="padding: 7px 16px; font-size: 0.82rem;">Create Account</button>
+            </div>
+          </div>
+        ` : `
+          <div class="cart-auth-verified" style="background: #f0fbf4; border: 1px solid #d1ead9; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="font-size: 0.82rem; color: #073b1f;">
+              Ordering as: <strong>${window.CustomModal.escape(activeUser.first_name || activeUser.name || 'Valued Customer')}</strong> (${window.CustomModal.escape(activeUser.whatsapp_number || activeUser.email || '')})
+            </div>
+            <span style="font-size: 0.75rem; color: #087f3b; font-weight: 700;">&bull; Verified Account</span>
+          </div>
+        `}
+
         <h3 style="color: #073b1f; font-size: 1.18rem; font-weight: 900; margin-bottom: 14px;">Delivery & Checkout</h3>
 
         <form id="cartCheckoutForm" autocomplete="on">
@@ -1144,12 +1195,38 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
+    // Auth Prompt Triggers in Cart
+    container.querySelector('#cartPromptSignInBtn')?.addEventListener('click', () => {
+      if (window.AuthModal) window.AuthModal.showSignIn(() => renderCartView());
+    });
+    container.querySelector('#cartPromptSignUpBtn')?.addEventListener('click', () => {
+      if (window.AuthModal) window.AuthModal.showSignUp(() => renderCartView());
+    });
+
     // Checkout Form Submission (Double Click Prevention & Processing State)
     let isSubmittingCartOrder = false;
     const checkoutForm = container.querySelector('#cartCheckoutForm');
     checkoutForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (isSubmittingCartOrder) return;
+
+      // Enforce Account Verification Before Order Placement
+      const verifiedUser = (window.SupabaseService.getCurrentUser && window.SupabaseService.getCurrentUser()) ||
+                           (window.SupabaseService.getActiveUser && window.SupabaseService.getActiveUser());
+      if (!verifiedUser || !verifiedUser.id) {
+        window.CustomModal.confirm({
+          title: 'Account Required',
+          message: 'An account is required to place your order, generate your official invoice, and track delivery progress. Would you like to sign in or register now?',
+          confirmText: 'Sign In / Register',
+          cancelText: 'Cancel',
+          onConfirm: () => {
+            if (window.AuthModal) {
+              window.AuthModal.showSignIn(() => renderCartView());
+            }
+          }
+        });
+        return;
+      }
 
       const firstName = window.capitalizeName ? window.capitalizeName(fnInput.value) : fnInput.value.trim();
       const lastName = window.capitalizeName ? window.capitalizeName(lnInput.value) : lnInput.value.trim();
@@ -1186,7 +1263,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const orderData = {
         id: orderId,
         retrieval_code: `NKG-${Date.now()}`,
-        user_id: activeUser.id || null,
+        user_id: verifiedUser.id,
         product_id: currentCart[0]?.id || 'cart-order',
         product_title: `Cart Order (${currentCart.length} items): ${itemsSummary}`,
         product_price: totalAmount,
@@ -1465,24 +1542,23 @@ document.addEventListener('DOMContentLoaded', async () => {
           <span style="font-size: 0.78rem; color: #5a6e62;">Call &rarr;</span>
         </a>
       </div>
-
-      <!-- Admin Portal Access (Discreet) -->
-      <div style="text-align: center; margin-top: 18px;">
-        <a href="admin.html" style="font-size: 0.78rem; color: #7d9285; text-decoration: none;">
-          Store Admin Portal &rarr;
-        </a>
-      </div>
     `;
 
     // Hook up buttons
     container.querySelector('#accountSignInBtn')?.addEventListener('click', () => {
-      if (window.AuthModal) window.AuthModal.openSignIn();
+      if (window.AuthModal) {
+        window.AuthModal.showSignIn(() => renderAccountView());
+      }
     });
     container.querySelector('#accountRegisterBtn')?.addEventListener('click', () => {
-      if (window.AuthModal) window.AuthModal.openRegister();
+      if (window.AuthModal) {
+        window.AuthModal.showSignUp(() => renderAccountView());
+      }
     });
     container.querySelector('#accountEditProfileBtn')?.addEventListener('click', () => {
-      if (window.AuthModal) window.AuthModal.openProfileEditor();
+      if (window.AuthModal) {
+        window.AuthModal.showProfile(() => renderAccountView());
+      }
     });
     container.querySelector('#accountLogoutBtn')?.addEventListener('click', () => {
       window.CustomModal.confirm({

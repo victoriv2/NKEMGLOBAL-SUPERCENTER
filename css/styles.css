@@ -90,11 +90,13 @@
   --transition-fast: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
 }
 
-/* ---------------- GLOBAL RESET ---------------- */
+/* ---------------- GLOBAL RESET & STRICT ANTI-EFFECTS ---------------- */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  box-shadow: none !important;
+  text-shadow: none !important;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -110,7 +112,7 @@ html, body {
 }
 
 body:not(.admin-body) {
-  background: linear-gradient(180deg, #dcfce7 0%, #edf8f2 260px, #f4fbf7 100%) !important;
+  background-color: #edf8f2 !important;
   color: #2d3748 !important;
   padding-bottom: 74px !important;
 }
@@ -2127,25 +2129,200 @@ body {
   color: var(--text-main);
 }
 
-/* ---------------- ADMIN DASHBOARD STYLES ---------------- */
+/* ---------------- ADMIN DASHBOARD STYLES (MATCHING EMERALD & MINT DESIGN) ---------------- */
 body.admin-body {
-  --bg-main: #0b0c0e;
-  --bg-surface: #14151a;
-  --bg-surface-elevated: #1b1d24;
-  --bg-subtle: #242630;
-  --bg-active: #2e313e;
-  --border-color: #272a35;
-  --border-strong: #3a3e4e;
-  --border-focus: #c5a059;
-  --text-main: #f5f6f8;
-  --text-body: #f5f6f8;
-  --text-muted: #9da1ad;
-  --text-subtle: #6d7280;
-  --text-inverted: #0b0c0e;
-  background-color: #0b0c0e !important;
-  color: #f5f6f8 !important;
+  --bg-main: #edf8f2;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #ffffff;
+  --bg-subtle: #f4fbf7;
+  --bg-active: #e2f5ea;
+  --border-color: #d1ead9;
+  --border-strong: #a1d7b3;
+  --border-focus: #087f3b;
+  --text-main: #073b1f;
+  --text-body: #2d3748;
+  --text-muted: #5a6e62;
+  --text-subtle: #7d9285;
+  --text-inverted: #ffffff;
+  --accent-gold: #087f3b;
+  --accent-gold-hover: #065f2c;
+  --accent-gold-active: #054821;
+  --accent-gold-subtle: #e2f5ea;
+  --accent-gold-border: #a1d7b3;
+  background-color: #edf8f2 !important;
+  color: #2d3748 !important;
   padding-top: calc(clamp(56px, 8.5vw, 70px) + 48px) !important;
-  padding-bottom: 0 !important;
+  padding-bottom: 30px !important;
+}
+
+body.admin-body .header-bar {
+  background-color: #075e2f !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15) !important;
+}
+
+body.admin-body .brand-title {
+  color: #ffffff !important;
+}
+
+body.admin-body .brand-title span {
+  color: #a1d7b3 !important;
+}
+
+body.admin-body .brand-tagline {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+body.admin-body .admin-header-btn {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  color: #ffffff !important;
+}
+
+body.admin-body .admin-header-btn:hover {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+body.admin-body .admin-header-btn.admin-logout-btn {
+  background-color: rgba(220, 38, 38, 0.25) !important;
+  border-color: rgba(220, 38, 38, 0.45) !important;
+  color: #ffffff !important;
+}
+
+body.admin-body .admin-nav-tabs {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #d1ead9 !important;
+}
+
+body.admin-body .admin-tab-btn {
+  color: #5a6e62 !important;
+}
+
+body.admin-body .admin-tab-btn:hover {
+  color: #073b1f !important;
+  background-color: #f0fbf4 !important;
+}
+
+body.admin-body .admin-tab-btn.active {
+  color: #087f3b !important;
+  border-bottom-color: #087f3b !important;
+  font-weight: 800 !important;
+}
+
+body.admin-body .admin-panel-card {
+  background-color: #ffffff !important;
+  border: 1px solid #d1ead9 !important;
+}
+
+body.admin-body .admin-panel-title {
+  color: #073b1f !important;
+}
+
+body.admin-body .admin-item-row {
+  background-color: #ffffff !important;
+  border: 1px solid #d1ead9 !important;
+}
+
+body.admin-body .admin-item-row:hover {
+  background-color: #f7fbf8 !important;
+  border-color: #087f3b !important;
+}
+
+body.admin-body .admin-item-title {
+  color: #073b1f !important;
+}
+
+body.admin-body .admin-item-sub {
+  color: #5a6e62 !important;
+}
+
+body.admin-body .btn-primary {
+  background-color: #087f3b !important;
+  border-color: #087f3b !important;
+  color: #ffffff !important;
+}
+
+body.admin-body .btn-primary:hover {
+  background-color: #065f2c !important;
+  border-color: #065f2c !important;
+}
+
+body.admin-body .btn-secondary {
+  background-color: #f0f7f3 !important;
+  border-color: #d1ead9 !important;
+  color: #065f2c !important;
+}
+
+body.admin-body .btn-secondary:hover {
+  background-color: #e2f5ea !important;
+  border-color: #087f3b !important;
+}
+
+body.admin-body .btn-icon-square {
+  background-color: #f0f7f3 !important;
+  border: 1px solid #d1ead9 !important;
+  color: #065f2c !important;
+}
+
+body.admin-body .btn-icon-square:hover {
+  background-color: #e2f5ea !important;
+  border-color: #087f3b !important;
+}
+
+body.admin-body .btn-icon-square.danger {
+  background-color: #fef2f2 !important;
+  border-color: #fecaca !important;
+  color: #dc2626 !important;
+}
+
+body.admin-body .c-input,
+body.admin-body input[type="text"],
+body.admin-body input[type="number"],
+body.admin-body input[type="password"],
+body.admin-body textarea {
+  background-color: #ffffff !important;
+  border: 1.5px solid #d1ead9 !important;
+  color: #111827 !important;
+}
+
+body.admin-body .c-input:focus,
+body.admin-body input[type="text"]:focus,
+body.admin-body textarea:focus {
+  border-color: #087f3b !important;
+}
+
+body.admin-body .admin-login-overlay {
+  background-color: rgba(7, 59, 31, 0.6) !important;
+}
+
+body.admin-body .admin-login-card {
+  background-color: #ffffff !important;
+  border: 1px solid #d1ead9 !important;
+}
+
+body.admin-body .admin-login-title {
+  color: #073b1f !important;
+}
+
+body.admin-body .admin-login-title span {
+  color: #087f3b !important;
+}
+
+body.admin-body .c-modal-box {
+  background-color: #ffffff !important;
+  border: 1px solid #d1ead9 !important;
+  color: #2d3748 !important;
+}
+
+body.admin-body .c-modal-header {
+  border-bottom: 1px solid #d1ead9 !important;
+}
+
+body.admin-body .c-modal-title {
+  color: #073b1f !important;
+}
+
+body.admin-body .c-modal-footer {
+  border-top: 1px solid #d1ead9 !important;
 }
 
 /* Admin Header Bar & Action Buttons */
@@ -4419,8 +4596,8 @@ body:not(.admin-body) .brand-title span {
 .hero-request-card {
   background: #ffffff;
   border-radius: clamp(16px, 3.5vw, 24px);
-  border: 1px solid rgba(8, 127, 59, 0.14);
-  box-shadow: 0 8px 30px rgba(7, 94, 47, 0.08);
+  border: 1px solid #d1ead9;
+  box-shadow: none !important;
   padding: clamp(18px, 3vw, 28px);
   margin-left: auto;
   margin-right: auto;
@@ -4483,26 +4660,25 @@ body:not(.admin-body) .brand-title span {
   font-size: clamp(0.84rem, 2vw, 0.94rem);
   color: #111827;
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease;
 }
 
 .hero-request-input:focus {
   border-color: #087f3b;
-  box-shadow: 0 0 0 3px rgba(8, 127, 59, 0.15) !important;
 }
 
 .btn-send-request {
   background-color: #00c853;
   color: #ffffff;
-  border: none;
+  border: 1px solid #00c853;
   border-radius: 10px;
   padding: 12px 24px;
   font-size: clamp(0.88rem, 2vw, 0.96rem);
   font-weight: 800;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 0 4px 14px rgba(0, 200, 83, 0.35);
-  transition: background-color 0.15s ease, transform 0.1s ease;
+  box-shadow: none !important;
+  transition: background-color 0.15s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -4511,10 +4687,6 @@ body:not(.admin-body) .brand-title span {
 
 .btn-send-request:hover {
   background-color: #00b34a;
-}
-
-.btn-send-request:active {
-  transform: scale(0.98);
 }
 
 /* ---------------- 4. "SHOP BY CATEGORY" 3-COLUMN MOCKUP GRID ---------------- */
@@ -4552,23 +4724,22 @@ body:not(.admin-body) .brand-title span {
 .home-category-card {
   background: #ffffff;
   border-radius: clamp(10px, 2.2vw, 14px);
-  border: 1px solid rgba(8, 127, 59, 0.12);
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.03);
+  border: 1px solid #d1ead9;
+  box-shadow: none !important;
   padding: clamp(8px, 1.8vw, 12px) 6px clamp(10px, 2vw, 14px) 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
   position: relative;
   overflow: hidden;
 }
 
 .home-category-card:hover {
-  transform: translateY(-2px);
   border-color: #087f3b;
-  box-shadow: 0 6px 18px rgba(8, 127, 59, 0.12);
+  background-color: #f7fbf8;
 }
 
 .home-category-card:active {
@@ -4681,23 +4852,23 @@ body:not(.admin-body) .brand-title span {
   background: #087f3b;
   color: #ffffff;
   border-color: #087f3b;
-  box-shadow: 0 2px 8px rgba(8, 127, 59, 0.25);
+  box-shadow: none !important;
 }
 
-/* Storefront Product Card Overhaul */
+/* Storefront Product Card Overhaul (Zero Glow, Zero Shadow, Zero Hover Lift) */
 body:not(.admin-body) .product-card {
   background-color: #ffffff !important;
-  border: 1px solid rgba(8, 127, 59, 0.14) !important;
+  border: 1px solid #d1ead9 !important;
   border-radius: 14px !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04) !important;
+  box-shadow: none !important;
   overflow: hidden;
-  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+  transition: border-color 0.15s ease !important;
 }
 
 body:not(.admin-body) .product-card:hover {
-  transform: translateY(-3px) !important;
+  transform: none !important;
   border-color: #087f3b !important;
-  box-shadow: 0 8px 24px rgba(8, 127, 59, 0.12) !important;
+  box-shadow: none !important;
 }
 
 body:not(.admin-body) .product-card-img-wrap {
@@ -4730,21 +4901,75 @@ body:not(.admin-body) .product-card-price {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  transition: background-color 0.15s ease, transform 0.1s ease;
-  box-shadow: 0 2px 8px rgba(8, 127, 59, 0.25);
+  transition: background-color 0.15s ease;
+  box-shadow: none !important;
 }
 
 .btn-add-to-cart:hover {
   background-color: #065f2c;
+  transform: none !important;
 }
 
 .btn-add-to-cart:active {
-  transform: scale(0.97);
+  transform: none !important;
 }
 
 .btn-add-to-cart .svg-icon {
   width: 16px;
   height: 16px;
+}
+
+/* ---------------- LIST VIEW ARRANGEMENT ENHANCEMENT ---------------- */
+.product-grid.list-view {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}
+
+.product-grid.list-view .product-card {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  min-height: clamp(120px, 16vw, 160px) !important;
+  width: 100% !important;
+}
+
+.product-grid.list-view .product-card-img-wrap {
+  width: clamp(100px, 24vw, 160px) !important;
+  min-width: clamp(100px, 24vw, 160px) !important;
+  height: 100% !important;
+  min-height: 120px !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+}
+
+.product-grid.list-view .product-card-content {
+  flex: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  padding: clamp(10px, 1.8vw, 16px) !important;
+}
+
+.product-grid.list-view .product-card-footer {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  margin-top: auto !important;
+}
+
+.product-grid.list-view .btn-add-to-cart {
+  width: auto !important;
+  min-width: 120px !important;
+  padding: 8px 16px !important;
+}
+
+.view-toggle-btn.active {
+  color: #087f3b !important;
+  background-color: #e2f5ea !important;
 }
 
 /* ---------------- 6. CART VIEW (SHOPPING CART & CHECKOUT) ---------------- */
@@ -5079,8 +5304,8 @@ body:not(.admin-body) .product-card-price {
 .account-card-box {
   background: #ffffff;
   border-radius: 16px;
-  border: 1px solid rgba(8, 127, 59, 0.14);
-  box-shadow: 0 4px 18px rgba(7, 94, 47, 0.05);
+  border: 1px solid #d1ead9;
+  box-shadow: none !important;
   padding: clamp(16px, 3vw, 24px);
   margin-bottom: 16px;
 }
@@ -5104,7 +5329,7 @@ body:not(.admin-body) .product-card-price {
   font-size: 1.4rem;
   font-weight: 800;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(8, 127, 59, 0.25);
+  box-shadow: none !important;
 }
 
 .account-user-name {
@@ -5132,7 +5357,7 @@ body:not(.admin-body) .product-card-price {
   font-weight: 700;
   font-size: 0.88rem;
   margin-bottom: 8px;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .account-support-btn:hover {
@@ -5160,8 +5385,8 @@ body:not(.admin-body) .product-card-price {
   width: 100% !important;
   height: 62px !important;
   background-color: #ffffff !important;
-  border-top: 1px solid rgba(8, 127, 59, 0.15) !important;
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.05) !important;
+  border-top: 1px solid #d1ead9 !important;
+  box-shadow: none !important;
   z-index: 99990 !important;
   display: flex !important;
   align-items: center !important;
@@ -5192,7 +5417,7 @@ body:not(.admin-body) .product-card-price {
   height: 22px;
   stroke: currentColor;
   stroke-width: 2;
-  transition: transform 0.12s ease;
+  transition: none;
 }
 
 .bottom-nav-label {
@@ -5211,7 +5436,7 @@ body:not(.admin-body) .product-card-price {
 }
 
 .bottom-nav-item.active .svg-icon {
-  transform: scale(1.08);
+  transform: none !important;
   stroke-width: 2.3;
 }
 
@@ -5231,48 +5456,54 @@ body:not(.admin-body) .product-card-price {
   align-items: center;
   justify-content: center;
   border: 1.5px solid #ffffff;
-  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.4);
+  box-shadow: none !important;
 }
 
 /* ---------------- 10. FLOATING WHATSAPP BUTTON (MOCKUP RIGHT CIRCLE) ---------------- */
 .floating-whatsapp-btn {
   position: fixed !important;
-  bottom: 74px !important;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
   right: 16px !important;
-  width: 56px !important;
-  height: 56px !important;
+  width: 50px !important;
+  height: 50px !important;
   border-radius: 50% !important;
   background-color: #25D366 !important;
   color: #ffffff !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  z-index: 99980 !important;
-  box-shadow: 0 6px 20px rgba(37, 211, 102, 0.45) !important;
+  z-index: 99999 !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: none !important;
   text-decoration: none !important;
-  transition: transform 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.18s ease !important;
+  transition: background-color 0.15s ease !important;
 }
 
 .floating-whatsapp-btn:hover {
-  transform: scale(1.08) !important;
-  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.6) !important;
+  background-color: #20ba5a !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .floating-whatsapp-btn:active {
-  transform: scale(0.95) !important;
+  transform: none !important;
 }
 
-.floating-whatsapp-btn .svg-icon {
-  width: 30px !important;
-  height: 30px !important;
-  fill: currentColor !important;
+.floating-whatsapp-btn .svg-icon,
+.floating-whatsapp-btn .svg-whatsapp {
+  width: 26px !important;
+  height: 26px !important;
+  fill: #ffffff !important;
   stroke: none !important;
+  display: block !important;
 }
 
 @media (min-width: 900px) {
   .floating-whatsapp-btn {
     bottom: 24px !important;
     right: 24px !important;
+    width: 54px !important;
+    height: 54px !important;
   }
 }
 

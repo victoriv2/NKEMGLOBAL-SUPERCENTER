@@ -781,9 +781,15 @@
 
   window.AuthModal = {
     showSignIn: renderSignInModal,
+    openSignIn: renderSignInModal,
     showSignUp: renderSignUpModal,
+    openSignUp: renderSignUpModal,
+    openRegister: renderSignUpModal,
     showForgotPassword: renderForgotPasswordModal,
+    openForgotPassword: renderForgotPasswordModal,
     showProfile: renderProfileModal,
+    openProfile: renderProfileModal,
+    openProfileEditor: renderProfileModal,
     close: closeAuthModal
   };
 })();
