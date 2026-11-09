@@ -47,14 +47,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   function updateAuthView() {
     if (!currentUser) {
       if (pollInterval) clearInterval(pollInterval);
-      chatActiveCard.style.display = 'none';
-      chatAuthGateCard.style.display = 'flex';
+      if (chatActiveCard) {
+        chatActiveCard.style.setProperty('display', 'none', 'important');
+        chatActiveCard.classList.add('hidden');
+      }
+      if (chatAuthGateCard) {
+        chatAuthGateCard.style.setProperty('display', 'flex', 'important');
+        chatAuthGateCard.classList.remove('hidden');
+      }
       renderHeaderAuth();
       return;
     }
 
-    chatAuthGateCard.style.display = 'none';
-    chatActiveCard.style.display = 'flex';
+    if (chatAuthGateCard) {
+      chatAuthGateCard.style.setProperty('display', 'none', 'important');
+      chatAuthGateCard.classList.add('hidden');
+    }
+    if (chatActiveCard) {
+      chatActiveCard.style.setProperty('display', 'flex', 'important');
+      chatActiveCard.classList.remove('hidden');
+    }
     renderHeaderAuth();
     renderChatUserBadge();
 
@@ -635,18 +647,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     if (window.visualViewport) {
-      const handleVpResize = () => {
-        // Keep chat viewport strictly locked above mobile keyboard
-        if (window.visualViewport) {
-          const vpHeight = window.visualViewport.height;
-          if (chatActiveCard) {
-            chatActiveCard.style.height = `${vpHeight}px`;
-          }
-          document.body.style.height = `${vpHeight}px`;
-        }
-        scrollToBottom();
-      };
-      window.visualViewport.addEventListener('resize', handleVpResize);
+      window.visualViewport.addEventListener('resize', scrollToBottom);
       window.visualViewport.addEventListener('scroll', scrollToBottom);
     }
 

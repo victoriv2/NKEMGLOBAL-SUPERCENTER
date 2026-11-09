@@ -1372,12 +1372,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         ${!isLoggedIn ? `
           <!-- Price Summary Breakdown (Pre-Auth) -->
           <div style="background: #ffffff; border: 1.5px solid #d1ead9; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; box-shadow: 0 2px 10px rgba(7, 94, 47, 0.04);">
-            <div class="cart-summary-line cart-total-line" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; border: none; padding: 0; margin: 0;">
-              <div style="display: flex; align-items: baseline; gap: 5px; flex-wrap: nowrap; min-width: 0;">
-                <span style="font-size: 1.02rem; font-weight: 900; color: #065f2c; white-space: nowrap;">Items Total</span>
-                <span style="font-size: 0.8rem; font-weight: 700; color: #5a6e62; white-space: nowrap;">(${getCartCount()} ${getCartCount() === 1 ? 'item' : 'items'}):</span>
+            <div class="cart-summary-line cart-total-line" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; border: none; padding: 0; margin: 0;">
+              <div style="display: inline-flex; align-items: baseline; gap: 6px; flex-wrap: wrap;">
+                <span style="font-size: 1.02rem; font-weight: 900; color: #065f2c;">Items Total</span>
+                <span style="font-size: 0.82rem; font-weight: 700; color: #5a6e62;">(${getCartCount()} ${getCartCount() === 1 ? 'item' : 'items'}):</span>
               </div>
-              <strong id="cartGrandTotalText" style="color: #087f3b; font-size: 1.25rem; font-weight: 900; white-space: nowrap; margin-left: auto;">${window.formatNaira(subtotal)}</strong>
+              <strong id="cartGrandTotalText" style="color: #087f3b; font-size: 1.22rem; font-weight: 900; white-space: nowrap; margin-left: auto;">${window.formatNaira(subtotal)}</strong>
             </div>
           </div>
 
@@ -1451,12 +1451,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           <!-- Price Summary Breakdown -->
           <div style="background: #ffffff; border: 1.5px solid #d1ead9; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; box-shadow: 0 2px 10px rgba(7, 94, 47, 0.04);">
-            <div class="cart-summary-line cart-total-line" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; border: none; padding: 0; margin: 0;">
-              <div style="display: flex; align-items: baseline; gap: 5px; flex-wrap: nowrap; min-width: 0;">
-                <span style="font-size: 1.02rem; font-weight: 900; color: #065f2c; white-space: nowrap;">Grand Total</span>
-                <span style="font-size: 0.8rem; font-weight: 700; color: #5a6e62; white-space: nowrap;">(${getCartCount()} ${getCartCount() === 1 ? 'item' : 'items'}):</span>
+            <div class="cart-summary-line cart-total-line" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; border: none; padding: 0; margin: 0;">
+              <div style="display: inline-flex; align-items: baseline; gap: 6px; flex-wrap: wrap;">
+                <span style="font-size: 1.02rem; font-weight: 900; color: #065f2c;">Grand Total</span>
+                <span style="font-size: 0.82rem; font-weight: 700; color: #5a6e62;">(${getCartCount()} ${getCartCount() === 1 ? 'item' : 'items'}):</span>
               </div>
-              <strong id="cartGrandTotalText" style="color: #087f3b; font-size: 1.25rem; font-weight: 900; white-space: nowrap; margin-left: auto;">${window.formatNaira(subtotal)}</strong>
+              <strong id="cartGrandTotalText" style="color: #087f3b; font-size: 1.22rem; font-weight: 900; white-space: nowrap; margin-left: auto;">${window.formatNaira(subtotal)}</strong>
             </div>
           </div>
 

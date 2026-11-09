@@ -3406,16 +3406,28 @@ body.chat-body .chat-input-bar {
 
 /* 7. Guest Auth Gate Card */
 body.chat-body .chat-auth-prompt-card {
-  flex: 1 1 0% !important;
-  min-height: 0 !important;
-  overflow-y: auto !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 24px 16px !important;
-  text-align: center !important;
-  background-color: #f7fbf8 !important;
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  text-align: center;
+  background-color: #f7fbf8;
+}
+
+body.chat-body #chatAuthGateCard[style*="display: none"],
+body.chat-body .chat-auth-prompt-card[style*="display: none"],
+body.chat-body .chat-auth-prompt-card.hidden {
+  display: none !important;
+}
+
+body.chat-body #chatActiveCard[style*="display: none"],
+body.chat-body .chat-page-card[style*="display: none"],
+body.chat-body .chat-page-card.hidden {
+  display: none !important;
 }
 
 .chat-auth-prompt-card {
@@ -5660,7 +5672,7 @@ body:not(.admin-body) .details-modal-footer .details-whatsapp-btn:hover {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 @media (max-width: 480px) {
