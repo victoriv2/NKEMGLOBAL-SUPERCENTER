@@ -3268,9 +3268,10 @@ body.chat-body {
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  width: 100vw !important;
+  width: 100% !important;
   height: 100% !important;
   height: 100dvh !important;
+  max-height: 100dvh !important;
   margin: 0 !important;
   padding: 0 !important;
   padding-top: 0 !important;
@@ -3284,21 +3285,20 @@ body.chat-body {
 
 /* 1. Original Top Header Bar (Emerald Green with NKEM GLOBAL Logo & Store Button) */
 body.chat-body .header-bar {
-  flex: 0 0 54px !important;
-  height: 54px !important;
-  min-height: 54px !important;
-  max-height: 54px !important;
-  position: relative !important;
+  position: fixed !important;
   top: 0 !important;
   left: 0 !important;
   right: 0 !important;
-  width: 100% !important;
-  z-index: 100 !important;
+  height: 54px !important;
+  min-height: 54px !important;
+  max-height: 54px !important;
+  z-index: 1000 !important;
   margin: 0 !important;
   padding: 0 !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
   display: flex !important;
   align-items: center !important;
+  background-color: #064e26 !important;
 }
 
 body.chat-body .header-bar .header-container {
@@ -3312,17 +3312,22 @@ body.chat-body .header-bar .header-container {
   width: 100% !important;
 }
 
-/* 2. Chat Section (Takes the exact remaining viewport height) */
+/* 2. Chat Section (Directly locked from below 54px header down to 0 at bottom) */
 body.chat-body .chat-page-section {
-  flex: 1 1 0% !important;
-  min-height: 0 !important;
-  height: calc(100% - 54px) !important;
-  max-height: calc(100% - 54px) !important;
+  position: fixed !important;
+  top: 54px !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
   padding: 0 !important;
   margin: 0 !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
+  z-index: 100 !important;
 }
 
 body.chat-body .chat-page-section > .container {
@@ -3336,6 +3341,7 @@ body.chat-body .chat-page-section > .container {
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
+  width: 100% !important;
 }
 
 /* 3. The Chat Card */
@@ -3351,7 +3357,8 @@ body.chat-body .chat-page-card {
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
-  background-color: #ffffff !important;
+  background-color: #f7fbf8 !important;
+  width: 100% !important;
 }
 
 @media (min-width: 769px) {
@@ -3370,11 +3377,12 @@ body.chat-body .chat-header {
   flex: 0 0 auto !important;
   flex-shrink: 0 !important;
   padding: 10px 14px !important;
-  background-color: #f7fbf8 !important;
+  background-color: #ffffff !important;
   border-bottom: 1px solid #d1ead9 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
+  z-index: 50 !important;
 }
 
 /* 5. Messages Container (The ONLY element that scrolls) */
@@ -3402,6 +3410,7 @@ body.chat-body .chat-input-bar {
   gap: 8px !important;
   box-sizing: border-box !important;
   width: 100% !important;
+  z-index: 50 !important;
 }
 
 /* 7. Guest Auth Gate Card */

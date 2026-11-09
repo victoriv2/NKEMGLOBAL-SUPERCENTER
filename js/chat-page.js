@@ -647,14 +647,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', scrollToBottom);
-      window.visualViewport.addEventListener('scroll', scrollToBottom);
+      const handleVpResize = () => {
+        const section = document.querySelector('.chat-page-section');
+        if (section && window.visualViewport) {
+          const kbHeight = Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop);
+          section.style.bottom = `${kbHeight}px`;
+        }
+        scrollToBottom();
+      };
+      window.visualViewport.addEventListener('resize', handleVpResize);
+      window.visualViewport.addEventListener('scroll', handleVpResize);
     }
 
     if (chatMsgInput) {
       chatMsgInput.addEventListener('focus', () => {
-        setTimeout(scrollToBottom, 50);
-        setTimeout(scrollToBottom, 150);
+        setTimeout(scrollToBottom, 100);
         setTimeout(scrollToBottom, 300);
       });
     }
