@@ -3224,17 +3224,40 @@ body.admin-body .c-modal-footer {
 }
 
 /* ---------------- DEDICATED CHAT PAGE STYLES ---------------- */
+html.chat-body,
+body.chat-body {
+  height: 100% !important;
+  height: 100dvh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background-color: #f7fbf8 !important;
+}
+
+body.chat-body .header-bar {
+  flex-shrink: 0 !important;
+  position: relative !important;
+  top: 0 !important;
+  z-index: 50 !important;
+}
+
 .chat-page-section {
-  padding-top: var(--space-md);
-  padding-bottom: var(--space-xl);
-  min-height: calc(100vh - 160px);
-  display: flex;
-  flex-direction: column;
+  flex: 1 1 0% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
 }
 
 .chat-page-card {
   width: 100%;
-  max-width: 920px;
+  max-width: 960px;
   margin: 0 auto;
   background-color: var(--bg-surface);
   border: 1px solid var(--border-color);
@@ -3242,7 +3265,10 @@ body.admin-body .c-modal-footer {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: clamp(520px, 78vh, 760px);
+  flex: 1 1 0% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
 }
 
 .chat-auth-prompt-card {
@@ -4228,21 +4254,28 @@ input::-webkit-credentials-auto-fill-button {
 /* User Side Dedicated Chat Page (chat.html) Mobile Fitting */
 @media (max-width: 768px) {
   body.chat-body {
-    padding-top: clamp(52px, 7.5vw, 60px) !important;
+    padding-top: 0 !important;
+    height: 100% !important;
     height: 100dvh !important;
     overflow: hidden !important;
-    display: flex;
-    flex-direction: column;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  body.chat-body .header-bar {
+    position: relative !important;
+    flex-shrink: 0 !important;
+    top: 0 !important;
   }
 
   body.chat-body .chat-page-section {
     padding: 0 !important;
     margin: 0 !important;
-    height: calc(100dvh - clamp(52px, 7.5vw, 60px)) !important;
+    flex: 1 1 0% !important;
+    height: 100% !important;
     min-height: 0 !important;
-    flex: 1 1 auto !important;
-    display: flex;
-    flex-direction: column;
+    display: flex !important;
+    flex-direction: column !important;
     overflow: hidden !important;
   }
 
@@ -4250,9 +4283,10 @@ input::-webkit-credentials-auto-fill-button {
     padding: 0 !important;
     max-width: 100% !important;
     height: 100% !important;
-    flex: 1 1 auto !important;
-    display: flex;
-    flex-direction: column;
+    min-height: 0 !important;
+    flex: 1 1 0% !important;
+    display: flex !important;
+    flex-direction: column !important;
     overflow: hidden !important;
   }
 
@@ -4260,14 +4294,12 @@ input::-webkit-credentials-auto-fill-button {
     height: 100% !important;
     max-height: 100% !important;
     max-width: 100% !important;
+    border: none !important;
     border-radius: 0 !important;
-    border-left: none !important;
-    border-right: none !important;
-    border-bottom: none !important;
     margin: 0 !important;
-    flex: 1 1 auto !important;
-    display: flex;
-    flex-direction: column;
+    flex: 1 1 0% !important;
+    display: flex !important;
+    flex-direction: column !important;
     overflow: hidden !important;
   }
 
@@ -4286,10 +4318,13 @@ input::-webkit-credentials-auto-fill-button {
 
   body.chat-body .chat-input-bar {
     flex-shrink: 0 !important;
+    margin-top: auto !important;
     padding: 10px 12px !important;
-    padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)) !important;
     background-color: var(--bg-surface) !important;
     border-top: 1px solid var(--border-color) !important;
+    position: relative !important;
+    bottom: 0 !important;
   }
 }
 
