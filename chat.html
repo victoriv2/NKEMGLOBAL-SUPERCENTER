@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, interactive-widget=resizes-content" />
   <title>Customer Live Chat — Nkem Global</title>
   <meta name="description" content="Direct customer live cloud chat support with Nkem Global." />
-  <link rel="stylesheet" href="css/styles.css?v=20261109_2045" />
+  <link rel="stylesheet" href="css/styles.css?v=20261109_2115" />
 </head>
 <body class="chat-body">
 
@@ -76,20 +76,19 @@
           <button class="chat-upload-btn" id="chatImageUploadBtn" type="button" title="Attach Image (Auto-compressed to &le; 100KB)">
             <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
           </button>
-          <input
-            type="text"
+          <textarea
             class="chat-text-input"
             id="chatMsgInput"
-            name="chat_message_text"
+            name="chat_message_body"
+            rows="1"
             autocomplete="off"
             autocorrect="on"
             autocapitalize="sentences"
             spellcheck="true"
-            enterkeyhint="send"
             data-form-type="other"
             data-lpignore="true"
             placeholder="Type your message to Nkem Global Admin..."
-          />
+          ></textarea>
           <button class="chat-send-btn" id="chatSendBtn" type="button">
             <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             <span>Send</span>
@@ -132,14 +131,14 @@
   <div class="full-view-lightbox" id="fullViewLightbox"></div>
 
   <!-- Script Modules in Order -->
-  <script src="js/icons.js?v=20261109_2045"></script>
-  <script src="js/image-compressor.js?v=20261109_2045"></script>
-  <script src="js/nigeria-data.js?v=20261109_2045"></script>
-  <script src="js/custom-modal.js?v=20261109_2045"></script>
-  <script src="js/custom-picker.js?v=20261109_2045"></script>
-  <script src="js/supabase-config.js?v=20261109_2045"></script>
-  <script src="js/receipt-generator.js?v=20261109_2045"></script>
-  <script src="js/auth-modal.js?v=20261109_2045"></script>
-  <script src="js/chat-page.js?v=20261109_2045"></script>
+  <script src="js/icons.js?v=20261109_2115"></script>
+  <script src="js/image-compressor.js?v=20261109_2115"></script>
+  <script src="js/nigeria-data.js?v=20261109_2115"></script>
+  <script src="js/custom-modal.js?v=20261109_2115"></script>
+  <script src="js/custom-picker.js?v=20261109_2115"></script>
+  <script src="js/supabase-config.js?v=20261109_2115"></script>
+  <script src="js/receipt-generator.js?v=20261109_2115"></script>
+  <script src="js/auth-modal.js?v=20261109_2115"></script>
+  <script src="js/chat-page.js?v=20261109_2115"></script>
 </body>
 </html>

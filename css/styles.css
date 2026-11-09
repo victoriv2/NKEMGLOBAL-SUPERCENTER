@@ -111,7 +111,7 @@ html, body {
   overflow-x: hidden;
 }
 
-body:not(.admin-body) {
+body:not(.admin-body):not(.chat-body) {
   background-color: #edf8f2 !important;
   color: #2d3748 !important;
   padding-bottom: 74px !important;
@@ -2113,6 +2113,18 @@ body {
   font-size: var(--font-sm);
 }
 
+textarea.chat-text-input {
+  resize: none !important;
+  min-height: 38px !important;
+  height: 38px !important;
+  max-height: 80px !important;
+  line-height: 1.35 !important;
+  font-family: inherit !important;
+  box-sizing: border-box !important;
+  overflow-y: auto !important;
+  margin: 0 !important;
+}
+
 .chat-text-input:focus {
   border-color: var(--accent-gold);
 }
@@ -3230,6 +3242,7 @@ body.chat-body {
   height: 100dvh !important;
   margin: 0 !important;
   padding: 0 !important;
+  padding-bottom: 0 !important;
   overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
@@ -4255,6 +4268,7 @@ input::-webkit-credentials-auto-fill-button {
 @media (max-width: 768px) {
   body.chat-body {
     padding-top: 0 !important;
+    padding-bottom: 0 !important;
     height: 100% !important;
     height: 100dvh !important;
     overflow: hidden !important;
@@ -5919,7 +5933,7 @@ body:not(.admin-body) .details-modal-footer .details-whatsapp-btn:hover {
 }
 
 @media (max-width: 899.98px) {
-  body:not(.admin-body) {
+  body:not(.admin-body):not(.chat-body) {
     padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 24px) !important;
   }
 }
