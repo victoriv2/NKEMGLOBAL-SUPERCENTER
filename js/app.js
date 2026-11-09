@@ -1791,9 +1791,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                   <span>${window.CustomModal.escape(phone)}</span>
                 </div>
                 ${email ? `
-                  <div style="display: flex; align-items: center; gap: 6px; color: #5a6e62; font-weight: 500; font-size: 0.78rem; word-break: break-all; overflow-wrap: anywhere; max-width: 100%;">
+                  <div style="display: flex; align-items: center; gap: 6px; color: #5a6e62; font-weight: 500; font-size: 0.78rem; word-break: break-all; overflow-wrap: anywhere; max-width: 100%; min-width: 0; overflow: hidden;">
                     <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px; flex-shrink: 0; color: #087f3b;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                    <span style="word-break: break-all; overflow-wrap: anywhere;">${window.CustomModal.escape(email)}</span>
+                    <span style="word-break: break-all; overflow-wrap: anywhere; min-width: 0; max-width: 100%; display: inline-block;">${window.CustomModal.escape(email)}</span>
                   </div>
                 ` : ''}
               ` : 'Sign in to track orders, manage your profile and chat.'}

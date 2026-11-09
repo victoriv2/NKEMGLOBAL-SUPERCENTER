@@ -635,13 +635,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', scrollToBottom);
+      const handleVpResize = () => {
+        // Keep chat viewport strictly locked above mobile keyboard
+        if (window.innerWidth <= 768) {
+          document.body.style.height = `${window.visualViewport.height}px`;
+        }
+        scrollToBottom();
+      };
+      window.visualViewport.addEventListener('resize', handleVpResize);
       window.visualViewport.addEventListener('scroll', scrollToBottom);
     }
 
     if (chatMsgInput) {
       chatMsgInput.addEventListener('focus', () => {
-        setTimeout(scrollToBottom, 60);
+        setTimeout(scrollToBottom, 50);
         setTimeout(scrollToBottom, 150);
         setTimeout(scrollToBottom, 300);
       });
