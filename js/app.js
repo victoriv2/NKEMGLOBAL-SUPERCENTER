@@ -478,7 +478,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     grid.innerHTML = categories.map(c => {
-      const img = c.image_url || 'assets/images/logo.png';
+      let img = c.image_url || 'assets/images/logo.png';
+      if (img.startsWith('assets/categories/') && !img.includes('?v=')) {
+        img += '?v=20261109_1';
+      }
       return `
         <div class="home-category-card" data-cat-name="${window.CustomModal.escape(c.name)}" role="button" tabindex="0">
           <div class="home-category-img-wrap">

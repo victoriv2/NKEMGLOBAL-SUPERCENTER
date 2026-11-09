@@ -121,10 +121,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     adminState.categories.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
-    categoryListContainer.innerHTML = adminState.categories.map((c, idx) => `
+    categoryListContainer.innerHTML = adminState.categories.map((c, idx) => {
+      let cImg = c.image_url || 'assets/images/logo.jpeg';
+      if (cImg.startsWith('assets/categories/') && !cImg.includes('?v=')) {
+        cImg += '?v=20261109_1';
+      }
+      return `
       <div class="admin-item-row" data-id="${c.id}" style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
         <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
-          <img src="${c.image_url || 'assets/images/logo.jpeg'}" alt="${window.CustomModal.escape(c.name)}" style="width: 46px; height: 34px; object-fit: contain; border-radius: 4px; border: 1px solid var(--border-color); background: #fff; flex-shrink: 0;" />
+          <img src="${cImg}" alt="${window.CustomModal.escape(c.name)}" style="width: 46px; height: 34px; object-fit: contain; border-radius: 4px; border: 1px solid var(--border-color); background: #fff; flex-shrink: 0;" />
           <div class="admin-item-details">
             <span class="admin-item-title">${window.CustomModal.escape(c.name)}</span>
             <span class="admin-item-sub">Order Position: #${idx + 1} &bull; ID: ${c.id}</span>
@@ -145,7 +150,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           </button>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     // Cat Up (Instant UI Move + Background Sync)
     categoryListContainer.querySelectorAll('[data-action="cat-up"]').forEach(btn => {
@@ -264,11 +270,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function renderCatPreview() {
       if (catImageDraft) {
+        let displayImg = catImageDraft;
+        if (displayImg.startsWith('assets/categories/') && !displayImg.includes('?v=')) {
+          displayImg += '?v=20261109_1';
+        }
         previewMount.innerHTML = `
-          <div style="position: relative; display: inline-block; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border-color); background: #fff;">
-            <img src="${catImageDraft}" alt="Category Image" style="width: 140px; height: 90px; object-fit: contain; display: block;" />
-            <button type="button" id="removeCatImgBtn" style="position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.7); color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none;">
-              ${window.renderIcon('x')}
+          <div style="position: relative; display: inline-block; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: #f8faf9; padding: 6px;">
+            <img src="${displayImg}" alt="Category Image" style="width: 160px; height: 95px; object-fit: contain; display: block; border-radius: 4px; background: #ffffff;" />
+            <button type="button" id="removeCatImgBtn" title="Remove image" aria-label="Remove image" style="position: absolute; top: -6px; right: -6px; background: #dc2626; color: #ffffff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 10;">
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; stroke: #ffffff !important; color: #ffffff !important; display: block;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
           <div style="margin-top: 8px;">
@@ -933,8 +943,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         ${idx === 0 ? '<span style="position: absolute; bottom: 0; left: 0; right: 0; background: var(--accent-gold); color: #000; font-size: 8px; font-weight: 700; text-align: center; text-transform: uppercase; z-index: 2;">Cover</span>' : ''}
 
         <div style="position: absolute; top: 3px; right: 3px; display: flex; gap: 2px; z-index: 3;">
-          <button type="button" data-action="img-del" data-idx="${idx}" title="Remove image" style="background: rgba(0,0,0,0.85); border: 1px solid rgba(255,255,255,0.25); color: #fff; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; cursor: pointer; border-radius: var(--radius-sm);">
-            ${window.renderIcon('close')}
+          <button type="button" data-action="img-del" data-idx="${idx}" title="Remove image" aria-label="Remove image" style="background: #dc2626; border: 1.5px solid #ffffff; color: #ffffff; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 50%; box-shadow: 0 1px 4px rgba(0,0,0,0.3);">
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 12px; height: 12px; stroke: #ffffff !important; color: #ffffff !important; display: block;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
 
