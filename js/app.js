@@ -41,15 +41,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Reactive UI update on authentication state change
-  window.addEventListener('nkem_auth_changed', () => {
+  window.addEventListener('nkem_auth_changed', (evt) => {
     try {
-      syncCartWithCloud();
+      const user = evt?.detail?.user || getActiveUser();
+      if (user && user.id) {
+        syncCartWithCloud(true);
+      } else {
+        saveCart([], true);
+      }
       renderAccountView();
       renderCartView();
       renderRequestsView();
       updateCartBadges();
       checkUnreadMessages();
-      syncCartWithCloud();
     } catch (_) {}
   });
 
@@ -80,6 +84,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  let lastLocalCartMutationTime = 0;
+  let isSyncingCartToCloud = false;
+
   function saveCart(cart, skipCloud = false) {
     try {
       localStorage.setItem('nkem_cart', JSON.stringify(cart));
@@ -89,24 +96,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Multi-device Cloud Cart Sync
     if (!skipCloud) {
+      lastLocalCartMutationTime = Date.now();
       const activeUser = getActiveUser();
       if (activeUser && activeUser.id && window.SupabaseService?.syncUserCartToCloud) {
-        window.SupabaseService.syncUserCartToCloud(activeUser.id, cart);
+        isSyncingCartToCloud = true;
+        window.SupabaseService.syncUserCartToCloud(activeUser.id, cart)
+          .catch(err => console.warn('Cloud cart sync dispatch notice:', err))
+          .finally(() => {
+            isSyncingCartToCloud = false;
+          });
       }
     }
   }
 
   // Multi-device Cart Cloud Sync engine
-  async function syncCartWithCloud() {
+  async function syncCartWithCloud(isInitialLogin = false) {
     const activeUser = getActiveUser();
     if (!activeUser || !activeUser.id || !window.SupabaseService?.getUserCartFromCloud) return;
 
+    // Guard against race conditions right after local mutations
+    if (!isInitialLogin && (isSyncingCartToCloud || (Date.now() - lastLocalCartMutationTime < 2500))) {
+      return;
+    }
+
     try {
       const cloudCart = await window.SupabaseService.getUserCartFromCloud(activeUser.id);
+      // If network failed, cloudCart is null -> DO NOT overwrite local cart
+      if (cloudCart === null || !Array.isArray(cloudCart)) return;
+
       const localCart = getCart();
 
-      if (Array.isArray(cloudCart) && cloudCart.length > 0) {
-        // Merge cloud cart with local cart by product id
+      // If user just transitioned from guest mode and had local items, merge once into cloud cart
+      if (isInitialLogin && localCart.length > 0) {
         const mergedMap = new Map();
         cloudCart.forEach(item => {
           if (item && item.id) mergedMap.set(item.id, { ...item });
@@ -123,14 +144,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         const mergedCart = Array.from(mergedMap.values());
-        saveCart(mergedCart, true);
-        window.SupabaseService.syncUserCartToCloud(activeUser.id, mergedCart);
+        saveCart(mergedCart, false);
+        if (state.currentTab === 'cart') renderCartView();
+        return;
+      }
 
+      // Authoritative cloud cart sync:
+      // When logged in, cloud cart is the single source of truth across all devices.
+      const localJson = JSON.stringify(localCart);
+      const cloudJson = JSON.stringify(cloudCart);
+
+      if (localJson !== cloudJson) {
+        saveCart(cloudCart, true); // true = skip sending back to cloud since we just fetched from cloud
         if (state.currentTab === 'cart') {
           renderCartView();
         }
-      } else if (localCart.length > 0) {
-        window.SupabaseService.syncUserCartToCloud(activeUser.id, localCart);
       }
     } catch (e) {
       console.warn('Sync cart notice:', e);
@@ -284,6 +312,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       applyFiltersAndSort();
     } else if (tabName === 'cart') {
       renderCartView();
+      syncCartWithCloud();
     } else if (tabName === 'requests') {
       renderRequestsView();
     } else if (tabName === 'account') {
@@ -2114,6 +2143,25 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (typeof checkUnreadMessages === 'function') checkUnreadMessages();
     }, 10000);
   }
+
+  // Multi-device real-time cart sync polling (every 8 seconds) and visibility listener
+  if (!window._cartCloudSyncInterval) {
+    window._cartCloudSyncInterval = setInterval(() => {
+      if (typeof syncCartWithCloud === 'function') syncCartWithCloud(false);
+    }, 8000);
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      if (typeof syncCartWithCloud === 'function') syncCartWithCloud(false);
+      if (typeof checkUnreadMessages === 'function') checkUnreadMessages();
+    }
+  });
+
+  window.addEventListener('focus', () => {
+    if (typeof syncCartWithCloud === 'function') syncCartWithCloud(false);
+    if (typeof checkUnreadMessages === 'function') checkUnreadMessages();
+  });
 
   // Setup Search in Requests Tab
   const reqSearchInput = document.getElementById('requestsSearchInput');

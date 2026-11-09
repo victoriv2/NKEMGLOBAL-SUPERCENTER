@@ -1275,18 +1275,39 @@ window.SupabaseService = {
   async syncUserCartToCloud(userId, cart) {
     if (!userId) return false;
     const cleanCart = Array.isArray(cart) ? cart.map(i => ({
-      id: i.id,
-      title: i.title,
+      id: String(i.id || ''),
+      title: String(i.title || ''),
       price: Number(i.price) || 0,
-      image: i.image || '',
-      category: i.category || '',
-      quantity: Number(i.quantity) || 1
+      image: String(i.image || ''),
+      category: String(i.category || ''),
+      quantity: Math.max(1, Number(i.quantity) || 1)
     })) : [];
+
+    // Immediately keep local storage caches synchronized
+    try {
+      const curr = this.getCurrentUser();
+      if (curr && curr.id === userId) {
+        curr.cart = cleanCart;
+        localStorage.setItem('nkem_current_user', JSON.stringify(curr));
+      }
+      const localUsers = JSON.parse(localStorage.getItem('nkem_local_users') || '[]');
+      if (Array.isArray(localUsers)) {
+        const idx = localUsers.findIndex(u => u.id === userId);
+        if (idx !== -1) {
+          localUsers[idx].cart = cleanCart;
+          localStorage.setItem('nkem_local_users', JSON.stringify(localUsers));
+        }
+      }
+    } catch (_) {}
 
     try {
       await this.request(`nkem_users?id=eq.${encodeURIComponent(userId)}`, {
         method: 'PATCH',
-        headers: { 'Prefer': 'return=representation' },
+        keepalive: true,
+        headers: {
+          'Prefer': 'return=representation',
+          'Cache-Control': 'no-cache, no-store'
+        },
         body: JSON.stringify({ cart: cleanCart })
       });
       return true;
@@ -1297,16 +1318,20 @@ window.SupabaseService = {
   },
 
   async getUserCartFromCloud(userId) {
-    if (!userId) return [];
+    if (!userId) return null;
     try {
-      const res = await this.request(`nkem_users?id=eq.${encodeURIComponent(userId)}&select=cart`);
-      if (res && Array.isArray(res) && res.length > 0 && Array.isArray(res[0].cart)) {
-        return res[0].cart;
+      const res = await this.request(`nkem_users?id=eq.${encodeURIComponent(userId)}&select=cart`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store'
+        }
+      });
+      if (res && Array.isArray(res) && res.length > 0) {
+        return Array.isArray(res[0].cart) ? res[0].cart : [];
       }
       return [];
     } catch (e) {
       console.warn('Cart cloud fetch notice:', e);
-      return [];
+      return null;
     }
   },
 
