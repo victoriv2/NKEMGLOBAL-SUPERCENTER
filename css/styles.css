@@ -2743,8 +2743,10 @@ body.admin-body .c-modal-footer {
 .admin-item-actions {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .btn-icon-square {

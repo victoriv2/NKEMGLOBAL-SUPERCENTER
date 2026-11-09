@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const [categories, products, orders, users] = await Promise.all([
         window.SupabaseService.getCategories(),
-        window.SupabaseService.getProducts({ limit: adminState.productPageSize, offset: 0 }),
+        window.SupabaseService.getProducts({ limit: adminState.productPageSize, offset: 0, includeHidden: true }),
         window.SupabaseService.getOrders(),
         window.SupabaseService.getUsers()
       ]);
@@ -414,7 +414,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const opts = [
       { value: 'all', label: 'Filter: All Products' },
       { value: 'stock:in_stock', label: 'Filter: In Stock' },
-      { value: 'stock:out_of_stock', label: 'Filter: Out of Stock' }
+      { value: 'stock:out_of_stock', label: 'Filter: Out of Stock' },
+      { value: 'visibility:visible', label: 'Filter: Visible in Store' },
+      { value: 'visibility:hidden', label: 'Filter: Hidden from Store' }
     ];
     if (Array.isArray(adminState.categories) && adminState.categories.length > 0) {
       adminState.categories.forEach(c => {
@@ -476,7 +478,10 @@ document.addEventListener('DOMContentLoaded', async () => {
           { value: 'price-asc', label: 'Sort: Price (Low to High)' },
           { value: 'title-asc', label: 'Sort: Title (A to Z)' },
           { value: 'title-desc', label: 'Sort: Title (Z to A)' },
-          { value: 'stock-first', label: 'Sort: In Stock First' }
+          { value: 'stock-first', label: 'Sort: In Stock First' },
+          { value: 'out-of-stock-first', label: 'Sort: Out of Stock First' },
+          { value: 'hidden-first', label: 'Sort: Hidden Products First' },
+          { value: 'visible-first', label: 'Sort: Visible Products First' }
         ],
         value: adminState.productSortBy || 'newest',
         searchable: false,
@@ -511,7 +516,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const offset = adminState.products.length;
         const nextBatch = await window.SupabaseService.getProducts({
           limit: adminState.productPageSize,
-          offset: offset
+          offset: offset,
+          includeHidden: true
         });
 
         if (nextBatch && nextBatch.length > 0) {
@@ -568,11 +574,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    // Stock or Category filter
+    // Stock, Category or Visibility filter
     if (adminState.productFilter === 'stock:in_stock') {
       filtered = filtered.filter(p => !!p.in_stock);
     } else if (adminState.productFilter === 'stock:out_of_stock') {
       filtered = filtered.filter(p => !p.in_stock);
+    } else if (adminState.productFilter === 'visibility:visible') {
+      filtered = filtered.filter(p => !p.is_hidden && !p.hidden);
+    } else if (adminState.productFilter === 'visibility:hidden') {
+      filtered = filtered.filter(p => !!(p.is_hidden || p.hidden));
     } else if (adminState.productFilter && adminState.productFilter.startsWith('cat:')) {
       const catId = adminState.productFilter.replace('cat:', '');
       filtered = filtered.filter(p => p.category_id === catId);
@@ -588,6 +598,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (sortBy === 'stock-first') {
         if (a.in_stock === b.in_stock) return 0;
         return a.in_stock ? -1 : 1;
+      }
+      if (sortBy === 'out-of-stock-first') {
+        if (a.in_stock === b.in_stock) return 0;
+        return a.in_stock ? 1 : -1;
+      }
+      if (sortBy === 'hidden-first') {
+        const aHidden = !!(a.is_hidden || a.hidden);
+        const bHidden = !!(b.is_hidden || b.hidden);
+        if (aHidden === bHidden) return 0;
+        return aHidden ? -1 : 1;
+      }
+      if (sortBy === 'visible-first') {
+        const aHidden = !!(a.is_hidden || a.hidden);
+        const bHidden = !!(b.is_hidden || b.hidden);
+        if (aHidden === bHidden) return 0;
+        return aHidden ? 1 : -1;
       }
       if (sortBy === 'oldest') {
         const tA = new Date(a.created_at || 0).getTime();
@@ -657,11 +683,20 @@ document.addEventListener('DOMContentLoaded', async () => {
               <strong style="color: ${p.in_stock ? 'var(--status-success)' : 'var(--status-danger)'}">
                 ${p.in_stock ? 'In Stock' : 'Out of Stock'}
               </strong>
+              ${(p.is_hidden || p.hidden) 
+                ? ' &bull; <strong style="color: #dc2626; background: rgba(220,38,38,0.1); border: 1px solid rgba(220,38,38,0.25); padding: 1px 6px; border-radius: 4px; font-size: 11px;">Hidden from Store</strong>' 
+                : ' &bull; <span style="color: #087f3b; font-size: 11px; font-weight: 600;">Visible</span>'}
             </span>
           </div>
           <div class="admin-item-actions">
             <button class="btn btn-secondary btn-sm" type="button" data-action="toggle-stock" data-id="${p.id}">
               <span>${p.in_stock ? 'Mark Out of Stock' : 'Mark In Stock'}</span>
+            </button>
+            <button class="btn-icon-square" type="button" data-action="toggle-visibility" data-id="${p.id}" 
+              title="${(p.is_hidden || p.hidden) ? 'Hidden from Store (Click to Show)' : 'Visible in Store (Click to Hide)'}" 
+              aria-label="${(p.is_hidden || p.hidden) ? 'Show product in store' : 'Hide product from store'}" 
+              style="${(p.is_hidden || p.hidden) ? 'border-color: rgba(220,38,38,0.4); color: #dc2626; background: rgba(220,38,38,0.08);' : 'color: #087f3b; background: rgba(8,127,59,0.06); border-color: rgba(8,127,59,0.25);'}">
+              ${window.renderIcon((p.is_hidden || p.hidden) ? 'eyeOff' : 'eye')}
             </button>
             <button class="btn-icon-square" type="button" data-action="prod-edit" data-id="${p.id}" title="Edit Product">
               ${window.renderIcon('edit')}
@@ -686,6 +721,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderProductsManager();
         window.CustomModal.toast({ 
           message: `${p.title} marked as ${p.in_stock ? 'In Stock' : 'Out of Stock'}.`, 
+          type: 'info' 
+        });
+      });
+    });
+
+    // Toggle Product Visibility in Store (Hide / Show)
+    productListContainer.querySelectorAll('[data-action="toggle-visibility"]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        const p = adminState.products.find(x => x.id === id);
+        if (!p) return;
+
+        const isCurrentlyHidden = !!(p.is_hidden || p.hidden);
+        p.is_hidden = !isCurrentlyHidden;
+        p.hidden = !isCurrentlyHidden;
+        await window.SupabaseService.saveProduct(p);
+        renderProductsManager();
+        window.CustomModal.toast({ 
+          message: `"${p.title}" is now ${p.is_hidden ? 'hidden from' : 'visible in'} the store.`, 
           type: 'info' 
         });
       });
@@ -733,6 +787,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         price: 300000,
         category_id: adminState.categories[0]?.id || '',
         in_stock: true,
+        is_hidden: false,
+        hidden: false,
         images: [],
         sort_order: adminState.products.length + 1
       };
@@ -797,6 +853,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             <span style="font-size: 0.72rem; color: var(--text-subtle);">
               * The first image is the main Cover Image. Click arrows to reposition images or trash to remove.
             </span>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--bg-surface-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+            <div>
+              <strong style="font-size: 0.85rem; color: var(--text-main); display: block;">Storefront Visibility</strong>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Toggle whether this product appears on the public store catalog.</span>
+            </div>
+            <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-main);">
+              <input type="checkbox" id="editProdHidden" ${adminState.editingProduct.is_hidden || adminState.editingProduct.hidden ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: var(--accent-gold); cursor: pointer;" />
+              <span>Hide from Storefront</span>
+            </label>
           </div>
 
           <div class="c-modal-footer dual-actions" style="margin: 0 -16px -16px -16px; padding: 12px 16px;">
@@ -897,6 +964,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
 
+      const isHidden = !!document.getElementById('editProdHidden')?.checked;
+
       const updated = {
         ...adminState.editingProduct,
         title,
@@ -904,6 +973,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         description: desc,
         category_id: editCategoryPicker ? editCategoryPicker.getValue() : adminState.editingProduct.category_id,
         images: adminState.productImagesDraft,
+        is_hidden: isHidden,
+        hidden: isHidden,
         updated_at: new Date().toISOString()
       };
 

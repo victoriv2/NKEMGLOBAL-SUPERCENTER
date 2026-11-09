@@ -242,12 +242,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 0ms INSTANT RENDER FROM LOCAL CACHE
     try {
       const cachedCategories = window.SupabaseService.getLocalCategories ? window.SupabaseService.getLocalCategories() : [];
-      const cachedProducts = window.SupabaseService.getLocalProducts ? window.SupabaseService.getLocalProducts() : [];
+      const cachedProducts = window.SupabaseService.getLocalProducts ? window.SupabaseService.getLocalProducts(false) : [];
 
       if (cachedCategories.length > 0) state.categories = cachedCategories;
       if (cachedProducts.length > 0) {
         const suitFallbackDesc = 'These particular suits are authentic Italian bespoke cuts, crafted with premium high-twist wool blend fabric for exceptional drape, comfort, and structure. Designed with classic notch lapels, flap pockets, soft interior lining, and dual side vents. Meticulously finished for modern executives and high-profile occasions.';
-        state.products = cachedProducts.map(p => {
+        state.products = cachedProducts.filter(p => !p.is_hidden && !p.hidden).map(p => {
           const raw = p.description || p.desc || p.details || p.product_description || '';
           if (!raw || typeof raw !== 'string' || !raw.trim()) {
             return { ...p, description: suitFallbackDesc };
@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (categories && categories.length > 0) state.categories = categories;
       if (products && products.length > 0) {
         const suitFallbackDesc = 'These particular suits are authentic Italian bespoke cuts, crafted with premium high-twist wool blend fabric for exceptional drape, comfort, and structure. Designed with classic notch lapels, flap pockets, soft interior lining, and dual side vents. Meticulously finished for modern executives and high-profile occasions.';
-        state.products = products.map(p => {
+        state.products = products.filter(p => !p.is_hidden && !p.hidden).map(p => {
           const raw = p.description || p.desc || p.details || p.product_description || '';
           if (!raw || typeof raw !== 'string' || !raw.trim()) {
             return { ...p, description: suitFallbackDesc };
@@ -740,7 +740,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function applyFiltersAndSort() {
-    let prods = [...state.products];
+    let prods = [...state.products].filter(p => !p.is_hidden && !p.hidden);
 
     // Filter by Category
     if (state.selectedCategory && state.selectedCategory !== 'all') {
@@ -986,7 +986,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         if (Array.isArray(nextProducts) && nextProducts.length > 0) {
-          state.products = [...state.products, ...nextProducts];
+          const visibleBatch = nextProducts.filter(p => !p.is_hidden && !p.hidden);
+          state.products = [...state.products, ...visibleBatch];
           state.hasMoreProducts = nextProducts.length === state.pageSize;
           applyFiltersAndSort();
         } else {
