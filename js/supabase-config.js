@@ -13,7 +13,7 @@ window.SupabaseService = {
   },
 
   async request(endpoint, options = {}) {
-    const timeoutMs = options.timeoutMs || 3500;
+    const timeoutMs = options.timeoutMs || 8000;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     const signal = options.signal || controller.signal;
@@ -27,7 +27,13 @@ window.SupabaseService = {
         const errorText = await response.text();
         throw new Error(`API error ${response.status}: ${errorText}`);
       }
-      return await response.json();
+      if (response.status === 204) return true;
+      const text = await response.text();
+      try {
+        return text ? JSON.parse(text) : true;
+      } catch (_) {
+        return text;
+      }
     } catch (err) {
       clearTimeout(timer);
       console.warn('Supabase request notice (using local):', err.message);
@@ -864,9 +870,9 @@ window.SupabaseService = {
         cloud = await this.request(`nkem_orders?user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc`, { signal: controller.signal, timeoutMs });
       }
       if ((!cloud || cloud.length === 0) && phone) {
-        const cleanPhone = (phone || '').trim().replace(/\D/g, '').replace(/^234/, '0');
-        if (cleanPhone) {
-          cloud = await this.request(`nkem_orders?whatsapp_number=eq.${encodeURIComponent(cleanPhone)}&order=created_at.desc`, { signal: controller.signal, timeoutMs });
+        const last10 = this.normalizePhone(phone);
+        if (last10) {
+          cloud = await this.request(`nkem_orders?whatsapp_number=ilike.*${encodeURIComponent(last10)}*&order=created_at.desc`, { signal: controller.signal, timeoutMs });
         }
       }
       clearTimeout(timer);
@@ -1107,12 +1113,18 @@ window.SupabaseService = {
   },
 
   async signUpUser(userData) {
-    const cleanWhatsapp = (userData.whatsapp_number || '').trim().replace(/\s+/g, '');
+    const rawWhatsapp = (userData.whatsapp_number || '').trim();
+    const cleanWhatsapp = rawWhatsapp.replace(/\s+/g, '');
+    const normWhatsapp = this.normalizePhone(rawWhatsapp);
     const cleanEmail = (userData.email || '').trim().toLowerCase();
 
     // Check existing phone and email on database
     const users = await this.getUsers();
-    const existingPhone = users.find(u => (u.whatsapp_number || '').trim().replace(/\s+/g, '') === cleanWhatsapp);
+    const existingPhone = users.find(u => {
+      const uClean = (u.whatsapp_number || '').trim().replace(/\s+/g, '');
+      const uNorm = this.normalizePhone(u.whatsapp_number);
+      return uClean === cleanWhatsapp || (normWhatsapp && uNorm && normWhatsapp === uNorm);
+    });
     if (existingPhone) {
       throw new Error('An account with this WhatsApp phone number already exists. Please sign in instead.');
     }
@@ -1234,13 +1246,21 @@ window.SupabaseService = {
   },
 
   async signInUser(loginIdentifier, password) {
-    const cleanId = (loginIdentifier || '').trim().toLowerCase().replace(/\s+/g, '');
+    const rawId = (loginIdentifier || '').trim();
+    const cleanId = rawId.toLowerCase().replace(/\s+/g, '');
+    const normPhoneId = this.normalizePhone(rawId);
     const users = await this.getUsers();
 
     const user = users.find(u => {
-      const uPhone = (u.whatsapp_number || '').trim().toLowerCase().replace(/\s+/g, '');
+      const uRawPhone = (u.whatsapp_number || '').trim();
+      const uPhone = uRawPhone.toLowerCase().replace(/\s+/g, '');
+      const uNormPhone = this.normalizePhone(uRawPhone);
       const uEmail = (u.email || '').trim().toLowerCase();
-      return (uPhone === cleanId || (uEmail && uEmail === cleanId)) && u.password_hash === password;
+
+      const phoneMatches = (uPhone === cleanId) || (normPhoneId && uNormPhone && normPhoneId === uNormPhone);
+      const emailMatches = uEmail && uEmail === cleanId;
+
+      return (phoneMatches || emailMatches) && u.password_hash === password;
     });
 
     if (!user) {
