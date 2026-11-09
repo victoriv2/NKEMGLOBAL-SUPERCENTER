@@ -126,8 +126,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderChatUserBadge() {
     if (!chatUserBadge || !currentUser) return;
     chatUserBadge.innerHTML = `
-      <span style="font-size: var(--font-xs); color: var(--text-muted);">Signed in as:</span>
-      <span style="font-size: var(--font-xs); font-weight: 700; color: var(--accent-gold); background: var(--bg-main); padding: 4px 8px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+      <span style="font-size: var(--font-xs); color: #5a6e62;">Signed in as:</span>
+      <span style="font-size: var(--font-xs); font-weight: 700; color: #073b1f; background: #e8f7ee; padding: 3px 8px; border: 1px solid #c2e8d0; border-radius: 999px;">
         ${window.CustomModal.escape(currentUser.first_name)} (${window.CustomModal.escape(currentUser.whatsapp_number)})
       </span>
     `;
@@ -637,8 +637,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (window.visualViewport) {
       const handleVpResize = () => {
         // Keep chat viewport strictly locked above mobile keyboard
-        if (window.innerWidth <= 768) {
-          document.body.style.height = `${window.visualViewport.height}px`;
+        if (window.visualViewport) {
+          const vpHeight = window.visualViewport.height;
+          if (chatActiveCard) {
+            chatActiveCard.style.height = `${vpHeight}px`;
+          }
+          document.body.style.height = `${vpHeight}px`;
         }
         scrollToBottom();
       };
