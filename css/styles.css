@@ -2778,7 +2778,7 @@ body.admin-body .c-modal-footer {
     margin-top: 6px !important;
     padding-top: 8px !important;
     border-top: 1px solid var(--border-color) !important;
-    justify-content: flex-start !important;
+    justify-content: flex-end !important;
     gap: 8px !important;
   }
 }
@@ -4688,7 +4688,7 @@ body:not(.admin-body) .brand-title span {
   .desktop-app-nav {
     display: flex;
     margin-left: auto;
-    margin-right: clamp(14px, 2vw, 28px);
+    margin-right: 6px;
   }
 }
 

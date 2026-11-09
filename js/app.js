@@ -1970,21 +1970,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     orderSuccessModal.classList.add('active');
   }
 
-    const closeSuccess = () => orderSuccessModal.classList.remove('active');
-    orderSuccessModal.querySelector('#closeSuccessModalBtn')?.addEventListener('click', closeSuccess);
-    orderSuccessModal.querySelector('#closeSuccessBtn')?.addEventListener('click', closeSuccess);
-
-    const trackBtn = orderSuccessModal.querySelector('#trackInOrdersBtn');
-    if (trackBtn) {
-      trackBtn.addEventListener('click', () => {
-        closeSuccess();
-        window.switchAppTab('requests');
-      });
-    }
-
-    orderSuccessModal.classList.add('active');
-  }
-
   /* ==========================================================================
      11. REALTIME CHAT UNREAD BADGE & URL HASH INITIALIZATION
      ========================================================================== */
