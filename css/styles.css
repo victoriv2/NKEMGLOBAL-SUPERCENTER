@@ -5817,6 +5817,18 @@ body:not(.admin-body) .details-modal-footer .details-whatsapp-btn:hover {
   padding-bottom: env(safe-area-inset-bottom, 0) !important;
 }
 
+@media (min-width: 900px) {
+  .bottom-nav-bar {
+    display: none !important;
+  }
+}
+
+@media (max-width: 899.98px) {
+  body:not(.admin-body) {
+    padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 24px) !important;
+  }
+}
+
 .bottom-nav-item {
   flex: 1;
   display: flex;

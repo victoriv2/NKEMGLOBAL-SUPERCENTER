@@ -245,16 +245,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       const cachedProducts = window.SupabaseService.getLocalProducts ? window.SupabaseService.getLocalProducts(false) : [];
 
       if (cachedCategories.length > 0) state.categories = cachedCategories;
-      if (cachedProducts.length > 0) {
-        const suitFallbackDesc = 'These particular suits are authentic Italian bespoke cuts, crafted with premium high-twist wool blend fabric for exceptional drape, comfort, and structure. Designed with classic notch lapels, flap pockets, soft interior lining, and dual side vents. Meticulously finished for modern executives and high-profile occasions.';
-        state.products = cachedProducts.filter(p => !p.is_hidden && !p.hidden).map(p => {
-          const raw = p.description || p.desc || p.details || p.product_description || '';
-          if (!raw || typeof raw !== 'string' || !raw.trim()) {
-            return { ...p, description: suitFallbackDesc };
-          }
-          return p;
-        });
-      }
+      const suitFallbackDesc = 'These particular suits are authentic Italian bespoke cuts, crafted with premium high-twist wool blend fabric for exceptional drape, comfort, and structure. Designed with classic notch lapels, flap pockets, soft interior lining, and dual side vents. Meticulously finished for modern executives and high-profile occasions.';
+      state.products = (cachedProducts || []).filter(p => !window.SupabaseService?.isProductHidden?.(p)).map(p => {
+        const raw = p.description || p.desc || p.details || p.product_description || '';
+        if (!raw || typeof raw !== 'string' || !raw.trim()) {
+          return { ...p, description: suitFallbackDesc };
+        }
+        return p;
+      });
 
       renderHomeCategories();
       renderShopCategoryPills();
@@ -275,14 +273,16 @@ document.addEventListener('DOMContentLoaded', async () => {
           limit: state.pageSize,
           offset: 0,
           categoryId: state.selectedCategory,
-          sort: state.selectedSort
+          sort: state.selectedSort,
+          includeHidden: false
         })
       ]);
 
       if (categories && categories.length > 0) state.categories = categories;
-      if (products && products.length > 0) {
-        const suitFallbackDesc = 'These particular suits are authentic Italian bespoke cuts, crafted with premium high-twist wool blend fabric for exceptional drape, comfort, and structure. Designed with classic notch lapels, flap pockets, soft interior lining, and dual side vents. Meticulously finished for modern executives and high-profile occasions.';
-        state.products = products.filter(p => !p.is_hidden && !p.hidden).map(p => {
+
+      const suitFallbackDesc = 'These particular suits are authentic Italian bespoke cuts, crafted with premium high-twist wool blend fabric for exceptional drape, comfort, and structure. Designed with classic notch lapels, flap pockets, soft interior lining, and dual side vents. Meticulously finished for modern executives and high-profile occasions.';
+      if (Array.isArray(products)) {
+        state.products = products.filter(p => !window.SupabaseService?.isProductHidden?.(p)).map(p => {
           const raw = p.description || p.desc || p.details || p.product_description || '';
           if (!raw || typeof raw !== 'string' || !raw.trim()) {
             return { ...p, description: suitFallbackDesc };
@@ -740,7 +740,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function applyFiltersAndSort() {
-    let prods = [...state.products].filter(p => !p.is_hidden && !p.hidden);
+    let prods = [...state.products].filter(p => !window.SupabaseService?.isProductHidden?.(p));
 
     // Filter by Category
     if (state.selectedCategory && state.selectedCategory !== 'all') {
@@ -982,11 +982,12 @@ document.addEventListener('DOMContentLoaded', async () => {
           limit: state.pageSize,
           offset: state.products.length,
           categoryId: state.selectedCategory,
-          sort: state.selectedSort
+          sort: state.selectedSort,
+          includeHidden: false
         });
 
         if (Array.isArray(nextProducts) && nextProducts.length > 0) {
-          const visibleBatch = nextProducts.filter(p => !p.is_hidden && !p.hidden);
+          const visibleBatch = nextProducts.filter(p => !window.SupabaseService?.isProductHidden?.(p));
           state.products = [...state.products, ...visibleBatch];
           state.hasMoreProducts = nextProducts.length === state.pageSize;
           applyFiltersAndSort();

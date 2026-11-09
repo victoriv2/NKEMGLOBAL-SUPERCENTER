@@ -137,6 +137,36 @@ window.SupabaseService = {
     ];
   },
 
+  isProductHidden(p) {
+    if (!p) return false;
+    if (p.is_hidden === true || p.is_hidden === 'true') return true;
+    if (p.hidden === true || p.hidden === 'true') return true;
+    try {
+      const raw = localStorage.getItem('nkem_hidden_product_ids');
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr) && arr.includes(p.id)) return true;
+      }
+    } catch (_) {}
+    return false;
+  },
+
+  setProductHidden(productId, isHidden) {
+    if (!productId) return;
+    try {
+      let arr = [];
+      const raw = localStorage.getItem('nkem_hidden_product_ids');
+      if (raw) arr = JSON.parse(raw) || [];
+      const set = new Set(arr);
+      if (isHidden) {
+        set.add(productId);
+      } else {
+        set.delete(productId);
+      }
+      localStorage.setItem('nkem_hidden_product_ids', JSON.stringify(Array.from(set)));
+    } catch (_) {}
+  },
+
   getLocalProducts(includeHidden = false) {
     try {
       const raw = localStorage.getItem('nkem_local_products');
@@ -146,6 +176,10 @@ window.SupabaseService = {
           const defaults = this._getDefaultProducts();
           let needsUpdate = false;
           parsed = parsed.map(p => {
+            if (this.isProductHidden(p)) {
+              p.is_hidden = true;
+              p.hidden = true;
+            }
             const currentDesc = p.description || p.desc || p.details || p.product_description || '';
             if (!currentDesc || typeof currentDesc !== 'string' || !currentDesc.trim()) {
               const def = defaults.find(d => d.id === p.id) || defaults[0];
@@ -157,12 +191,12 @@ window.SupabaseService = {
           if (needsUpdate) {
             try { localStorage.setItem('nkem_local_products', JSON.stringify(parsed)); } catch (_) {}
           }
-          return includeHidden ? parsed : parsed.filter(p => !p.is_hidden && !p.hidden);
+          return includeHidden ? parsed : parsed.filter(p => !this.isProductHidden(p));
         }
       }
     } catch (e) {}
     const defs = this._getDefaultProducts();
-    return includeHidden ? defs : defs.filter(p => !p.is_hidden && !p.hidden);
+    return includeHidden ? defs : defs.filter(p => !this.isProductHidden(p));
   },
 
   async getProducts(options = {}) {
@@ -173,6 +207,10 @@ window.SupabaseService = {
     const includeHidden = !!options.includeHidden;
 
     let queryParts = ['select=*'];
+
+    if (!includeHidden) {
+      queryParts.push('or=(is_hidden.is.null,is_hidden.eq.false)');
+    }
 
     if (categoryId && categoryId !== 'all') {
       queryParts.push(`category_id=eq.${encodeURIComponent(categoryId)}`);
@@ -204,13 +242,17 @@ window.SupabaseService = {
         const raw = localStorage.getItem('nkem_local_products');
         if (raw) local = JSON.parse(raw);
         cloud.forEach(p => {
+          if (this.isProductHidden(p)) {
+            p.is_hidden = true;
+            p.hidden = true;
+          }
           const idx = local.findIndex(x => x.id === p.id);
-          if (idx >= 0) local[idx] = p;
+          if (idx >= 0) local[idx] = { ...local[idx], ...p };
           else local.push(p);
         });
         localStorage.setItem('nkem_local_products', JSON.stringify(local));
       } catch (_) {}
-      return includeHidden ? cloud : cloud.filter(p => !p.is_hidden && !p.hidden);
+      return includeHidden ? cloud : cloud.filter(p => !this.isProductHidden(p));
     }
 
     // Fallback to local storage
@@ -226,6 +268,10 @@ window.SupabaseService = {
         const defaults = this._getDefaultProducts();
         let needsUpdate = false;
         local = local.map(p => {
+          if (this.isProductHidden(p)) {
+            p.is_hidden = true;
+            p.hidden = true;
+          }
           const currentDesc = p.description || p.desc || p.details || p.product_description || '';
           if (!currentDesc || typeof currentDesc !== 'string' || !currentDesc.trim()) {
             const def = defaults.find(d => d.id === p.id) || defaults[0];
@@ -241,7 +287,7 @@ window.SupabaseService = {
 
       let result = [...local];
       if (!includeHidden) {
-        result = result.filter(p => !p.is_hidden && !p.hidden);
+        result = result.filter(p => !this.isProductHidden(p));
       }
       if (categoryId && categoryId !== 'all') {
         result = result.filter(p => p.category_id === categoryId);
@@ -268,6 +314,9 @@ window.SupabaseService = {
   },
 
   async saveProduct(prod) {
+    const isHidden = Boolean(prod.is_hidden || prod.hidden);
+    this.setProductHidden(prod.id, isHidden);
+
     let localList = [];
     try {
       const stored = localStorage.getItem('nkem_local_products');
@@ -277,20 +326,46 @@ window.SupabaseService = {
       localList = this._getDefaultProducts();
     }
 
-    const idx = localList.findIndex(p => p.id === prod.id);
+    const cleanProd = {
+      ...prod,
+      is_hidden: isHidden,
+      hidden: isHidden,
+      updated_at: new Date().toISOString()
+    };
+
+    const idx = localList.findIndex(p => p.id === cleanProd.id);
     if (idx >= 0) {
-      localList[idx] = { ...localList[idx], ...prod, updated_at: new Date().toISOString() };
+      localList[idx] = { ...localList[idx], ...cleanProd };
     } else {
-      localList.push(prod);
+      localList.push(cleanProd);
     }
     localStorage.setItem('nkem_local_products', JSON.stringify(localList));
 
-    await this.request('nkem_products', {
-      method: 'POST',
-      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
-      body: JSON.stringify(prod)
-    });
-    return prod;
+    const dbPayload = {
+      id: cleanProd.id,
+      title: cleanProd.title || '',
+      description: cleanProd.description || cleanProd.desc || '',
+      price: Number(cleanProd.price) || 0,
+      category_id: cleanProd.category_id || null,
+      in_stock: cleanProd.in_stock !== false,
+      is_hidden: isHidden,
+      hidden: isHidden,
+      images: Array.isArray(cleanProd.images) ? cleanProd.images : [],
+      sort_order: typeof cleanProd.sort_order === 'number' ? cleanProd.sort_order : 0,
+      updated_at: cleanProd.updated_at
+    };
+    if (cleanProd.created_at) dbPayload.created_at = cleanProd.created_at;
+
+    try {
+      await this.request('nkem_products', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+        body: JSON.stringify(dbPayload)
+      });
+    } catch (e) {
+      console.warn('saveProduct cloud notice:', e);
+    }
+    return cleanProd;
   },
 
   async deleteProduct(id) {

@@ -580,9 +580,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (adminState.productFilter === 'stock:out_of_stock') {
       filtered = filtered.filter(p => !p.in_stock);
     } else if (adminState.productFilter === 'visibility:visible') {
-      filtered = filtered.filter(p => !p.is_hidden && !p.hidden);
+      filtered = filtered.filter(p => !(window.SupabaseService?.isProductHidden?.(p) ?? (p.is_hidden || p.hidden)));
     } else if (adminState.productFilter === 'visibility:hidden') {
-      filtered = filtered.filter(p => !!(p.is_hidden || p.hidden));
+      filtered = filtered.filter(p => !!(window.SupabaseService?.isProductHidden?.(p) ?? (p.is_hidden || p.hidden)));
     } else if (adminState.productFilter && adminState.productFilter.startsWith('cat:')) {
       const catId = adminState.productFilter.replace('cat:', '');
       filtered = filtered.filter(p => p.category_id === catId);
@@ -604,14 +604,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         return a.in_stock ? 1 : -1;
       }
       if (sortBy === 'hidden-first') {
-        const aHidden = !!(a.is_hidden || a.hidden);
-        const bHidden = !!(b.is_hidden || b.hidden);
+        const aHidden = window.SupabaseService?.isProductHidden?.(a) ?? Boolean(a.is_hidden || a.hidden);
+        const bHidden = window.SupabaseService?.isProductHidden?.(b) ?? Boolean(b.is_hidden || b.hidden);
         if (aHidden === bHidden) return 0;
         return aHidden ? -1 : 1;
       }
       if (sortBy === 'visible-first') {
-        const aHidden = !!(a.is_hidden || a.hidden);
-        const bHidden = !!(b.is_hidden || b.hidden);
+        const aHidden = window.SupabaseService?.isProductHidden?.(a) ?? Boolean(a.is_hidden || a.hidden);
+        const bHidden = window.SupabaseService?.isProductHidden?.(b) ?? Boolean(b.is_hidden || b.hidden);
         if (aHidden === bHidden) return 0;
         return aHidden ? 1 : -1;
       }
@@ -683,7 +683,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               <strong style="color: ${p.in_stock ? 'var(--status-success)' : 'var(--status-danger)'}">
                 ${p.in_stock ? 'In Stock' : 'Out of Stock'}
               </strong>
-              ${(p.is_hidden || p.hidden) 
+              ${(window.SupabaseService?.isProductHidden?.(p) ?? (p.is_hidden || p.hidden)) 
                 ? ' &bull; <strong style="color: #dc2626; background: rgba(220,38,38,0.1); border: 1px solid rgba(220,38,38,0.25); padding: 1px 6px; border-radius: 4px; font-size: 11px;">Hidden from Store</strong>' 
                 : ' &bull; <span style="color: #087f3b; font-size: 11px; font-weight: 600;">Visible</span>'}
             </span>
@@ -693,10 +693,10 @@ document.addEventListener('DOMContentLoaded', async () => {
               <span>${p.in_stock ? 'Mark Out of Stock' : 'Mark In Stock'}</span>
             </button>
             <button class="btn-icon-square" type="button" data-action="toggle-visibility" data-id="${p.id}" 
-              title="${(p.is_hidden || p.hidden) ? 'Hidden from Store (Click to Show)' : 'Visible in Store (Click to Hide)'}" 
-              aria-label="${(p.is_hidden || p.hidden) ? 'Show product in store' : 'Hide product from store'}" 
-              style="${(p.is_hidden || p.hidden) ? 'border-color: rgba(220,38,38,0.4); color: #dc2626; background: rgba(220,38,38,0.08);' : 'color: #087f3b; background: rgba(8,127,59,0.06); border-color: rgba(8,127,59,0.25);'}">
-              ${window.renderIcon((p.is_hidden || p.hidden) ? 'eyeOff' : 'eye')}
+              title="${(window.SupabaseService?.isProductHidden?.(p) ?? (p.is_hidden || p.hidden)) ? 'Hidden from Store (Click to Show)' : 'Visible in Store (Click to Hide)'}" 
+              aria-label="${(window.SupabaseService?.isProductHidden?.(p) ?? (p.is_hidden || p.hidden)) ? 'Show product in store' : 'Hide product from store'}" 
+              style="${(window.SupabaseService?.isProductHidden?.(p) ?? (p.is_hidden || p.hidden)) ? 'border-color: rgba(220,38,38,0.4); color: #dc2626; background: rgba(220,38,38,0.08);' : 'color: #087f3b; background: rgba(8,127,59,0.06); border-color: rgba(8,127,59,0.25);'}">
+              ${window.renderIcon((window.SupabaseService?.isProductHidden?.(p) ?? (p.is_hidden || p.hidden)) ? 'eyeOff' : 'eye')}
             </button>
             <button class="btn-icon-square" type="button" data-action="prod-edit" data-id="${p.id}" title="Edit Product">
               ${window.renderIcon('edit')}
@@ -733,13 +733,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         const p = adminState.products.find(x => x.id === id);
         if (!p) return;
 
-        const isCurrentlyHidden = !!(p.is_hidden || p.hidden);
-        p.is_hidden = !isCurrentlyHidden;
-        p.hidden = !isCurrentlyHidden;
+        const isCurrentlyHidden = window.SupabaseService ? window.SupabaseService.isProductHidden(p) : Boolean(p.is_hidden || p.hidden);
+        const newHidden = !isCurrentlyHidden;
+        p.is_hidden = newHidden;
+        p.hidden = newHidden;
+        if (window.SupabaseService && window.SupabaseService.setProductHidden) {
+          window.SupabaseService.setProductHidden(p.id, newHidden);
+        }
         await window.SupabaseService.saveProduct(p);
         renderProductsManager();
         window.CustomModal.toast({ 
-          message: `"${p.title}" is now ${p.is_hidden ? 'hidden from' : 'visible in'} the store.`, 
+          message: `"${p.title}" is now ${newHidden ? 'hidden from' : 'visible in'} the store.`, 
           type: 'info' 
         });
       });
@@ -985,6 +989,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (idx >= 0) adminState.products[idx] = updated;
       }
 
+      if (window.SupabaseService?.setProductHidden) {
+        window.SupabaseService.setProductHidden(updated.id, isHidden);
+      }
       await window.SupabaseService.saveProduct(updated);
       closeDialog();
       renderProductsManager();
