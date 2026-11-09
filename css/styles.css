@@ -834,12 +834,22 @@ body {
 .c-picker-options-list {
   padding: var(--space-xs);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   max-height: 50vh;
   display: flex;
   flex-direction: column;
   gap: 2px;
   scrollbar-width: thin;
   scrollbar-color: var(--border-strong) var(--bg-surface);
+}
+
+.mobile-sheet .c-picker-options-list {
+  flex: 1 1 auto;
+  max-height: calc(82vh - 120px);
+}
+
+.mobile-sheet .c-picker-sheet-box {
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
 }
 
 .c-picker-options-list::-webkit-scrollbar {
@@ -2747,6 +2757,30 @@ body.admin-body .c-modal-footer {
   flex-shrink: 0;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+/* On 507px and below: move actions (out of stock, eye, edit, delete) below title & text description */
+@media (max-width: 507px) {
+  .admin-item-row {
+    flex-wrap: wrap !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    padding: 10px !important;
+  }
+
+  .admin-item-details {
+    flex: 1 1 calc(100% - 72px) !important;
+    min-width: 0 !important;
+  }
+
+  .admin-item-actions {
+    width: 100% !important;
+    margin-top: 6px !important;
+    padding-top: 8px !important;
+    border-top: 1px solid var(--border-color) !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+  }
 }
 
 .btn-icon-square {

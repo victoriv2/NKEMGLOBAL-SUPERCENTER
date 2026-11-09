@@ -20,6 +20,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     cart: []
   };
 
+  // Helper to get active authenticated user across all storage/service keys
+  function getActiveUser() {
+    if (window.SupabaseService) {
+      if (typeof window.SupabaseService.getCurrentUser === 'function') {
+        const u = window.SupabaseService.getCurrentUser();
+        if (u && (u.id || u.whatsapp_number)) return u;
+      }
+      if (typeof window.SupabaseService.getActiveUser === 'function') {
+        const u = window.SupabaseService.getActiveUser();
+        if (u && (u.id || u.whatsapp_number)) return u;
+      }
+    }
+    try {
+      const raw = localStorage.getItem('nkem_current_user');
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // Reactive UI update on authentication state change
+  window.addEventListener('nkem_auth_changed', () => {
+    try {
+      renderAccountView();
+      renderCartView();
+      renderRequestsView();
+      updateCartBadges();
+      checkUnreadMessages();
+    } catch (_) {}
+  });
+
   // DOM Elements
   const productGrid = document.getElementById('productGrid');
   const seeMoreContainer = document.getElementById('seeMoreContainer');
@@ -329,9 +360,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const body = document.getElementById('customRequestModalBody');
     if (!body) return;
 
-    const activeUser = (window.SupabaseService.getCurrentUser && window.SupabaseService.getCurrentUser()) ||
-                       (window.SupabaseService.getActiveUser && window.SupabaseService.getActiveUser()) || {};
-    const isLoggedIn = !!(activeUser && activeUser.id);
+    const activeUser = getActiveUser() || {};
+    const isLoggedIn = !!(activeUser && (activeUser.id || activeUser.whatsapp_number));
 
     body.innerHTML = `
       <div style="background: #e8f7ee; padding: 14px 16px; border-radius: 10px; border: 1.5px solid #d1ead9; margin-bottom: 16px;">
@@ -1229,9 +1259,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (clearBtn) clearBtn.style.display = 'block';
 
     const subtotal = getCartTotal();
-    const activeUser = (window.SupabaseService.getCurrentUser && window.SupabaseService.getCurrentUser()) || 
-                       (window.SupabaseService.getActiveUser && window.SupabaseService.getActiveUser()) || {};
-    const isLoggedIn = !!(activeUser && activeUser.id);
+    const activeUser = getActiveUser() || {};
+    const isLoggedIn = !!(activeUser && (activeUser.id || activeUser.whatsapp_number));
 
     container.innerHTML = `
       <div class="cart-items-list" id="cartItemsList">
@@ -1417,91 +1446,100 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
 
         const currentCart = getCart();
-        const itemsSummary = currentCart.map(i => `${i.title} (x${i.quantity})`).join(', ');
-        const deliveryFee = activeUser.state ? 3500 : 0;
-        const totalAmount = subtotal + deliveryFee;
-        const orderId = `ord-${Date.now()}`;
-        const coverImg = currentCart[0]?.image || 'assets/images/logo.png';
+        if (currentCart.length === 0) return;
 
-        const firstName = activeUser.first_name || activeUser.name?.split(' ')[0] || 'Valued';
-        const lastName = activeUser.last_name || activeUser.name?.split(' ').slice(1).join(' ') || 'Customer';
+        const firstName = activeUser.first_name || (activeUser.name ? activeUser.name.split(' ')[0] : 'Valued');
+        const lastName = activeUser.last_name || (activeUser.name ? activeUser.name.split(' ').slice(1).join(' ') : 'Customer');
         const whatsapp = (activeUser.whatsapp_number || activeUser.phone || '').trim();
         const email = (activeUser.email || '').trim() || null;
         const stateName = (activeUser.state || '').trim();
         const lgaName = (activeUser.lga || '').trim();
         const address = (activeUser.address || '').trim();
+        const baseTimestamp = Date.now();
 
-        const orderData = {
-          id: orderId,
-          retrieval_code: `NKG-${Date.now()}`,
-          user_id: activeUser.id,
-          product_id: currentCart[0]?.id || 'cart-order',
-          product_title: `Cart Order (${currentCart.length} items): ${itemsSummary}`,
-          product_price: totalAmount,
-          product_image: coverImg,
-          first_name: firstName,
-          last_name: lastName,
-          whatsapp_number: whatsapp,
-          email: email,
-          state: stateName,
-          lga: lgaName,
-          address: address,
-          status: 'pending',
-          created_at: new Date().toISOString()
-        };
+        const createdOrders = [];
 
-        try {
-          await window.SupabaseService.createOrder(orderData);
+        for (let idx = 0; idx < currentCart.length; idx++) {
+          const item = currentCart[idx];
+          const qty = Number(item.quantity) || 1;
+          const unitPrice = Number(item.price) || 0;
+          const itemTotal = unitPrice * qty;
+          const orderId = `ord-${baseTimestamp}-${idx + 1}`;
+          const retCode = `NKG-${baseTimestamp.toString().slice(-6)}${idx + 1}`;
+          const itemImg = item.image || (item.images && item.images[0]) || 'assets/images/logo.png';
+          const titleWithQty = qty > 1 ? `${item.title} (Qty: ${qty})` : item.title;
 
-          // Send rich Order Card into chat
-          if (activeUser.id) {
-            const orderChatMessage = {
-              id: `msg-ord-${orderData.id}`,
-              order_code: orderData.id,
-              user_id: activeUser.id,
-              user_name: `${firstName} ${lastName}`,
-              user_whatsapp: whatsapp,
-              sender: 'user',
-              message_type: 'order_card',
-              order_data: {
-                ...orderData,
-                id: orderData.id,
-                order_id: orderData.id,
-                first_name: firstName,
-                last_name: lastName,
-                whatsapp_number: whatsapp,
-                email: email,
-                state: stateName,
-                lga: lgaName,
-                address: address,
-                delivery_address: `${address}, ${lgaName}, ${stateName}`,
-                status: 'pending',
-                created_at: orderData.created_at
-              },
-              message: `Order Placed: ${orderData.product_title} (${window.formatNaira(totalAmount)}) - Status: Pending`,
-              image_url: null,
-              is_read_by_admin: false,
-              is_read_by_user: true,
-              deleted_for_everyone: false,
-              deleted_for_user: false,
-              deleted_for_admin: false,
-              created_at: new Date().toISOString()
-            };
-            await window.SupabaseService.sendUserChatMessage(orderChatMessage);
+          const orderData = {
+            id: orderId,
+            retrieval_code: retCode,
+            user_id: activeUser.id,
+            product_id: item.id || `cart-${idx + 1}`,
+            product_title: titleWithQty,
+            product_price: itemTotal,
+            product_image: itemImg,
+            first_name: firstName,
+            last_name: lastName,
+            whatsapp_number: whatsapp,
+            email: email,
+            state: stateName,
+            lga: lgaName,
+            address: address,
+            status: 'pending',
+            created_at: new Date(baseTimestamp + idx * 1000).toISOString()
+          };
+
+          try {
+            await window.SupabaseService.createOrder(orderData);
+            createdOrders.push(orderData);
+
+            // Send individual rich Order Card into chat
+            if (activeUser.id) {
+              const orderChatMessage = {
+                id: `msg-ord-${orderData.id}`,
+                order_code: orderData.id,
+                user_id: activeUser.id,
+                user_name: `${firstName} ${lastName}`.trim(),
+                user_whatsapp: whatsapp,
+                sender: 'user',
+                message_type: 'order_card',
+                order_data: {
+                  ...orderData,
+                  id: orderData.id,
+                  order_id: orderData.id,
+                  first_name: firstName,
+                  last_name: lastName,
+                  whatsapp_number: whatsapp,
+                  email: email,
+                  state: stateName,
+                  lga: lgaName,
+                  address: address,
+                  delivery_address: `${address}, ${lgaName}, ${stateName}`,
+                  status: 'pending',
+                  created_at: orderData.created_at
+                },
+                message: `Order Placed: ${orderData.product_title} (${window.formatNaira(itemTotal)}) - Status: Pending`,
+                image_url: null,
+                is_read_by_admin: false,
+                is_read_by_user: true,
+                deleted_for_everyone: false,
+                deleted_for_user: false,
+                deleted_for_admin: false,
+                created_at: new Date(baseTimestamp + idx * 1000).toISOString()
+              };
+              await window.SupabaseService.sendUserChatMessage(orderChatMessage);
+            }
+          } catch (itemErr) {
+            console.error('Error placing individual item order:', itemErr);
+            createdOrders.push(orderData);
           }
-
-          // Clear cart
-          saveCart([]);
-          isSubmittingCartOrder = false;
-
-          // Open Order Success Modal & Receipt Download
-          openOrderSuccessModal(orderData);
-        } catch (err) {
-          console.error('Cart order placement notice:', err);
-          saveCart([]);
-          isSubmittingCartOrder = false;
-          openOrderSuccessModal(orderData);
         }
+
+        // Clear cart
+        saveCart([]);
+        isSubmittingCartOrder = false;
+
+        // Open Order Success Modal & Receipt Download
+        openOrderSuccessModal(createdOrders);
       });
     }
   }
@@ -1520,18 +1558,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>
     `;
 
-    const activeUser = window.SupabaseService.getActiveUser ? window.SupabaseService.getActiveUser() : {};
+    const activeUser = getActiveUser() || {};
     let orders = [];
+
+    const userPhone = activeUser.whatsapp_number || activeUser.phone;
+    const userEmail = activeUser.email;
+    const userId = activeUser.id;
 
     try {
       if (window.SupabaseService.getUserOrdersSync) {
-        orders = window.SupabaseService.getUserOrdersSync(activeUser.id, activeUser.phone, activeUser.email);
+        orders = window.SupabaseService.getUserOrdersSync(userId, userPhone, userEmail);
       }
     } catch (e) {}
 
     try {
       if (window.SupabaseService.getUserOrders) {
-        const fresh = await window.SupabaseService.getUserOrders(activeUser.id, activeUser.phone, activeUser.email, 2000);
+        const fresh = await window.SupabaseService.getUserOrders(userId, userPhone, userEmail, 2000);
         if (fresh && fresh.length > 0) orders = fresh;
       }
     } catch (e) {}
@@ -1636,41 +1678,77 @@ document.addEventListener('DOMContentLoaded', async () => {
     const container = document.getElementById('accountContentContainer');
     if (!container) return;
 
-    const activeUser = window.SupabaseService.getActiveUser ? window.SupabaseService.getActiveUser() : null;
-    const isLoggedIn = !!(activeUser && activeUser.id);
+    const activeUser = getActiveUser();
+    const isLoggedIn = !!(activeUser && (activeUser.id || activeUser.whatsapp_number));
+    const fullName = isLoggedIn ? [activeUser.first_name, activeUser.last_name].filter(Boolean).join(' ') || activeUser.name || 'Valued Customer' : 'Welcome to Nkem Global';
+    const avatarInitial = isLoggedIn ? (activeUser.first_name ? activeUser.first_name.charAt(0).toUpperCase() : (activeUser.name ? activeUser.name.charAt(0).toUpperCase() : 'U')) : '';
+    const phone = isLoggedIn ? (activeUser.whatsapp_number || activeUser.phone || '') : '';
+    const email = isLoggedIn ? (activeUser.email || '') : '';
+    const state = isLoggedIn ? (activeUser.state || '') : '';
+    const lga = isLoggedIn ? (activeUser.lga || '') : '';
+    const address = isLoggedIn ? (activeUser.address || '') : '';
     const orders = window.SupabaseService.getLocalOrders ? window.SupabaseService.getLocalOrders() : [];
 
     container.innerHTML = `
       <div class="account-card-box">
         <div class="account-profile-header">
-          <div class="account-avatar-circle">
-            ${isLoggedIn ? (activeUser.name ? activeUser.name.charAt(0).toUpperCase() : 'U') : `${window.renderIcon('account')}`}
+          <div class="account-avatar-circle" style="background: #087f3b; color: #ffffff; font-weight: 800; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%;">
+            ${isLoggedIn ? avatarInitial : window.renderIcon('account')}
           </div>
-          <div>
-            <h3 class="account-user-name">${isLoggedIn ? window.CustomModal.escape(activeUser.name || `${activeUser.first_name || ''} ${activeUser.last_name || ''}`) : 'Welcome to Nkem Global'}</h3>
-            <div class="account-user-phone">${isLoggedIn ? window.CustomModal.escape(activeUser.phone || activeUser.email || 'Verified Customer') : 'Sign in to track orders, manage your profile and chat.'}</div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <h3 class="account-user-name" style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #073b1f;">
+                ${window.CustomModal.escape(fullName)}
+              </h3>
+              ${isLoggedIn ? `<span style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 700; color: #087f3b; background: #e8f7ee; padding: 2px 8px; border-radius: 999px; border: 1px solid #c2e8d0;">Verified Customer</span>` : ''}
+            </div>
+            <div class="account-user-phone" style="margin-top: 4px;">
+              ${isLoggedIn ? `
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: #166534; font-weight: 600;">
+                  <span style="color: #25D366; display: inline-flex; align-items: center; font-size: 14px; line-height: 1;">${window.renderIcon('whatsapp')}</span>
+                  <span>${window.CustomModal.escape(phone)}</span>
+                  ${email ? `<span style="color: #5a6e62; font-weight: normal;">&bull; ${window.CustomModal.escape(email)}</span>` : ''}
+                </div>
+              ` : 'Sign in to track orders, manage your profile and chat.'}
+            </div>
           </div>
         </div>
 
         ${isLoggedIn ? `
-          <div style="background: #f7fbf8; border: 1px solid #d1ead9; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; display: flex; justify-content: space-around; text-align: center;">
-            <div>
+          <div style="background: #f7fbf8; border: 1px solid #d1ead9; border-radius: 10px; padding: 12px 14px; margin: 12px 0; display: flex; justify-content: space-around; text-align: center;">
+            <div style="cursor: pointer;" id="accountOrdersStatBox">
               <div style="font-size: 1.25rem; font-weight: 900; color: #087f3b;">${orders.length}</div>
               <div style="font-size: 0.74rem; color: #5a6e62; font-weight: 700;">Orders / Requests</div>
             </div>
             <div style="border-left: 1px solid #d1ead9;"></div>
             <div>
-              <div style="font-size: 1.25rem; font-weight: 900; color: #087f3b;">${activeUser.state || 'NG'}</div>
+              <div style="font-size: 1.25rem; font-weight: 900; color: #087f3b;">${state || 'NG'}</div>
               <div style="font-size: 0.74rem; color: #5a6e62; font-weight: 700;">Delivery State</div>
             </div>
           </div>
 
+          <div style="background: #f7fbf8; border: 1px solid #d1ead9; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; font-size: 0.84rem; color: #1f2937;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+              <strong style="color: #073b1f;">Default Delivery Address:</strong>
+              <button type="button" id="accountQuickEditAddrBtn" style="background: none; border: none; color: #087f3b; font-size: 0.78rem; font-weight: 700; cursor: pointer; text-decoration: underline; padding: 0;">Edit</button>
+            </div>
+            <div>${window.CustomModal.escape(address || 'No street address set yet')}, ${window.CustomModal.escape(lga || '')}, <strong>${window.CustomModal.escape(state || 'NG')} State</strong></div>
+          </div>
+
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button type="button" class="btn btn-secondary btn-sm" id="accountEditProfileBtn" style="flex: 1; justify-content: center; padding: 9px 12px;">
+            <button type="button" class="btn btn-secondary btn-sm" id="accountEditProfileBtn" style="flex: 1 1 calc(50% - 4px); justify-content: center; padding: 9px 10px; font-size: 0.8rem;">
               ${window.renderIcon('edit')}
-              <span>Change Password / Profile</span>
+              <span>Edit Profile &amp; Address</span>
             </button>
-            <button type="button" class="btn btn-danger btn-sm" id="accountLogoutBtn" style="padding: 9px 14px; justify-content: center;">
+            <button type="button" class="btn btn-secondary btn-sm" id="accountChangePassBtn" style="flex: 1 1 calc(50% - 4px); justify-content: center; padding: 9px 10px; font-size: 0.8rem;">
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <span>Change Password</span>
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" id="accountTrackOrdersBtn" style="flex: 1 1 100%; justify-content: center; padding: 10px; font-size: 0.82rem; font-weight: 700; background-color: #087f3b; border-color: #087f3b;">
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <span>View My Orders &amp; Tracking (${orders.length})</span>
+            </button>
+            <button type="button" class="btn btn-danger btn-sm" id="accountLogoutBtn" style="flex: 1 1 100%; justify-content: center; padding: 9px 10px; font-size: 0.8rem;">
               <span>Log Out</span>
             </button>
           </div>
@@ -1748,8 +1826,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     container.querySelector('#accountEditProfileBtn')?.addEventListener('click', () => {
       if (window.AuthModal) {
-        window.AuthModal.showProfile(() => renderAccountView());
+        window.AuthModal.showProfile('profile', () => renderAccountView());
       }
+    });
+    container.querySelector('#accountQuickEditAddrBtn')?.addEventListener('click', () => {
+      if (window.AuthModal) {
+        window.AuthModal.showProfile('profile', () => renderAccountView());
+      }
+    });
+    container.querySelector('#accountChangePassBtn')?.addEventListener('click', () => {
+      if (window.AuthModal) {
+        window.AuthModal.showProfile('security', () => renderAccountView());
+      }
+    });
+    container.querySelector('#accountTrackOrdersBtn')?.addEventListener('click', () => {
+      window.switchAppTab('requests');
+    });
+    container.querySelector('#accountOrdersStatBox')?.addEventListener('click', () => {
+      window.switchAppTab('requests');
     });
     container.querySelector('#accountLogoutBtn')?.addEventListener('click', () => {
       window.CustomModal.confirm({
@@ -1768,13 +1862,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   /* ==========================================================================
      10. ORDER CONFIRMATION MODAL & RECEIPT DOWNLOAD
      ========================================================================== */
-  function openOrderSuccessModal(order) {
+  function openOrderSuccessModal(ordersInput) {
     if (!orderSuccessModal) return;
+    const orders = Array.isArray(ordersInput) ? ordersInput : [ordersInput];
+    if (orders.length === 0) return;
+    const firstOrder = orders[0];
+    const isMulti = orders.length > 1;
+    const totalOrderAmount = orders.reduce((sum, o) => sum + (Number(o.product_price) || 0), 0);
+
     orderSuccessModal.innerHTML = `
-      <div class="c-modal-box" style="max-width: 500px;">
+      <div class="c-modal-box" style="max-width: 520px;">
         <div class="c-modal-header">
           <div class="c-modal-title-wrap">
-            <h3 class="c-modal-title" style="color: #087f3b;">Order Request Received!</h3>
+            <h3 class="c-modal-title" style="color: #087f3b;">${isMulti ? `${orders.length} Order Requests Received!` : 'Order Request Received!'}</h3>
           </div>
           <button class="c-modal-close-btn" type="button" id="closeSuccessModalBtn">
             ${window.renderIcon('close')}
@@ -1783,33 +1883,44 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         <div class="c-modal-body receipt-modal-box">
           <p class="c-modal-text">
-            Thank you, <strong>${window.CustomModal.escape(order.first_name)} ${window.CustomModal.escape(order.last_name)}</strong>! Your order request for <strong>${window.CustomModal.escape(order.product_title)}</strong> has been recorded.
+            Thank you, <strong>${window.CustomModal.escape(firstOrder.first_name)} ${window.CustomModal.escape(firstOrder.last_name)}</strong>! Your ${isMulti ? `<strong>${orders.length} orders</strong> have` : 'order has'} been recorded and sent to our admin team.
           </p>
 
-          <div style="background: #f7fbf8; border: 1.5px solid #d1ead9; border-radius: 10px; padding: 14px; margin: 12px 0; font-size: 0.85rem; line-height: 1.6; text-align: left;">
-            <div><strong>Item:</strong> ${window.CustomModal.escape(order.product_title)}</div>
-            <div><strong>Total:</strong> <span style="color: #087f3b; font-weight: 800;">${window.formatNaira(order.product_price)}</span></div>
-            <div><strong>Destination:</strong> ${window.CustomModal.escape(order.lga || '')}, ${window.CustomModal.escape(order.state || '')}</div>
-            <div style="display: flex; align-items: center; gap: 5px;"><span style="color: #25D366; display: inline-flex; align-items: center; font-size: 14px; line-height: 1;">${window.renderIcon('whatsapp')}</span><strong>WhatsApp:</strong> ${window.CustomModal.escape(order.whatsapp_number)}</div>
-            <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #d1ead9;">
-              <strong>Retrieval Code:</strong> <span style="font-family: monospace; font-weight: 700; background: #e8f7ee; padding: 2px 6px; border-radius: 4px; color: #064e26;">${order.retrieval_code || order.id}</span>
-            </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; margin: 12px 0;">
+            ${orders.map((ord, i) => `
+              <div style="background: #f7fbf8; border: 1.5px solid #d1ead9; border-radius: 10px; padding: 10px 12px; font-size: 0.82rem; line-height: 1.5; text-align: left; display: flex; gap: 10px; align-items: center;">
+                <img src="${ord.product_image || 'assets/images/logo.png'}" alt="Item" style="width: 44px; height: 44px; border-radius: 6px; object-fit: cover; border: 1px solid #d1ead9; flex-shrink: 0;" />
+                <div style="flex: 1; min-width: 0;">
+                  <strong style="color: #073b1f; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${window.CustomModal.escape(ord.product_title)}</strong>
+                  <div style="color: #087f3b; font-weight: 800;">${window.formatNaira(ord.product_price)}</div>
+                  <div style="font-size: 0.74rem; color: #5a6e62;">Code: <span style="font-family: monospace; font-weight: 700; background: #e8f7ee; padding: 1px 4px; border-radius: 3px; color: #064e26;">${ord.retrieval_code || ord.id}</span></div>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm req-mini-download-btn" data-index="${i}" title="Download Receipt" style="padding: 6px 8px; font-size: 0.74rem; flex-shrink: 0;">
+                  ${window.renderIcon('download')}
+                </button>
+              </div>
+            `).join('')}
+          </div>
+
+          <div style="background: #e8f7ee; border: 1px solid #c2e8d0; border-radius: 8px; padding: 8px 12px; font-size: 0.82rem; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 700; color: #073b1f;">Total Order Value:</span>
+            <span style="color: #087f3b; font-weight: 900; font-size: 1.05rem;">${window.formatNaira(totalOrderAmount)}</span>
           </div>
 
           <div class="code-actions-row">
             <button class="btn btn-primary" type="button" id="downloadReceiptImgBtn" style="flex: 1; justify-content: center; padding: 12px; font-weight: 800; background-color: #087f3b; border-color: #087f3b;">
               ${window.renderIcon('download')}
-              <span>Download Official Receipt</span>
+              <span>Download Official Receipt${isMulti ? 's' : ''}</span>
             </button>
           </div>
 
           <p style="font-size: 0.78rem; color: #5a6e62; margin-top: 8px;">
-            The downloaded receipt carries Nkem Global brand logo, shop contact info, and complete order specifications.
+            Official receipts carry Nkem Global brand details, shop contact info, and retrieval codes for instant tracking.
           </p>
 
           <div style="padding-top: 12px; border-top: 1px solid #d1ead9; margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
             <button class="btn btn-primary" style="width: 100%; justify-content: center; background-color: #065f2c; border-color: #065f2c;" type="button" id="trackInOrdersBtn">
-              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
               <span>Track in Requests Tab</span>
             </button>
             <a href="chat.html" class="btn btn-secondary" style="width: 100%; justify-content: center; text-decoration: none;">
@@ -1824,11 +1935,40 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>
     `;
 
-    orderSuccessModal.querySelector('#downloadReceiptImgBtn')?.addEventListener('click', async () => {
-      window.CustomModal.toast({ message: 'Generating receipt with Nkem Global contact info...', type: 'info' });
-      await window.ReceiptGenerator.downloadReceiptImage(order);
-      window.CustomModal.toast({ message: 'Receipt image downloaded!', type: 'success' });
+    // Download handlers
+    orderSuccessModal.querySelectorAll('.req-mini-download-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const idx = Number(btn.getAttribute('data-index'));
+        if (orders[idx]) {
+          window.CustomModal.toast({ message: 'Generating receipt...', type: 'info' });
+          await window.ReceiptGenerator.downloadReceiptImage(orders[idx]);
+          window.CustomModal.toast({ message: 'Receipt downloaded!', type: 'success' });
+        }
+      });
     });
+
+    orderSuccessModal.querySelector('#downloadReceiptImgBtn')?.addEventListener('click', async () => {
+      window.CustomModal.toast({ message: `Generating receipt${isMulti ? 's' : ''}...`, type: 'info' });
+      for (const ord of orders) {
+        await window.ReceiptGenerator.downloadReceiptImage(ord);
+      }
+      window.CustomModal.toast({ message: 'Receipt download ready!', type: 'success' });
+    });
+
+    const closeSuccess = () => orderSuccessModal.classList.remove('active');
+    orderSuccessModal.querySelector('#closeSuccessModalBtn')?.addEventListener('click', closeSuccess);
+    orderSuccessModal.querySelector('#closeSuccessBtn')?.addEventListener('click', closeSuccess);
+
+    const trackBtn = orderSuccessModal.querySelector('#trackInOrdersBtn');
+    if (trackBtn) {
+      trackBtn.addEventListener('click', () => {
+        closeSuccess();
+        window.switchAppTab('requests');
+      });
+    }
+
+    orderSuccessModal.classList.add('active');
+  }
 
     const closeSuccess = () => orderSuccessModal.classList.remove('active');
     orderSuccessModal.querySelector('#closeSuccessModalBtn')?.addEventListener('click', closeSuccess);
@@ -1850,12 +1990,13 @@ document.addEventListener('DOMContentLoaded', async () => {
      ========================================================================== */
   async function checkUnreadMessages() {
     try {
-      const activeUser = window.SupabaseService.getActiveUser ? window.SupabaseService.getActiveUser() : null;
+      const activeUser = getActiveUser();
       if (!activeUser || !activeUser.id) return;
       const count = await window.SupabaseService.getUnreadCountForUser(activeUser.id);
       const deskAccountBtn = document.getElementById('deskAccountNavBtn');
-      if (deskAccountBtn && activeUser.name) {
-        deskAccountBtn.textContent = activeUser.name.split(' ')[0] || 'Account';
+      if (deskAccountBtn) {
+        const dName = activeUser.first_name || (activeUser.name ? activeUser.name.split(' ')[0] : 'Account');
+        deskAccountBtn.textContent = dName;
       }
     } catch (e) {}
   }

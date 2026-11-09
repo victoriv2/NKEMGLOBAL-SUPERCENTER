@@ -198,6 +198,27 @@ CustomPicker.openDialog = function({ title, options, currentValue, searchable, o
   const optionsContainer = overlay.querySelector('.c-picker-options-list');
   const searchInput = overlay.querySelector('.c-picker-search-input');
   const closeBtn = overlay.querySelector('.c-picker-sheet-close-btn');
+  const sheetBox = overlay.querySelector('.c-picker-sheet-box');
+
+  // Dynamic visual viewport adjustment for mobile virtual keyboard
+  const adjustForKeyboard = () => {
+    if (!isMobile) return;
+    if (window.visualViewport) {
+      const vv = window.visualViewport;
+      overlay.style.top = `${vv.offsetTop}px`;
+      overlay.style.height = `${vv.height}px`;
+      overlay.style.bottom = 'auto';
+      if (sheetBox) {
+        const maxH = Math.max(180, Math.floor(vv.height * 0.92));
+        sheetBox.style.maxHeight = `${maxH}px`;
+      }
+    }
+  };
+
+  if (isMobile && window.visualViewport) {
+    window.visualViewport.addEventListener('resize', adjustForKeyboard);
+    window.visualViewport.addEventListener('scroll', adjustForKeyboard);
+  }
 
   let filteredOptions = [...options];
 
@@ -241,9 +262,19 @@ CustomPicker.openDialog = function({ title, options, currentValue, searchable, o
       );
       renderList();
     });
+
+    searchInput.addEventListener('focus', () => {
+      adjustForKeyboard();
+      setTimeout(adjustForKeyboard, 60);
+      setTimeout(adjustForKeyboard, 250);
+    });
   }
 
   const closeDialog = () => {
+    if (isMobile && window.visualViewport) {
+      window.visualViewport.removeEventListener('resize', adjustForKeyboard);
+      window.visualViewport.removeEventListener('scroll', adjustForKeyboard);
+    }
     overlay.classList.remove('active');
     setTimeout(() => overlay.remove(), 180);
   };

@@ -1072,6 +1072,10 @@ window.SupabaseService = {
     return u ? JSON.parse(u) : null;
   },
 
+  getActiveUser() {
+    return this.getCurrentUser();
+  },
+
   setCurrentUser(user) {
     if (!user) {
       localStorage.removeItem('nkem_current_user');
@@ -1080,6 +1084,10 @@ window.SupabaseService = {
     }
     // Dispatch custom event for reactive UI updates across pages
     window.dispatchEvent(new CustomEvent('nkem_auth_changed', { detail: { user } }));
+  },
+
+  setActiveUser(user) {
+    return this.setCurrentUser(user);
   },
 
   logoutUser() {
