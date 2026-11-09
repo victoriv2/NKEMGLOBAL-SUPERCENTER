@@ -626,62 +626,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Dynamic mobile keyboard avoidance via Visual Viewport API
+  // Mobile keyboard handling: keep messages pinned to bottom on resize/focus
   function setupMobileKeyboardAvoidance() {
-    if (!window.visualViewport) return;
-
-    const chatSection = document.querySelector('.chat-page-section');
-    const headerBar = document.querySelector('.header-bar');
-
-    const handleViewport = () => {
-      const vv = window.visualViewport;
-      const headerH = (headerBar && headerBar.offsetHeight) ? headerBar.offsetHeight : 56;
-      const availH = Math.floor(vv.height);
-      const isKeyboardOpen = (window.innerHeight - availH) > 100;
-
-      if (isKeyboardOpen) {
-        const netHeight = Math.max(160, availH - headerH);
-        if (chatSection) {
-          chatSection.style.height = `${netHeight}px`;
-          chatSection.style.maxHeight = `${netHeight}px`;
-          chatSection.style.flex = 'none';
-        }
-        if (chatActiveCard) {
-          chatActiveCard.style.height = `${netHeight}px`;
-          chatActiveCard.style.maxHeight = `${netHeight}px`;
-        }
-      } else {
-        if (chatSection) {
-          chatSection.style.height = '';
-          chatSection.style.maxHeight = '';
-          chatSection.style.flex = '1 1 0%';
-        }
-        if (chatActiveCard) {
-          chatActiveCard.style.height = '';
-          chatActiveCard.style.maxHeight = '';
-        }
-      }
-
+    const scrollToBottom = () => {
       if (chatMessagesList) {
         chatMessagesList.scrollTop = chatMessagesList.scrollHeight;
       }
     };
 
-    window.visualViewport.addEventListener('resize', handleViewport);
-    window.visualViewport.addEventListener('scroll', handleViewport);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', scrollToBottom);
+      window.visualViewport.addEventListener('scroll', scrollToBottom);
+    }
 
     if (chatMsgInput) {
       chatMsgInput.addEventListener('focus', () => {
-        setTimeout(handleViewport, 50);
-        setTimeout(handleViewport, 150);
-        setTimeout(handleViewport, 300);
-        setTimeout(() => {
-          chatMsgInput.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        }, 180);
-      });
-
-      chatMsgInput.addEventListener('blur', () => {
-        setTimeout(handleViewport, 80);
+        setTimeout(scrollToBottom, 60);
+        setTimeout(scrollToBottom, 150);
+        setTimeout(scrollToBottom, 300);
       });
     }
   }

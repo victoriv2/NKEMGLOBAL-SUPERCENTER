@@ -1371,10 +1371,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       <div class="cart-checkout-card">
         ${!isLoggedIn ? `
           <!-- Price Summary Breakdown (Pre-Auth) -->
-          <div style="background: #f7fbf8; border: 1px solid #d1ead9; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
-            <div class="cart-summary-line cart-total-line">
-              <span>Items Total (${getCartCount()} items):</span>
-              <strong id="cartGrandTotalText" style="color: #087f3b; font-size: 1.25rem;">${window.formatNaira(subtotal)}</strong>
+          <div style="background: #ffffff; border: 1.5px solid #d1ead9; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; box-shadow: 0 2px 10px rgba(7, 94, 47, 0.04);">
+            <div class="cart-summary-line cart-total-line" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; border: none; padding: 0; margin: 0;">
+              <div style="display: flex; align-items: baseline; gap: 5px; flex-wrap: nowrap; min-width: 0;">
+                <span style="font-size: 1.02rem; font-weight: 900; color: #065f2c; white-space: nowrap;">Items Total</span>
+                <span style="font-size: 0.8rem; font-weight: 700; color: #5a6e62; white-space: nowrap;">(${getCartCount()} ${getCartCount() === 1 ? 'item' : 'items'}):</span>
+              </div>
+              <strong id="cartGrandTotalText" style="color: #087f3b; font-size: 1.25rem; font-weight: 900; white-space: nowrap; margin-left: auto;">${window.formatNaira(subtotal)}</strong>
             </div>
           </div>
 
@@ -1447,10 +1450,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
 
           <!-- Price Summary Breakdown -->
-          <div style="background: #ffffff; border: 1px solid #d1ead9; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
-            <div class="cart-summary-line cart-total-line">
-              <span>Grand Total (${getCartCount()} items):</span>
-              <strong id="cartGrandTotalText" style="color: #087f3b; font-size: 1.25rem;">${window.formatNaira(subtotal)}</strong>
+          <div style="background: #ffffff; border: 1.5px solid #d1ead9; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; box-shadow: 0 2px 10px rgba(7, 94, 47, 0.04);">
+            <div class="cart-summary-line cart-total-line" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; border: none; padding: 0; margin: 0;">
+              <div style="display: flex; align-items: baseline; gap: 5px; flex-wrap: nowrap; min-width: 0;">
+                <span style="font-size: 1.02rem; font-weight: 900; color: #065f2c; white-space: nowrap;">Grand Total</span>
+                <span style="font-size: 0.8rem; font-weight: 700; color: #5a6e62; white-space: nowrap;">(${getCartCount()} ${getCartCount() === 1 ? 'item' : 'items'}):</span>
+              </div>
+              <strong id="cartGrandTotalText" style="color: #087f3b; font-size: 1.25rem; font-weight: 900; white-space: nowrap; margin-left: auto;">${window.formatNaira(subtotal)}</strong>
             </div>
           </div>
 
@@ -1827,7 +1833,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             </button>
             <a href="chat.html" class="btn btn-secondary btn-sm" id="accountDirectChatBtn" style="flex: 1 1 100%; justify-content: center; padding: 11px 14px; font-size: 0.86rem; font-weight: 800; background: #eaf7f0; color: #075b2a; border: 1.5px solid #087f3b; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
               <span style="display: inline-flex; align-items: center; color: #087f3b; flex-shrink: 0;">${window.renderIcon('chat')}</span>
-              <span>Open Live Support Cloud Chat</span>
+              <span>Open Live Support Chat</span>
               <span class="account-chat-indicator" id="accountChatIndicator" style="display: none; background: #dc2626; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; line-height: 1.2; margin-left: 6px; align-items: center; gap: 4px;">
                 <span id="accountChatBadgeText">0</span> New
               </span>
@@ -1864,7 +1870,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <a href="chat.html" class="account-support-btn">
           <div class="support-left" style="display: flex; align-items: center; gap: 8px;">
             <span style="color: #087f3b; display: inline-flex; align-items: center;">${window.renderIcon('chat')}</span>
-            <span>Live Support Cloud Chat</span>
+            <span>Live Support Chat</span>
             <span id="accountSupportChannelBadge" style="display: none; background: #dc2626; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 2px 7px; border-radius: 999px; line-height: 1.2; margin-left: 6px;">0 New</span>
           </div>
           <span class="support-action-link">
