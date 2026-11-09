@@ -2120,11 +2120,13 @@ body {
 }
 
 .chat-text-input {
-  flex: 1;
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  width: 0 !important;
   height: 42px;
   min-height: 42px;
   box-sizing: border-box;
-  padding: 0 14px;
+  padding: 0 12px;
   background-color: #ffffff;
   border: 1.5px solid #d1ead9;
   border-radius: 10px;
@@ -2158,7 +2160,7 @@ textarea.chat-text-input {
 .chat-send-btn {
   height: 42px;
   min-height: 42px;
-  padding: 0 18px;
+  padding: 0 14px;
   background-color: #087f3b !important;
   color: #ffffff !important;
   border: none;
@@ -2170,7 +2172,8 @@ textarea.chat-text-input {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  flex-shrink: 0;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
   transition: background-color 0.15s ease;
 }
 
@@ -3411,14 +3414,44 @@ body.chat-body .chat-input-bar {
   margin-top: auto !important;
   background-color: #ffffff !important;
   border-top: 1px solid #d1ead9 !important;
-  padding: 10px 12px !important;
-  padding-bottom: max(12px, env(safe-area-inset-bottom, 12px)) !important;
+  padding: 8px 10px !important;
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 10px)) !important;
   display: flex !important;
   align-items: center !important;
-  gap: 8px !important;
+  gap: 6px !important;
   box-sizing: border-box !important;
   width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
   z-index: 50 !important;
+}
+
+body.chat-body .chat-upload-btn {
+  flex: 0 0 38px !important;
+  flex-shrink: 0 !important;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+}
+
+body.chat-body .chat-text-input {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  width: 0 !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  box-sizing: border-box !important;
+  padding: 0 10px !important;
+}
+
+body.chat-body .chat-send-btn {
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 14px !important;
+  box-sizing: border-box !important;
 }
 
 /* 7. Guest Auth Gate Card */
