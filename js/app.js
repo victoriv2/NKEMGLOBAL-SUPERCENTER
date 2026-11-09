@@ -1796,6 +1796,13 @@ document.addEventListener('DOMContentLoaded', async () => {
               <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               <span>Change Password</span>
             </button>
+            <a href="chat.html" class="btn btn-secondary btn-sm" id="accountDirectChatBtn" style="flex: 1 1 100%; justify-content: center; padding: 11px 14px; font-size: 0.86rem; font-weight: 800; background: #eaf7f0; color: #075b2a; border: 1.5px solid #087f3b; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+              <span style="display: inline-flex; align-items: center; color: #087f3b; flex-shrink: 0;">${window.renderIcon('chat')}</span>
+              <span>Open Live Support Cloud Chat</span>
+              <span class="account-chat-indicator" id="accountChatIndicator" style="display: none; background: #dc2626; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; line-height: 1.2; margin-left: 6px; align-items: center; gap: 4px;">
+                <span id="accountChatBadgeText">0</span> New
+              </span>
+            </a>
             <button type="button" class="btn btn-primary btn-sm" id="accountTrackOrdersBtn" style="flex: 1 1 100%; justify-content: center; padding: 10px; font-size: 0.82rem; font-weight: 700; background-color: #087f3b; border-color: #087f3b;">
               <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
               <span>View My Orders &amp; Tracking (${orders.length})</span>
@@ -1826,9 +1833,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         <h4 style="color: #073b1f; font-size: 1.05rem; font-weight: 800; margin-bottom: 12px;">Support & Contact Channels</h4>
 
         <a href="chat.html" class="account-support-btn">
-          <div class="support-left">
-            <span style="color: #087f3b;">${window.renderIcon('chat')}</span>
+          <div class="support-left" style="display: flex; align-items: center; gap: 8px;">
+            <span style="color: #087f3b; display: inline-flex; align-items: center;">${window.renderIcon('chat')}</span>
             <span>Live Support Cloud Chat</span>
+            <span id="accountSupportChannelBadge" style="display: none; background: #dc2626; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 2px 7px; border-radius: 999px; line-height: 1.2; margin-left: 6px;">0 New</span>
           </div>
           <span class="support-action-link">
             <span>Open Chat</span>
@@ -1909,6 +1917,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       });
     });
+
+    // Check and populate unread messages indicator immediately
+    checkUnreadMessages();
   }
 
   /* ==========================================================================
@@ -2028,14 +2039,80 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function checkUnreadMessages() {
     try {
       const activeUser = getActiveUser();
-      if (!activeUser || !activeUser.id) return;
+      if (!activeUser || !activeUser.id) {
+        const ids = ['accountChatIndicator', 'accountSupportChannelBadge', 'bottomChatCount', 'deskChatBadge'];
+        ids.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = 'none';
+        });
+        const deskAccountBtn = document.getElementById('deskAccountNavBtn');
+        if (deskAccountBtn) deskAccountBtn.textContent = 'Account';
+        return;
+      }
+
       const count = await window.SupabaseService.getUnreadCountForUser(activeUser.id);
+
+      // 1. Account View Direct Chat Button Indicator
+      const chatIndicator = document.getElementById('accountChatIndicator');
+      const chatBadgeText = document.getElementById('accountChatBadgeText');
+      if (chatIndicator) {
+        if (count > 0) {
+          if (chatBadgeText) chatBadgeText.textContent = count;
+          chatIndicator.style.display = 'inline-flex';
+        } else {
+          chatIndicator.style.display = 'none';
+        }
+      }
+
+      // 2. Account View Support Channel Card Indicator
+      const channelBadge = document.getElementById('accountSupportChannelBadge');
+      if (channelBadge) {
+        if (count > 0) {
+          channelBadge.textContent = `${count} New`;
+          channelBadge.style.display = 'inline-flex';
+        } else {
+          channelBadge.style.display = 'none';
+        }
+      }
+
+      // 3. Mobile Bottom Navigation "Account" Tab Indicator Bubble
+      const bottomCount = document.getElementById('bottomChatCount');
+      if (bottomCount) {
+        if (count > 0) {
+          bottomCount.textContent = count > 99 ? '99+' : String(count);
+          bottomCount.style.display = 'flex';
+        } else {
+          bottomCount.style.display = 'none';
+        }
+      }
+
+      // 4. Desktop Navigation "Account" Tab
       const deskAccountBtn = document.getElementById('deskAccountNavBtn');
       if (deskAccountBtn) {
         const dName = activeUser.first_name || (activeUser.name ? activeUser.name.split(' ')[0] : 'Account');
-        deskAccountBtn.textContent = dName;
+        const deskBadge = document.getElementById('deskChatBadge');
+        if (deskBadge) {
+          deskBadge.textContent = count;
+          deskBadge.style.display = count > 0 ? 'inline-block' : 'none';
+        } else {
+          deskAccountBtn.innerHTML = `
+            <span>${window.CustomModal.escape(dName)}</span>
+            <span class="desktop-nav-badge" id="deskChatBadge" style="${count > 0 ? 'display: inline-block;' : 'display: none;'} background: #dc2626; color: #ffffff; margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 0.72rem; font-weight: 800;">
+              ${count}
+            </span>
+          `;
+        }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Error checking unread messages:', e);
+    }
+  }
+
+  // Poll for incoming chat messages every 10 seconds for real-time notification
+  if (!window._chatUnreadPollInterval) {
+    window._chatUnreadPollInterval = setInterval(() => {
+      if (typeof checkUnreadMessages === 'function') checkUnreadMessages();
+    }, 10000);
   }
 
   // Setup Search in Requests Tab

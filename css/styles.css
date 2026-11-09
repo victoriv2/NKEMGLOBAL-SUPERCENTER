@@ -5942,6 +5942,25 @@ body:not(.admin-body) .details-modal-footer .details-whatsapp-btn:hover {
   box-shadow: none !important;
 }
 
+.account-chat-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #dc2626;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  line-height: 1.2;
+  box-shadow: none !important;
+}
+
+#accountDirectChatBtn:hover {
+  background-color: #def2e6 !important;
+  border-color: #065f2c !important;
+}
+
 /* ---------------- 10. FLOATING WHATSAPP BUTTON (MOCKUP RIGHT CIRCLE) ---------------- */
 .floating-whatsapp-btn {
   position: fixed !important;

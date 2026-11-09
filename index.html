@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, interactive-widget=resizes-content" />
   <title>Nkem Global — Everything Dey & Direct Orders</title>
-  <link rel="stylesheet" href="css/styles.css?v=20261109_1915" />
+  <link rel="stylesheet" href="css/styles.css?v=20261109_1925" />
 </head>
 <body>
 
@@ -33,7 +33,10 @@
           Cart
           <span class="desktop-nav-badge" id="deskCartBadge" style="display: none;">0</span>
         </button>
-        <button type="button" class="desktop-nav-btn" data-tab="account" id="deskAccountNavBtn">Account</button>
+        <button type="button" class="desktop-nav-btn" data-tab="account" id="deskAccountNavBtn">
+          Account
+          <span class="desktop-nav-badge" id="deskChatBadge" style="display: none; background: #dc2626; color: #ffffff;">0</span>
+        </button>
       </nav>
 
       <!-- Right Header Actions (Chat on WhatsApp Pill Button) -->
@@ -256,7 +259,10 @@
     </button>
 
     <button type="button" class="bottom-nav-item" data-tab="account">
-      <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <div style="position: relative; display: flex; align-items: center; justify-content: center;">
+        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span class="cart-badge-bubble" id="bottomChatCount" style="display: none; background: #dc2626;">0</span>
+      </div>
       <span class="bottom-nav-label">Account</span>
     </button>
   </nav>
@@ -297,14 +303,14 @@
   </div>
 
   <!-- Script Modules in Order (with cache-busting version) -->
-  <script src="js/icons.js?v=20261109_1915"></script>
-  <script src="js/image-compressor.js?v=20261109_1915"></script>
-  <script src="js/nigeria-data.js?v=20261109_1915"></script>
-  <script src="js/custom-modal.js?v=20261109_1915"></script>
-  <script src="js/custom-picker.js?v=20261109_1915"></script>
-  <script src="js/supabase-config.js?v=20261109_1915"></script>
-  <script src="js/receipt-generator.js?v=20261109_1915"></script>
-  <script src="js/auth-modal.js?v=20261109_1915"></script>
-  <script src="js/app.js?v=20261109_1915"></script>
+  <script src="js/icons.js?v=20261109_1925"></script>
+  <script src="js/image-compressor.js?v=20261109_1925"></script>
+  <script src="js/nigeria-data.js?v=20261109_1925"></script>
+  <script src="js/custom-modal.js?v=20261109_1925"></script>
+  <script src="js/custom-picker.js?v=20261109_1925"></script>
+  <script src="js/supabase-config.js?v=20261109_1925"></script>
+  <script src="js/receipt-generator.js?v=20261109_1925"></script>
+  <script src="js/auth-modal.js?v=20261109_1925"></script>
+  <script src="js/app.js?v=20261109_1925"></script>
 </body>
 </html>
