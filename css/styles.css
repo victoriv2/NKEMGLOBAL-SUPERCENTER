@@ -2029,17 +2029,25 @@ body {
 }
 
 .chat-msg-row.outgoing .chat-bubble {
-  background-color: var(--accent-gold-subtle);
-  border-color: var(--accent-gold-border);
-  color: #fff;
+  background-color: #087f3b !important;
+  border-color: #065f2c !important;
+  color: #ffffff !important;
   border-bottom-right-radius: 2px;
 }
 
+.chat-msg-row.outgoing .chat-bubble * {
+  color: #ffffff !important;
+}
+
 .chat-msg-row.incoming .chat-bubble {
-  background-color: var(--bg-surface-elevated);
-  border-color: var(--border-color);
-  color: var(--text-main);
+  background-color: #ffffff !important;
+  border-color: #d1ead9 !important;
+  color: #064e26 !important;
   border-bottom-left-radius: 2px;
+}
+
+.chat-msg-row.incoming .chat-bubble * {
+  color: #064e26 !important;
 }
 
 .chat-msg-image {
