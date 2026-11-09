@@ -1538,7 +1538,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <strong style="font-size: var(--font-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary);">${window.CustomModal.escape(conv.userName || 'Customer')}</strong>
             <span style="font-size: 0.68rem; color: var(--text-muted); flex-shrink: 0;">${conv.latestTime ? new Date(conv.latestTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
           </div>
-          <span style="font-size: var(--font-xs); color: var(--accent-gold);">${conv.userWhatsapp || ''} &bull; ${window.CustomModal.escape(conv.userLocation || '')}</span>
+          <span style="font-size: var(--font-xs); color: var(--accent-gold); display: inline-flex; align-items: center; gap: 4px;"><span style="color: #25d366; display: inline-flex; align-items: center; width: 12px; height: 12px; line-height: 1;">${window.renderIcon('whatsapp')}</span>${conv.userWhatsapp || ''} &bull; ${window.CustomModal.escape(conv.userLocation || '')}</span>
           <span style="font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${window.CustomModal.escape(conv.latestMessage || 'No messages yet')}</span>
         </div>
         ${conv.unreadCount > 0 ? `<span class="chat-unread-badge" style="position: static; margin-left: 4px; flex-shrink: 0;">${conv.unreadCount}</span>` : ''}
@@ -1595,7 +1595,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (customer) {
         chatActiveCodeTitle.innerHTML = `
           <span>${window.CustomModal.escape(customer.userName)}</span>
-          <span style="font-size: var(--font-xs); color: var(--accent-gold); font-weight: normal; margin-left: 8px;">${customer.userWhatsapp} &bull; ${window.CustomModal.escape(customer.userLocation)}</span>
+          <span style="font-size: var(--font-xs); color: var(--accent-gold); font-weight: normal; margin-left: 8px; display: inline-flex; align-items: center; gap: 4px;"><span style="color: #25d366; display: inline-flex; align-items: center; width: 12px; height: 12px; line-height: 1;">${window.renderIcon('whatsapp')}</span>${customer.userWhatsapp} &bull; ${window.CustomModal.escape(customer.userLocation)}</span>
         `;
       } else {
         chatActiveCodeTitle.textContent = `Customer Chat`;
@@ -1933,7 +1933,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                   <strong style="font-size: var(--font-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary);">${window.CustomModal.escape(conv.userName || 'Customer')}</strong>
                   <span style="font-size: 0.68rem; color: var(--text-muted); flex-shrink: 0;">${conv.latestTime ? new Date(conv.latestTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                 </div>
-                <span style="font-size: var(--font-xs); color: var(--accent-gold);">${conv.userWhatsapp || ''} &bull; ${window.CustomModal.escape(conv.userLocation || '')}</span>
+                <span style="font-size: var(--font-xs); color: var(--accent-gold); display: inline-flex; align-items: center; gap: 4px;"><span style="color: #25d366; display: inline-flex; align-items: center; width: 12px; height: 12px; line-height: 1;">${window.renderIcon('whatsapp')}</span>${conv.userWhatsapp || ''} &bull; ${window.CustomModal.escape(conv.userLocation || '')}</span>
                 <span style="font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${window.CustomModal.escape(conv.latestMessage || 'No messages yet')}</span>
               </div>
               ${conv.unreadCount > 0 ? `<span class="chat-unread-badge" style="position: static; margin-left: 4px; flex-shrink: 0;">${conv.unreadCount}</span>` : ''}

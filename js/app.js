@@ -1080,7 +1080,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         </button>
 
         <a href="https://wa.me/2347042087633?text=${encodeURIComponent(`Hello Nkem Global, I would like to order: ${prod.title} (${window.formatNaira(prod.price)}). Is this available?`)}" target="_blank" rel="noopener" class="btn btn-secondary details-whatsapp-btn">
-          ${window.renderIcon('whatsapp')}
+          <span style="color: #25D366; display: inline-flex; align-items: center; font-size: 16px; line-height: 1;">${window.renderIcon('whatsapp')}</span>
           <span>Order on WhatsApp</span>
         </a>
       </div>
@@ -1307,7 +1307,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             ${(activeUser.address && activeUser.state && activeUser.lga) ? `
               <div style="font-size: 0.85rem; color: #1f2937; line-height: 1.6;">
                 <div><strong style="color: #073b1f;">Deliver To:</strong> ${window.CustomModal.escape((activeUser.first_name || activeUser.name || 'Valued Customer') + (activeUser.last_name ? ' ' + activeUser.last_name : ''))}</div>
-                <div><strong style="color: #073b1f;">WhatsApp:</strong> ${window.CustomModal.escape(activeUser.whatsapp_number || activeUser.phone || '')} ${activeUser.email ? `<span style="color: #5a6e62;">&bull; ${window.CustomModal.escape(activeUser.email)}</span>` : ''}</div>
+                <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;"><span style="color: #25D366; display: inline-flex; align-items: center; font-size: 14px; line-height: 1;">${window.renderIcon('whatsapp')}</span><strong style="color: #073b1f;">WhatsApp:</strong> ${window.CustomModal.escape(activeUser.whatsapp_number || activeUser.phone || '')} ${activeUser.email ? `<span style="color: #5a6e62;">&bull; ${window.CustomModal.escape(activeUser.email)}</span>` : ''}</div>
                 <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #d1ead9;">
                   <strong style="color: #073b1f;">Destination Address:</strong><br />
                   ${window.CustomModal.escape(activeUser.address)}, ${window.CustomModal.escape(activeUser.lga)}, <strong>${window.CustomModal.escape(activeUser.state)} State</strong>
@@ -1783,7 +1783,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div><strong>Item:</strong> ${window.CustomModal.escape(order.product_title)}</div>
             <div><strong>Total:</strong> <span style="color: #087f3b; font-weight: 800;">${window.formatNaira(order.product_price)}</span></div>
             <div><strong>Destination:</strong> ${window.CustomModal.escape(order.lga || '')}, ${window.CustomModal.escape(order.state || '')}</div>
-            <div><strong>WhatsApp:</strong> ${window.CustomModal.escape(order.whatsapp_number)}</div>
+            <div style="display: flex; align-items: center; gap: 5px;"><span style="color: #25D366; display: inline-flex; align-items: center; font-size: 14px; line-height: 1;">${window.renderIcon('whatsapp')}</span><strong>WhatsApp:</strong> ${window.CustomModal.escape(order.whatsapp_number)}</div>
             <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #d1ead9;">
               <strong>Retrieval Code:</strong> <span style="font-family: monospace; font-weight: 700; background: #e8f7ee; padding: 2px 6px; border-radius: 4px; color: #064e26;">${order.retrieval_code || order.id}</span>
             </div>
