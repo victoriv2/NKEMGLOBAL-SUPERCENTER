@@ -4646,12 +4646,15 @@ body:not(.admin-body) .brand-title span {
 .desktop-app-nav {
   display: none;
   align-items: center;
-  gap: 6px;
+  gap: clamp(4px, 0.8vw, 10px);
+  flex-shrink: 0;
 }
 
 @media (min-width: 900px) {
   .desktop-app-nav {
     display: flex;
+    margin-left: auto;
+    margin-right: clamp(14px, 2vw, 28px);
   }
 }
 
@@ -4659,11 +4662,13 @@ body:not(.admin-body) .brand-title span {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
+  padding: 8px clamp(10px, 1.2vw, 14px);
   border-radius: var(--radius-sm);
   color: rgba(255, 255, 255, 0.88);
   font-size: var(--font-sm);
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
   cursor: pointer;
   background: transparent;
   border: none;
