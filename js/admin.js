@@ -3,7 +3,6 @@
 
 document.addEventListener('DOMContentLoaded', async () => {
   const adminState = {
-    banners: [],
     categories: [],
     products: [],
     orders: [],
@@ -17,9 +16,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     chatPollTimer: null,
     convsPollTimer: null,
     editingProduct: null,
-    editingBanner: null,
     editingCategory: null,
     productImagesDraft: [], // Temporary array for product image editing
+    productSearchQuery: '',
+    productFilter: 'all',
+    productSortBy: 'newest',
     orderFilterStatus: 'all',
     orderSearchQuery: '',
     orderSortBy: 'newest'
@@ -76,22 +77,19 @@ document.addEventListener('DOMContentLoaded', async () => {
      ========================================================================== */
   async function loadAdminData() {
     try {
-      const [banners, categories, products, orders, users] = await Promise.all([
-        window.SupabaseService.getBanners(),
+      const [categories, products, orders, users] = await Promise.all([
         window.SupabaseService.getCategories(),
         window.SupabaseService.getProducts({ limit: adminState.productPageSize, offset: 0 }),
         window.SupabaseService.getOrders(),
         window.SupabaseService.getUsers()
       ]);
 
-      adminState.banners = banners || [];
       adminState.categories = categories || [];
       adminState.products = products || [];
       adminState.orders = orders || [];
       adminState.users = users || [];
       adminState.hasMoreProducts = Array.isArray(products) && products.length === adminState.productPageSize;
 
-      renderBannersManager();
       renderCategoriesManager();
       renderProductsManager();
       renderOrdersManager();
@@ -101,292 +99,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (err) {
       console.error('Error loading admin data:', err);
     }
-  }
-
-  /* ==========================================================================
-     2. BANNER MANAGEMENT (Modal Create/Edit, Replace Image <=100KB, Reorder, Remove)
-     ========================================================================== */
-  const bannerListContainer = document.getElementById('adminBannerList');
-  const addBannerBtn = document.getElementById('adminAddBannerBtn');
-  const bannerEditModal = document.getElementById('adminBannerEditModal');
-
-  function renderBannersManager() {
-    if (!bannerListContainer) return;
-
-    if (adminState.banners.length === 0) {
-      bannerListContainer.innerHTML = `
-        <div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: var(--font-sm);">
-          No banners configured. Click "Upload New Banner" to add slides.
-        </div>
-      `;
-      return;
-    }
-
-    // Sort by sort_order
-    adminState.banners.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-
-    bannerListContainer.innerHTML = adminState.banners.map((b, idx) => `
-      <div class="admin-item-row" data-id="${b.id}">
-        <img src="${b.image_url}" class="admin-item-thumb" alt="Banner slide" />
-        <div class="admin-item-details">
-          <span class="admin-item-title">${window.CustomModal.escape(b.caption || `Banner Slide #${idx + 1}`)}</span>
-          <span class="admin-item-sub">Position: #${idx + 1} &bull; ID: ${b.id}</span>
-        </div>
-        <div class="admin-item-actions">
-          <button class="btn-icon-square" type="button" data-action="banner-up" data-idx="${idx}" title="Move Earlier" ${idx === 0 ? 'disabled style="opacity:0.3;"' : ''}>
-            ${window.renderIcon('arrowUp')}
-          </button>
-          <button class="btn-icon-square" type="button" data-action="banner-down" data-idx="${idx}" title="Move Later" ${idx === adminState.banners.length - 1 ? 'disabled style="opacity:0.3;"' : ''}>
-            ${window.renderIcon('arrowDown')}
-          </button>
-          <button class="btn-icon-square" type="button" data-action="banner-edit" data-id="${b.id}" title="Edit Banner Details & Image">
-            ${window.renderIcon('edit')}
-          </button>
-          <button class="btn-icon-square danger" type="button" data-action="banner-delete" data-id="${b.id}" title="Remove Banner">
-            ${window.renderIcon('trash')}
-          </button>
-        </div>
-      </div>
-    `).join('');
-
-    // Reordering Banner Up (Instant UI Move + Background Sync)
-    bannerListContainer.querySelectorAll('[data-action="banner-up"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.getAttribute('data-idx'), 10);
-        if (idx > 0) {
-          const temp = adminState.banners[idx];
-          adminState.banners[idx] = adminState.banners[idx - 1];
-          adminState.banners[idx - 1] = temp;
-
-          // Instant local sort_order update & immediate UI move
-          adminState.banners.forEach((b, i) => { b.sort_order = i + 1; });
-          renderBannersManager();
-
-          // Sync order to database in background
-          queuePersistBannersOrder();
-        }
-      });
-    });
-
-    // Reordering Banner Down (Instant UI Move + Background Sync)
-    bannerListContainer.querySelectorAll('[data-action="banner-down"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.getAttribute('data-idx'), 10);
-        if (idx < adminState.banners.length - 1) {
-          const temp = adminState.banners[idx];
-          adminState.banners[idx] = adminState.banners[idx + 1];
-          adminState.banners[idx + 1] = temp;
-
-          // Instant local sort_order update & immediate UI move
-          adminState.banners.forEach((b, i) => { b.sort_order = i + 1; });
-          renderBannersManager();
-
-          // Sync order to database in background
-          queuePersistBannersOrder();
-        }
-      });
-    });
-
-    // Edit Banner (Opens Modal)
-    bannerListContainer.querySelectorAll('[data-action="banner-edit"]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
-        const b = adminState.banners.find(x => x.id === id);
-        if (b) openBannerEditModal(b, false);
-      });
-    });
-
-    // Delete Banner
-    bannerListContainer.querySelectorAll('[data-action="banner-delete"]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-id');
-        const confirmed = await window.CustomModal.confirm({
-          title: 'Delete Banner',
-          message: 'Are you sure you want to remove this banner slide?',
-          confirmText: 'Delete Banner',
-          isDanger: true
-        });
-
-        if (confirmed) {
-          adminState.banners = adminState.banners.filter(x => x.id !== id);
-          await window.SupabaseService.deleteBanner(id);
-          renderBannersManager();
-          window.CustomModal.toast({ message: 'Banner slide removed.', type: 'success' });
-        }
-      });
-    });
-  }
-
-  let _bannerSyncTimer = null;
-  function queuePersistBannersOrder() {
-    clearTimeout(_bannerSyncTimer);
-    _bannerSyncTimer = setTimeout(async () => {
-      try {
-        await Promise.all(adminState.banners.map((b, i) => {
-          b.sort_order = i + 1;
-          return window.SupabaseService.saveBanner(b);
-        }));
-      } catch (err) {
-        console.error('Failed to sync banner order:', err);
-      }
-    }, 250);
-  }
-
-  // Open Banner Edit / Create Modal Dialog
-  function openBannerEditModal(banner, isNew = false) {
-    if (!bannerEditModal) return;
-    adminState.editingBanner = { ...banner };
-    let bannerImageDraft = banner.image_url || '';
-
-    bannerEditModal.innerHTML = `
-      <div class="c-modal-box" style="max-width: 620px; max-height: 90vh;">
-        <div class="c-modal-header">
-          <h3 class="c-modal-title">${isNew ? 'Create New Banner Slide' : 'Edit Banner Slide'}</h3>
-          <button class="c-modal-close-btn" type="button" id="closeBannerEditModalBtn" aria-label="Close">
-            ${window.renderIcon('close')}
-          </button>
-        </div>
-
-        <form id="bannerEditForm" class="c-modal-body" style="display: flex; flex-direction: column; gap: 14px;">
-          <div class="form-group">
-            <label class="form-label">Banner Headline / Caption <span class="req">*</span></label>
-            <input type="text" class="input-field" id="editBannerCaption" required value="${window.CustomModal.escape(adminState.editingBanner.caption || '')}" placeholder="e.g. Welcome to Nkem Global - Quality Products & Fast Delivery" />
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Banner Slide Image (Auto-compressed &le; 100KB) <span class="req">*</span></label>
-            <input type="file" id="bannerModalFileInput" accept="image/*" style="display: none;" />
-
-            <div id="bannerImgPreviewMount" style="margin-top: 6px;"></div>
-          </div>
-
-          <div class="c-modal-footer dual-actions" style="margin: 0 -16px -16px -16px; padding: 12px 16px;">
-            <button class="btn btn-secondary" type="button" id="cancelBannerEditBtn">Cancel</button>
-            <button class="btn btn-primary" type="submit">
-              ${window.renderIcon('check')}
-              <span>${isNew ? 'Create Banner Slide' : 'Save Changes'}</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    `;
-
-    const previewMount = bannerEditModal.querySelector('#bannerImgPreviewMount');
-    const fileInput = bannerEditModal.querySelector('#bannerModalFileInput');
-
-    function renderBannerPreview() {
-      if (bannerImageDraft) {
-        previewMount.innerHTML = `
-          <div style="position: relative; width: 100%; aspect-ratio: 16/9; max-height: 220px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center;">
-            <img src="${bannerImageDraft}" alt="Banner Preview" style="width: 100%; height: 100%; object-fit: cover;" />
-            <div style="position: absolute; bottom: 8px; right: 8px; display: flex; gap: 6px;">
-              <button class="btn btn-secondary btn-sm" type="button" id="bannerModalChangeImgBtn" style="background: rgba(20,21,26,0.9); backdrop-filter: blur(4px);">
-                ${window.renderIcon('edit')}
-                <span>Change Image</span>
-              </button>
-              <button class="btn btn-secondary btn-sm" type="button" id="bannerModalRemoveImgBtn" style="background: rgba(20,21,26,0.9); backdrop-filter: blur(4px); color: var(--status-danger);">
-                ${window.renderIcon('trash')}
-                <span>Remove</span>
-              </button>
-            </div>
-          </div>
-        `;
-
-        previewMount.querySelector('#bannerModalChangeImgBtn').addEventListener('click', () => fileInput.click());
-        previewMount.querySelector('#bannerModalRemoveImgBtn').addEventListener('click', () => {
-          bannerImageDraft = '';
-          renderBannerPreview();
-        });
-      } else {
-        previewMount.innerHTML = `
-          <div id="bannerModalDropzone" style="border: 2px dashed var(--border-color); border-radius: var(--radius-md); padding: 32px 16px; text-align: center; cursor: pointer; background: var(--bg-surface); transition: var(--transition-fast);">
-            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 28px; height: 28px; color: var(--accent-gold); margin-bottom: 6px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            <div style="font-weight: 600; font-size: var(--font-sm); color: var(--text-main); margin-bottom: 2px;">Click to Choose Banner Image</div>
-            <div style="font-size: var(--font-xs); color: var(--text-muted);">Supports JPG, PNG, WEBP &bull; Auto-compressed to &le; 100KB</div>
-          </div>
-        `;
-
-        previewMount.querySelector('#bannerModalDropzone').addEventListener('click', () => fileInput.click());
-      }
-    }
-
-    renderBannerPreview();
-
-    // Image file selection & auto-compression
-    fileInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      window.CustomModal.toast({ message: 'Optimizing and compressing banner to <= 100KB...', type: 'info' });
-
-      try {
-        const compressed = await window.ImageCompressor.compress(file);
-        bannerImageDraft = compressed.dataUrl;
-        renderBannerPreview();
-        window.CustomModal.toast({ 
-          message: `Banner image compressed (${compressed.sizeKb} KB - optimized under 100KB)`, 
-          type: 'success' 
-        });
-      } catch (err) {
-        window.CustomModal.toast({ message: `Failed to compress image: ${err.message}`, type: 'danger' });
-      }
-
-      fileInput.value = '';
-    });
-
-    // Close Dialog
-    const closeModal = () => bannerEditModal.classList.remove('active');
-    bannerEditModal.querySelector('#closeBannerEditModalBtn').addEventListener('click', closeModal);
-    bannerEditModal.querySelector('#cancelBannerEditBtn').addEventListener('click', closeModal);
-
-    // Form Submit
-    const form = bannerEditModal.querySelector('#bannerEditForm');
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      if (!bannerImageDraft) {
-        window.CustomModal.toast({ message: 'Please upload or choose a banner slide image.', type: 'danger' });
-        return;
-      }
-
-      const caption = document.getElementById('editBannerCaption').value.trim();
-      if (!caption) {
-        window.CustomModal.toast({ message: 'Please enter a caption for this banner.', type: 'danger' });
-        return;
-      }
-
-      if (isNew) {
-        const newBanner = {
-          id: `banner-${Date.now()}`,
-          image_url: bannerImageDraft,
-          caption: caption,
-          sort_order: adminState.banners.length + 1,
-          created_at: new Date().toISOString()
-        };
-        adminState.banners.push(newBanner);
-        await window.SupabaseService.saveBanner(newBanner);
-        window.CustomModal.toast({ message: 'Banner slide created successfully.', type: 'success' });
-      } else {
-        adminState.editingBanner.image_url = bannerImageDraft;
-        adminState.editingBanner.caption = caption;
-        const idx = adminState.banners.findIndex(x => x.id === adminState.editingBanner.id);
-        if (idx >= 0) adminState.banners[idx] = { ...adminState.editingBanner };
-        await window.SupabaseService.saveBanner(adminState.editingBanner);
-        window.CustomModal.toast({ message: 'Banner slide updated successfully.', type: 'success' });
-      }
-
-      closeModal();
-      renderBannersManager();
-    });
-
-    bannerEditModal.classList.add('active');
-  }
-
-  // Hook Upload New Banner Button
-  if (addBannerBtn) {
-    addBannerBtn.addEventListener('click', () => {
-      openBannerEditModal({ id: null, image_url: '', caption: '' }, true);
-    });
   }
 
   /* ==========================================================================
@@ -493,6 +205,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       });
     });
+
+    if (typeof adminProductFilterPickerInstance !== 'undefined' && adminProductFilterPickerInstance && typeof getProductFilterOptions === 'function') {
+      adminProductFilterPickerInstance.setOptions(getProductFilterOptions(), true);
+    }
   }
 
   const categoryEditModal = document.getElementById('adminCategoryEditModal');
@@ -675,6 +391,93 @@ document.addEventListener('DOMContentLoaded', async () => {
   const adminSeeMoreContainer = document.getElementById('adminSeeMoreContainer');
   const adminSeeMoreBtn = document.getElementById('adminSeeMoreBtn');
 
+  const adminProductSearchInput = document.getElementById('adminProductSearchInput');
+  const adminProductSearchClearBtn = document.getElementById('adminProductSearchClearBtn');
+  const adminProductFilterPickerMount = document.getElementById('adminProductFilterPickerMount');
+  const adminProductSortPickerMount = document.getElementById('adminProductSortPickerMount');
+  const adminProductCountBadge = document.getElementById('adminProductCountBadge');
+
+  let adminProductFilterPickerInstance = null;
+  let adminProductSortPickerInstance = null;
+
+  function getProductFilterOptions() {
+    const opts = [
+      { value: 'all', label: 'Filter: All Products' },
+      { value: 'stock:in_stock', label: 'Filter: In Stock' },
+      { value: 'stock:out_of_stock', label: 'Filter: Out of Stock' }
+    ];
+    if (Array.isArray(adminState.categories) && adminState.categories.length > 0) {
+      adminState.categories.forEach(c => {
+        opts.push({ value: `cat:${c.id}`, label: `Category: ${c.name}` });
+      });
+    }
+    return opts;
+  }
+
+  function initProductControls() {
+    if (adminProductSearchInput && !adminProductSearchInput._hasBoundEvents) {
+      adminProductSearchInput._hasBoundEvents = true;
+      adminProductSearchInput.addEventListener('input', () => {
+        adminState.productSearchQuery = (adminProductSearchInput.value || '').trim().toLowerCase();
+        if (adminProductSearchClearBtn) {
+          adminProductSearchClearBtn.style.display = adminState.productSearchQuery ? 'inline-flex' : 'none';
+        }
+        renderProductsManager();
+      });
+    }
+
+    if (adminProductSearchClearBtn && !adminProductSearchClearBtn._hasBoundEvents) {
+      adminProductSearchClearBtn._hasBoundEvents = true;
+      adminProductSearchClearBtn.addEventListener('click', () => {
+        if (adminProductSearchInput) adminProductSearchInput.value = '';
+        adminState.productSearchQuery = '';
+        adminProductSearchClearBtn.style.display = 'none';
+        renderProductsManager();
+        if (adminProductSearchInput) adminProductSearchInput.focus();
+      });
+    }
+
+    if (adminProductFilterPickerMount && !adminProductFilterPickerInstance && window.CustomPicker) {
+      adminProductFilterPickerInstance = window.CustomPicker.create({
+        container: adminProductFilterPickerMount,
+        id: 'adminProductFilterPicker',
+        title: 'Filter Products',
+        icon: 'filter',
+        options: getProductFilterOptions(),
+        value: adminState.productFilter || 'all',
+        searchable: true,
+        onChange: (val) => {
+          adminState.productFilter = val;
+          renderProductsManager();
+        }
+      });
+    }
+
+    if (adminProductSortPickerMount && !adminProductSortPickerInstance && window.CustomPicker) {
+      adminProductSortPickerInstance = window.CustomPicker.create({
+        container: adminProductSortPickerMount,
+        id: 'adminProductSortPicker',
+        title: 'Sort Products',
+        icon: 'sort',
+        options: [
+          { value: 'newest', label: 'Sort: Newest First' },
+          { value: 'oldest', label: 'Sort: Oldest First' },
+          { value: 'price-desc', label: 'Sort: Price (High to Low)' },
+          { value: 'price-asc', label: 'Sort: Price (Low to High)' },
+          { value: 'title-asc', label: 'Sort: Title (A to Z)' },
+          { value: 'title-desc', label: 'Sort: Title (Z to A)' },
+          { value: 'stock-first', label: 'Sort: In Stock First' }
+        ],
+        value: adminState.productSortBy || 'newest',
+        searchable: false,
+        onChange: (val) => {
+          adminState.productSortBy = val;
+          renderProductsManager();
+        }
+      });
+    }
+  }
+
   function updateAdminSeeMoreButton() {
     if (!adminSeeMoreContainer) return;
     if (adminState.hasMoreProducts && adminState.products.length > 0) {
@@ -723,19 +526,114 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderProductsManager() {
     if (!productListContainer) return;
 
-    if (adminState.products.length === 0) {
+    initProductControls();
+    if (adminProductFilterPickerInstance) {
+      adminProductFilterPickerInstance.setOptions(getProductFilterOptions(), true);
+    }
+
+    if (!adminState.products || adminState.products.length === 0) {
       productListContainer.innerHTML = `
         <div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: var(--font-sm);">
           No products found. Click "Create Product" to add one.
         </div>
       `;
+      if (adminProductCountBadge) adminProductCountBadge.textContent = '0 products';
       updateAdminSeeMoreButton();
       return;
     }
 
-    productListContainer.innerHTML = adminState.products.map((p, idx) => {
+    // 1. Filtering
+    let filtered = [...adminState.products];
+
+    // Search query filter
+    if (adminState.productSearchQuery) {
+      const q = adminState.productSearchQuery;
+      filtered = filtered.filter(p => {
+        const titleMatch = (p.title || '').toLowerCase().includes(q);
+        const descMatch = (p.description || '').toLowerCase().includes(q);
+        const priceMatch = String(p.price || '').includes(q);
+        const cat = adminState.categories.find(c => c.id === p.category_id);
+        const catMatch = cat && (cat.name || '').toLowerCase().includes(q);
+        return titleMatch || descMatch || priceMatch || catMatch;
+      });
+    }
+
+    // Stock or Category filter
+    if (adminState.productFilter === 'stock:in_stock') {
+      filtered = filtered.filter(p => !!p.in_stock);
+    } else if (adminState.productFilter === 'stock:out_of_stock') {
+      filtered = filtered.filter(p => !p.in_stock);
+    } else if (adminState.productFilter && adminState.productFilter.startsWith('cat:')) {
+      const catId = adminState.productFilter.replace('cat:', '');
+      filtered = filtered.filter(p => p.category_id === catId);
+    }
+
+    // 2. Sorting
+    const sortBy = adminState.productSortBy || 'newest';
+    filtered.sort((a, b) => {
+      if (sortBy === 'price-desc') return (Number(b.price) || 0) - (Number(a.price) || 0);
+      if (sortBy === 'price-asc') return (Number(a.price) || 0) - (Number(b.price) || 0);
+      if (sortBy === 'title-asc') return (a.title || '').localeCompare(b.title || '');
+      if (sortBy === 'title-desc') return (b.title || '').localeCompare(a.title || '');
+      if (sortBy === 'stock-first') {
+        if (a.in_stock === b.in_stock) return 0;
+        return a.in_stock ? -1 : 1;
+      }
+      if (sortBy === 'oldest') {
+        const tA = new Date(a.created_at || 0).getTime();
+        const tB = new Date(b.created_at || 0).getTime();
+        return tA - tB;
+      }
+      // 'newest' default
+      const tA = new Date(a.created_at || 0).getTime();
+      const tB = new Date(b.created_at || 0).getTime();
+      if (tA && tB && tA !== tB) return tB - tA;
+      return 0;
+    });
+
+    // 3. Update count badge
+    if (adminProductCountBadge) {
+      const total = adminState.products.length;
+      if (filtered.length === total) {
+        adminProductCountBadge.textContent = `Showing all ${total} product${total !== 1 ? 's' : ''}`;
+      } else {
+        adminProductCountBadge.textContent = `Showing ${filtered.length} of ${total} product${total !== 1 ? 's' : ''}`;
+      }
+    }
+
+    // 4. Empty search/filter result state
+    if (filtered.length === 0) {
+      productListContainer.innerHTML = `
+        <div style="padding: 32px 16px; text-align: center; color: var(--text-muted); font-size: var(--font-sm); background: var(--bg-surface); border: 1px dashed var(--border-color); border-radius: var(--radius-md); margin-top: 8px;">
+          <p style="margin: 0 0 10px 0; font-weight: 600; color: var(--text-main);">No products match your search or filter.</p>
+          <button type="button" class="btn btn-secondary btn-sm" id="adminResetProductFiltersBtn" style="padding: 6px 14px;">
+            Reset Search & Filters
+          </button>
+        </div>
+      `;
+      const resetBtn = productListContainer.querySelector('#adminResetProductFiltersBtn');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+          adminState.productSearchQuery = '';
+          adminState.productFilter = 'all';
+          adminState.productSortBy = 'newest';
+          if (adminProductSearchInput) adminProductSearchInput.value = '';
+          if (adminProductSearchClearBtn) adminProductSearchClearBtn.style.display = 'none';
+          if (adminProductFilterPickerInstance) adminProductFilterPickerInstance.setValue('all');
+          if (adminProductSortPickerInstance) adminProductSortPickerInstance.setValue('newest');
+          renderProductsManager();
+        });
+      }
+      updateAdminSeeMoreButton();
+      return;
+    }
+
+    // 5. Render product rows
+    productListContainer.innerHTML = filtered.map((p, idx) => {
       const coverImg = Array.isArray(p.images) && p.images[0] ? p.images[0] : 'assets/images/logo.jpeg';
       const imgCount = Array.isArray(p.images) ? p.images.length : 0;
+      const cat = adminState.categories.find(c => c.id === p.category_id);
+      const catName = cat ? cat.name : '';
 
       return `
         <div class="admin-item-row" data-id="${p.id}">
@@ -743,6 +641,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div class="admin-item-details">
             <span class="admin-item-title">${window.CustomModal.escape(p.title)}</span>
             <span class="admin-item-sub">
+              ${catName ? `<span style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color); padding: 1px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px; color: var(--accent-gold);">${window.CustomModal.escape(catName)}</span> &bull; ` : ''}
               ${window.formatNaira(p.price)} &bull; 
               ${imgCount} image${imgCount !== 1 ? 's' : ''} &bull; 
               <strong style="color: ${p.in_stock ? 'var(--status-success)' : 'var(--status-danger)'}">

@@ -3698,11 +3698,15 @@ body.admin-body .c-modal-footer {
   }
 }
 
-#adminOrderSortPickerMount {
+#adminOrderSortPickerMount,
+#adminProductSortPickerMount,
+#adminProductFilterPickerMount {
   min-width: 155px;
 }
 
-#adminOrderSortPickerMount .c-picker-trigger {
+#adminOrderSortPickerMount .c-picker-trigger,
+#adminProductSortPickerMount .c-picker-trigger,
+#adminProductFilterPickerMount .c-picker-trigger {
   padding: 6px 14px;
   font-size: var(--font-xs);
   min-height: 32px;
@@ -3720,7 +3724,9 @@ body.admin-body .c-modal-footer {
   transition: all 0.2s ease;
 }
 
-#adminOrderSortPickerMount .c-picker-trigger:hover {
+#adminOrderSortPickerMount .c-picker-trigger:hover,
+#adminProductSortPickerMount .c-picker-trigger:hover,
+#adminProductFilterPickerMount .c-picker-trigger:hover {
   background-color: var(--bg-surface-elevated);
   border-color: var(--accent-gold);
   color: var(--accent-gold);

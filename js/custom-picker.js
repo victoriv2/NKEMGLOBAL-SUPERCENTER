@@ -22,7 +22,8 @@ CustomPicker.create = function({
   value = '',
   placeholder = 'Select an option...',
   searchable = true,
-  onChange = null
+  onChange = null,
+  icon = ''
 }) {
   if (!container) return null;
 
@@ -37,6 +38,18 @@ CustomPicker.create = function({
   trigger.type = 'button';
   trigger.className = 'c-picker-trigger';
   if (id) trigger.id = id;
+
+  if (icon && window.renderIcon) {
+    const leadIconSpan = document.createElement('span');
+    leadIconSpan.className = 'c-picker-lead-icon';
+    leadIconSpan.style.display = 'inline-flex';
+    leadIconSpan.style.alignItems = 'center';
+    leadIconSpan.style.color = 'var(--accent-gold)';
+    leadIconSpan.style.marginRight = '5px';
+    leadIconSpan.style.flexShrink = '0';
+    leadIconSpan.innerHTML = window.renderIcon(icon);
+    trigger.appendChild(leadIconSpan);
+  }
 
   const labelSpan = document.createElement('span');
   labelSpan.className = 'c-picker-label';
