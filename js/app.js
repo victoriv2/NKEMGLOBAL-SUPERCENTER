@@ -43,11 +43,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Reactive UI update on authentication state change
   window.addEventListener('nkem_auth_changed', () => {
     try {
+      syncCartWithCloud();
       renderAccountView();
       renderCartView();
       renderRequestsView();
       updateCartBadges();
       checkUnreadMessages();
+      syncCartWithCloud();
     } catch (_) {}
   });
 
@@ -78,12 +80,61 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  function saveCart(cart) {
+  function saveCart(cart, skipCloud = false) {
     try {
       localStorage.setItem('nkem_cart', JSON.stringify(cart));
     } catch (e) {}
     state.cart = cart;
     updateCartBadges();
+
+    // Multi-device Cloud Cart Sync
+    if (!skipCloud) {
+      const activeUser = getActiveUser();
+      if (activeUser && activeUser.id && window.SupabaseService?.syncUserCartToCloud) {
+        window.SupabaseService.syncUserCartToCloud(activeUser.id, cart);
+      }
+    }
+  }
+
+  // Multi-device Cart Cloud Sync engine
+  async function syncCartWithCloud() {
+    const activeUser = getActiveUser();
+    if (!activeUser || !activeUser.id || !window.SupabaseService?.getUserCartFromCloud) return;
+
+    try {
+      const cloudCart = await window.SupabaseService.getUserCartFromCloud(activeUser.id);
+      const localCart = getCart();
+
+      if (Array.isArray(cloudCart) && cloudCart.length > 0) {
+        // Merge cloud cart with local cart by product id
+        const mergedMap = new Map();
+        cloudCart.forEach(item => {
+          if (item && item.id) mergedMap.set(item.id, { ...item });
+        });
+        localCart.forEach(item => {
+          if (item && item.id) {
+            if (mergedMap.has(item.id)) {
+              const existing = mergedMap.get(item.id);
+              existing.quantity = Math.max(existing.quantity || 1, item.quantity || 1);
+            } else {
+              mergedMap.set(item.id, { ...item });
+            }
+          }
+        });
+
+        const mergedCart = Array.from(mergedMap.values());
+        saveCart(mergedCart, true);
+        window.SupabaseService.syncUserCartToCloud(activeUser.id, mergedCart);
+
+        if (state.currentTab === 'cart') {
+          renderCartView();
+        }
+      } else if (localCart.length > 0) {
+        window.SupabaseService.syncUserCartToCloud(activeUser.id, localCart);
+      }
+    } catch (e) {
+      console.warn('Sync cart notice:', e);
+    }
   }
 
   function getCartCount() {
@@ -292,6 +343,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       applyFiltersAndSort();
       updateCartBadges();
       checkUnreadMessages();
+      syncCartWithCloud();
     } catch (e) {
       console.warn('Preload notice:', e);
     }
@@ -330,6 +382,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       applyFiltersAndSort();
       updateCartBadges();
       checkUnreadMessages();
+      syncCartWithCloud();
     } catch (err) {
       console.warn('Supabase fetch notice (using cache):', err);
     }
@@ -1290,17 +1343,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         ${!isLoggedIn ? `
           <!-- Price Summary Breakdown (Pre-Auth) -->
           <div style="background: #f7fbf8; border: 1px solid #d1ead9; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
-            <div class="cart-summary-line">
-              <span>Items Subtotal (${getCartCount()} items):</span>
-              <strong style="color: #073b1f;">${window.formatNaira(subtotal)}</strong>
-            </div>
-            <div class="cart-summary-line">
-              <span>Nationwide Delivery:</span>
-              <span style="color: #5a6e62; font-size: 0.82rem; font-weight: 600;">Calculated on account sign-in</span>
-            </div>
             <div class="cart-summary-line cart-total-line">
-              <span>Estimated Total:</span>
-              <strong id="cartGrandTotalText">${window.formatNaira(subtotal)}</strong>
+              <span>Items Total (${getCartCount()} items):</span>
+              <strong id="cartGrandTotalText" style="color: #087f3b; font-size: 1.25rem;">${window.formatNaira(subtotal)}</strong>
             </div>
           </div>
 
@@ -1364,24 +1409,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           <!-- Price Summary Breakdown -->
           <div style="background: #ffffff; border: 1px solid #d1ead9; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
-            <div class="cart-summary-line">
-              <span>Items Subtotal (${getCartCount()} items):</span>
-              <strong>${window.formatNaira(subtotal)}</strong>
-            </div>
-            <div class="cart-summary-line">
-              <span>Nationwide Delivery (${activeUser.state ? window.CustomModal.escape(activeUser.state) + ' State' : 'Destination'}):</span>
-              <span style="color: #087f3b; font-weight: 700;">${activeUser.state ? window.formatNaira(3500) : 'Address Required'}</span>
-            </div>
             <div class="cart-summary-line cart-total-line">
-              <span>Grand Total:</span>
-              <strong id="cartGrandTotalText">${window.formatNaira(subtotal + (activeUser.state ? 3500 : 0))}</strong>
+              <span>Grand Total (${getCartCount()} items):</span>
+              <strong id="cartGrandTotalText" style="color: #087f3b; font-size: 1.25rem;">${window.formatNaira(subtotal)}</strong>
             </div>
           </div>
 
           <!-- Direct One-Click Checkout Button -->
           <button type="button" class="btn btn-primary btn-cart-checkout" id="cartDirectCheckoutBtn">
             ${window.renderIcon('orderNow')}
-            <span>Confirm & Place Order (${window.formatNaira(subtotal + (activeUser.state ? 3500 : 0))})</span>
+            <span>Confirm & Place Order (${window.formatNaira(subtotal)})</span>
           </button>
         `}
       </div>

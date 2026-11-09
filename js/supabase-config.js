@@ -1271,6 +1271,45 @@ window.SupabaseService = {
     return user;
   },
 
+  // ---------------- USER CLOUD CART SYNC (MULTI-DEVICE) ----------------
+  async syncUserCartToCloud(userId, cart) {
+    if (!userId) return false;
+    const cleanCart = Array.isArray(cart) ? cart.map(i => ({
+      id: i.id,
+      title: i.title,
+      price: Number(i.price) || 0,
+      image: i.image || '',
+      category: i.category || '',
+      quantity: Number(i.quantity) || 1
+    })) : [];
+
+    try {
+      await this.request(`nkem_users?id=eq.${encodeURIComponent(userId)}`, {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify({ cart: cleanCart })
+      });
+      return true;
+    } catch (e) {
+      console.warn('Cart cloud sync notice:', e);
+      return false;
+    }
+  },
+
+  async getUserCartFromCloud(userId) {
+    if (!userId) return [];
+    try {
+      const res = await this.request(`nkem_users?id=eq.${encodeURIComponent(userId)}&select=cart`);
+      if (res && Array.isArray(res) && res.length > 0 && Array.isArray(res[0].cart)) {
+        return res[0].cart;
+      }
+      return [];
+    } catch (e) {
+      console.warn('Cart cloud fetch notice:', e);
+      return [];
+    }
+  },
+
   // ---------------- DIRECT USER <-> ADMIN CHAT SYSTEM ----------------
   deduplicateChatMessages(msgs) {
     if (!Array.isArray(msgs)) return [];
