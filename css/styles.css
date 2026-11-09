@@ -2757,6 +2757,7 @@ body.admin-body .c-modal-footer {
   flex-shrink: 0;
   flex-wrap: wrap;
   justify-content: flex-end;
+  margin-left: auto;
 }
 
 /* On 507px and below: move actions (out of stock, eye, edit, delete) below title & text description */
@@ -5742,6 +5743,8 @@ body:not(.admin-body) .details-modal-footer .details-whatsapp-btn:hover {
   box-shadow: none !important;
   padding: clamp(16px, 3vw, 24px);
   margin-bottom: 16px;
+  overflow: hidden;
+  word-break: break-word;
 }
 
 .account-profile-header {
@@ -5749,6 +5752,8 @@ body:not(.admin-body) .details-modal-footer .details-whatsapp-btn:hover {
   align-items: center;
   gap: 14px;
   margin-bottom: 16px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .account-avatar-circle {
@@ -5771,11 +5776,15 @@ body:not(.admin-body) .details-modal-footer .details-whatsapp-btn:hover {
   font-size: 1.15rem;
   font-weight: 800;
   margin-bottom: 2px;
+  word-break: break-word;
 }
 
 .account-user-phone {
   color: #5a6e62;
   font-size: 0.84rem;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 
 .account-support-btn {

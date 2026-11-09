@@ -1388,7 +1388,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             ${(activeUser.address && activeUser.state && activeUser.lga) ? `
               <div style="font-size: 0.85rem; color: #1f2937; line-height: 1.6;">
                 <div><strong style="color: #073b1f;">Deliver To:</strong> ${window.CustomModal.escape((activeUser.first_name || activeUser.name || 'Valued Customer') + (activeUser.last_name ? ' ' + activeUser.last_name : ''))}</div>
-                <div style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;"><span style="color: #25D366; display: inline-flex; align-items: center; font-size: 14px; line-height: 1;">${window.renderIcon('whatsapp')}</span><strong style="color: #073b1f;">WhatsApp:</strong> ${window.CustomModal.escape(activeUser.whatsapp_number || activeUser.phone || '')} ${activeUser.email ? `<span style="color: #5a6e62;">&bull; ${window.CustomModal.escape(activeUser.email)}</span>` : ''}</div>
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                  <span style="color: #25D366; display: inline-flex; align-items: center; font-size: 14px; line-height: 1; flex-shrink: 0;">${window.renderIcon('whatsapp')}</span>
+                  <strong style="color: #073b1f;">WhatsApp:</strong>
+                  <span>${window.CustomModal.escape(activeUser.whatsapp_number || activeUser.phone || '')}</span>
+                </div>
+                ${activeUser.email ? `
+                  <div style="display: flex; align-items: center; gap: 6px; color: #5a6e62; font-size: 0.82rem; word-break: break-all; overflow-wrap: anywhere; margin-top: 3px;">
+                    <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px; flex-shrink: 0; color: #087f3b;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    <span style="word-break: break-all; overflow-wrap: anywhere;">${window.CustomModal.escape(activeUser.email)}</span>
+                  </div>
+                ` : ''}
                 <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #d1ead9;">
                   <strong style="color: #073b1f;">Destination Address:</strong><br />
                   ${window.CustomModal.escape(activeUser.address)}, ${window.CustomModal.escape(activeUser.lga)}, <strong>${window.CustomModal.escape(activeUser.state)} State</strong>
@@ -1732,20 +1742,25 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div class="account-avatar-circle" style="background: #087f3b; color: #ffffff; font-weight: 800; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%;">
             ${isLoggedIn ? avatarInitial : window.renderIcon('account')}
           </div>
-          <div style="flex: 1; min-width: 0;">
+          <div style="flex: 1; min-width: 0; overflow: hidden;">
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-              <h3 class="account-user-name" style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #073b1f;">
+              <h3 class="account-user-name" style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #073b1f; word-break: break-word;">
                 ${window.CustomModal.escape(fullName)}
               </h3>
-              ${isLoggedIn ? `<span style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 700; color: #087f3b; background: #e8f7ee; padding: 2px 8px; border-radius: 999px; border: 1px solid #c2e8d0;">Verified Customer</span>` : ''}
+              ${isLoggedIn ? `<span style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: 700; color: #087f3b; background: #e8f7ee; padding: 2px 8px; border-radius: 999px; border: 1px solid #c2e8d0; flex-shrink: 0;">Verified Customer</span>` : ''}
             </div>
-            <div class="account-user-phone" style="margin-top: 4px;">
+            <div class="account-user-phone" style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem;">
               ${isLoggedIn ? `
-                <div style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: #166534; font-weight: 600;">
-                  <span style="color: #25D366; display: inline-flex; align-items: center; font-size: 14px; line-height: 1;">${window.renderIcon('whatsapp')}</span>
+                <div style="display: flex; align-items: center; gap: 6px; color: #166534; font-weight: 600;">
+                  <span style="color: #25D366; display: inline-flex; align-items: center; font-size: 14px; line-height: 1; flex-shrink: 0;">${window.renderIcon('whatsapp')}</span>
                   <span>${window.CustomModal.escape(phone)}</span>
-                  ${email ? `<span style="color: #5a6e62; font-weight: normal;">&bull; ${window.CustomModal.escape(email)}</span>` : ''}
                 </div>
+                ${email ? `
+                  <div style="display: flex; align-items: center; gap: 6px; color: #5a6e62; font-weight: 500; font-size: 0.78rem; word-break: break-all; overflow-wrap: anywhere; max-width: 100%;">
+                    <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px; flex-shrink: 0; color: #087f3b;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    <span style="word-break: break-all; overflow-wrap: anywhere;">${window.CustomModal.escape(email)}</span>
+                  </div>
+                ` : ''}
               ` : 'Sign in to track orders, manage your profile and chat.'}
             </div>
           </div>
