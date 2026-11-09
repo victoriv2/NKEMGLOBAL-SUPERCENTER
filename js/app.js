@@ -355,9 +355,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
         </div>
 
-        <a href="https://wa.me/2347042087633?text=${encodeURIComponent(`Hello Nkem Global, I am requesting: ${itemQuery}. Please send me 2 best options with pictures within 30 minutes!`)}" target="_blank" rel="noopener" class="btn btn-secondary" style="width: 100%; justify-content: center; padding: 11px; font-weight: 700; color: #166534; border-color: #25D366; text-decoration: none;">
+        <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Global, I am requesting: ${itemQuery}. Please send me 2 best options with pictures within 30 minutes!`)}" target="_blank" rel="noopener" class="btn btn-secondary" style="width: 100%; justify-content: center; padding: 11px; font-weight: 700; color: #166534; border-color: #25D366; text-decoration: none;">
           ${window.renderIcon('whatsapp')}
-          <span>Send Directly on WhatsApp</span>
+          <span>Send Directly on WhatsApp (+234 815 560 8447)</span>
         </a>
       ` : `
         <div style="background: #f7fbf8; border: 1px solid #d1ead9; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between;">
@@ -379,9 +379,9 @@ document.addEventListener('DOMContentLoaded', async () => {
               <span>Submit Sourcing Request (Within 30 Mins)</span>
             </button>
 
-            <a href="https://wa.me/2347042087633?text=${encodeURIComponent(`Hello Nkem Global, I am requesting: ${itemQuery}. Please send me 2 best options with pictures within 30 minutes!`)}" target="_blank" rel="noopener" class="btn btn-secondary" style="width: 100%; justify-content: center; padding: 11px; font-weight: 700; color: #166534; border-color: #25D366; text-decoration: none;">
+            <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Global, I am requesting: ${itemQuery}. Please send me 2 best options with pictures within 30 minutes!`)}" target="_blank" rel="noopener" class="btn btn-secondary" style="width: 100%; justify-content: center; padding: 11px; font-weight: 700; color: #166534; border-color: #25D366; text-decoration: none;">
               ${window.renderIcon('whatsapp')}
-              <span>Send Directly on WhatsApp</span>
+              <span>Send Directly on WhatsApp (+234 815 560 8447)</span>
             </a>
           </div>
         </form>
@@ -1084,7 +1084,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <span>Add to Cart — ${window.formatNaira(prod.price)}</span>
         </button>
 
-        <a href="https://wa.me/2347042087633?text=${encodeURIComponent(`Hello Nkem Global, I would like to order: ${prod.title} (${window.formatNaira(prod.price)}). Is this available?`)}" target="_blank" rel="noopener" class="btn btn-secondary details-whatsapp-btn">
+        <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Global, I would like to order: ${prod.title} (${window.formatNaira(prod.price)}). Is this available?`)}" target="_blank" rel="noopener" class="btn btn-secondary details-whatsapp-btn">
           <span style="color: #25D366; display: inline-flex; align-items: center; font-size: 16px; line-height: 1;">${window.renderIcon('whatsapp')}</span>
           <span>Order on WhatsApp</span>
         </a>
@@ -1277,8 +1277,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           <!-- Account Required Gate (No Unnecessary Forms) -->
           <div class="cart-auth-gate" style="background: #f0fbf4; border: 1.5px solid #087f3b; border-radius: 12px; padding: 22px 18px; text-align: center;">
-            <div style="width: 44px; height: 44px; border-radius: 50%; background: #e2f5ea; color: #087f3b; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto; font-size: 20px;">
-              ${window.renderIcon('user')}
+            <div class="cart-auth-gate-badge" style="width: 44px; height: 44px; border-radius: 50%; background: #e2f5ea; color: #087f3b; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto; font-size: 22px;">
+              <span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; color: #087f3b;">
+                ${window.renderIcon ? (window.renderIcon('user') || window.renderIcon('account')) : ''}
+              </span>
             </div>
             <h4 style="font-size: 1.08rem; font-weight: 900; color: #073b1f; margin-bottom: 6px;">Sign In or Register to Checkout</h4>
             <p style="font-size: 0.84rem; color: #5a6e62; margin-bottom: 18px; line-height: 1.5; max-width: 440px; margin-left: auto; margin-right: auto;">
@@ -1592,7 +1594,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <span>Download Receipt</span>
               </button>
             ` : ''}
-            <a href="https://wa.me/2347042087633?text=${encodeURIComponent(`Hello Nkem Global, I am inquiring about my request (${code}): ${o.product_title}`)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 0.78rem; color: #166534; border-color: #25D366; text-decoration: none;">
+            <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Global, I am inquiring about my request (${code}): ${o.product_title}`)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 0.78rem; color: #166534; border-color: #25D366; text-decoration: none;">
               ${window.renderIcon('whatsapp')}
               <span>WhatsApp Support</span>
             </a>
@@ -1704,10 +1706,10 @@ document.addEventListener('DOMContentLoaded', async () => {
           </span>
         </a>
 
-        <a href="https://wa.me/2347042087633?text=Hello%20Nkem%20Global%2C%20I%20am%20inquiring%20about%20my%20account" target="_blank" rel="noopener" class="account-support-btn">
+        <a href="https://wa.me/2348155608447?text=Hello%20Nkem%20Global%2C%20I%20am%20inquiring%20about%20my%20account" target="_blank" rel="noopener" class="account-support-btn">
           <div class="support-left">
             <span style="color: #25D366;">${window.renderIcon('whatsapp')}</span>
-            <span>WhatsApp Official Support (07042087633)</span>
+            <span>WhatsApp Official Support (+234 815 560 8447)</span>
           </div>
           <span class="support-action-link">
             <span>Chat</span>
@@ -1715,10 +1717,10 @@ document.addEventListener('DOMContentLoaded', async () => {
           </span>
         </a>
 
-        <a href="tel:08155608447" class="account-support-btn">
+        <a href="tel:+2347042087633" class="account-support-btn">
           <div class="support-left">
             <span style="color: #087f3b;">${window.renderIcon('phone')}</span>
-            <span>Direct Phone Call (08155608447)</span>
+            <span>Major Line Call / Support (+234 704 208 7633)</span>
           </div>
           <span class="support-action-link">
             <span>Call</span>

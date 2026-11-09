@@ -446,10 +446,15 @@
             </button>
           </div>
 
-          <div style="text-align: center; margin-top: 10px; font-size: var(--font-xs); color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 6px;">
-            <span style="color: #25D366; display: inline-flex; align-items: center; font-size: 14px; line-height: 1;">${window.renderIcon('whatsapp')}</span>
-            <span>Admin Direct WhatsApp: <strong style="color: var(--accent-gold);">07042087633</strong></span>
-            <button type="button" id="copyAdminWaBtn" style="background: none; border: 1px solid var(--border-color); color: var(--text-main); font-size: 11px; padding: 2px 6px; border-radius: 3px; margin-left: 4px; cursor: pointer;">Copy</button>
+          <div style="text-align: center; margin-top: 10px; font-size: var(--font-xs); color: var(--text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="color: #25D366; display: inline-flex; align-items: center; font-size: 14px; line-height: 1;">${window.renderIcon('whatsapp')}</span>
+              <span>WhatsApp (Glo): <strong style="color: var(--accent-gold);">+234 815 560 8447</strong></span>
+              <button type="button" id="copyAdminWaBtn" style="background: none; border: 1px solid var(--border-color); color: var(--text-main); font-size: 11px; padding: 2px 6px; border-radius: 3px; margin-left: 4px; cursor: pointer;">Copy</button>
+            </div>
+            <div style="font-size: 11px; color: var(--text-subtle);">
+              Major Line: <a href="tel:+2347042087633" style="color: var(--text-main); text-decoration: underline;">+234 704 208 7633</a>
+            </div>
           </div>
 
           <div class="auth-switch-row" style="margin-top: 16px;">
@@ -473,14 +478,14 @@
     });
 
     overlay.querySelector('#copyAdminWaBtn').addEventListener('click', () => {
-      navigator.clipboard.writeText('07042087633');
-      window.CustomModal.toast({ message: 'Admin WhatsApp number (07042087633) copied to clipboard.', type: 'info' });
+      navigator.clipboard.writeText('08155608447');
+      window.CustomModal.toast({ message: 'WhatsApp number (+234 815 560 8447) copied to clipboard.', type: 'info' });
     });
 
     overlay.querySelector('#waContactAdminBtn').addEventListener('click', () => {
       const idVal = overlay.querySelector('#forgotIdentifier').value.trim();
       const message = `Hello Admin, I have forgotten my Nkem Global account password. Please could you verify my identity and recover my login credentials for me?${idVal ? ' My registered details: ' + idVal : ''}`;
-      const url = `https://wa.me/2347042087633?text=${encodeURIComponent(message)}`;
+      const url = `https://wa.me/2348155608447?text=${encodeURIComponent(message)}`;
       window.open(url, '_blank');
     });
   }

@@ -357,11 +357,18 @@ window.SupabaseService = {
     if (cleanProd.created_at) dbPayload.created_at = cleanProd.created_at;
 
     try {
-      await this.request('nkem_products', {
-        method: 'POST',
-        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+      const patchRes = await this.request(`nkem_products?id=eq.${encodeURIComponent(cleanProd.id)}`, {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=representation' },
         body: JSON.stringify(dbPayload)
       });
+      if (!patchRes || (Array.isArray(patchRes) && patchRes.length === 0)) {
+        await this.request('nkem_products', {
+          method: 'POST',
+          headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+          body: JSON.stringify(dbPayload)
+        });
+      }
     } catch (e) {
       console.warn('saveProduct cloud notice:', e);
     }

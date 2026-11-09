@@ -72,7 +72,7 @@ window.ReceiptGenerator = {
 
     ctx.fillStyle = '#9da1ad';
     ctx.font = '14px sans-serif';
-    ctx.fillText('Direct Line: 08155608447  |  WhatsApp: 07042087633', 230, 128);
+    ctx.fillText('WhatsApp: +234 815 560 8447  |  Major Line: +234 704 208 7633', 230, 128);
 
     ctx.fillStyle = '#6d7280';
     ctx.font = '12px sans-serif';
