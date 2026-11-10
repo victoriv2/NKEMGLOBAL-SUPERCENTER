@@ -1002,7 +1002,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ${window.renderIcon('cart')}
                 <span>Add to Cart</span>
               </button>
-              <a href="https://wa.me/2348142414888?text=${encodeURIComponent(`Hello Nkem Global, I would like to order: ${prod.title} (${window.formatNaira(prod.price)}). Is this available?`)}" target="_blank" rel="noopener" class="btn btn-whatsapp-order" title="Order on WhatsApp" onclick="event.stopPropagation();">
+              <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Global, I would like to order: ${prod.title} (${window.formatNaira(prod.price)}). Is this available?`)}" target="_blank" rel="noopener" class="btn btn-whatsapp-order" title="Order on WhatsApp" onclick="event.stopPropagation();">
                 ${window.renderIcon('whatsapp')}
                 <span>Order on WhatsApp</span>
               </a>

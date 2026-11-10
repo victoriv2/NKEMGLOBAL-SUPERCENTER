@@ -5477,6 +5477,7 @@ body:not(.admin-body) .product-card-price {
   justify-content: space-between !important;
   padding: clamp(10px, 1.8vw, 16px) !important;
   gap: 6px !important;
+  overflow: hidden !important;
 }
 
 .product-grid.list-view .product-card-title {
@@ -5601,9 +5602,12 @@ body:not(.admin-body) .product-card-price {
   align-items: center !important;
   justify-content: space-between !important;
   gap: 8px !important;
+  flex-wrap: wrap !important;
   margin-top: auto !important;
   padding-top: 8px !important;
   border-top: 1px solid #eef7f1 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .product-grid.list-view .btn-whatsapp-order {
@@ -5612,6 +5616,8 @@ body:not(.admin-body) .product-card-price {
   min-width: 0 !important;
   padding: 7px 10px !important;
   font-size: clamp(0.72rem, 1.8vw, 0.8rem) !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 
 .product-grid.list-view .btn-add-to-cart {
@@ -5620,33 +5626,110 @@ body:not(.admin-body) .product-card-price {
   min-width: 0 !important;
   padding: 7px 10px !important;
   font-size: clamp(0.72rem, 1.8vw, 0.8rem) !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 
-@media (max-width: 480px) {
+.product-grid.list-view .btn-whatsapp-order span,
+.product-grid.list-view .btn-add-to-cart span {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Tablet & Mobile Breakpoint (<= 540px) - Clean Stacked Layout so both buttons fit perfectly with 100% width */
+@media (max-width: 540px) {
   .product-grid.list-view .product-card {
-    min-height: 120px !important;
+    min-height: 136px !important;
+    height: auto !important;
   }
+
   .product-grid.list-view .product-card-img-wrap {
-    width: 100px !important;
-    min-width: 100px !important;
-    max-width: 100px !important;
+    width: clamp(96px, 28vw, 120px) !important;
+    min-width: clamp(96px, 28vw, 120px) !important;
+    max-width: clamp(96px, 28vw, 120px) !important;
+    align-self: stretch !important;
+    height: auto !important;
   }
+
   .product-grid.list-view .product-card-content {
-    padding: 10px 12px !important;
+    padding: 8px 10px !important;
+    gap: 4px !important;
+    overflow: hidden !important;
+  }
+
+  .product-grid.list-view .product-card-footer {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 5px !important;
+    margin-top: auto !important;
+    padding-top: 6px !important;
+    border-top: 1px solid #eef7f1 !important;
+    width: 100% !important;
+  }
+
+  .product-grid.list-view .btn-add-to-cart {
+    order: 1 !important;
+    width: 100% !important;
+    flex: none !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    padding: 0 8px !important;
+    font-size: 0.74rem !important;
+    border-radius: 6px !important;
+  }
+
+  .product-grid.list-view .btn-whatsapp-order {
+    order: 2 !important;
+    width: 100% !important;
+    flex: none !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    padding: 0 8px !important;
+    font-size: 0.74rem !important;
+    border-radius: 6px !important;
+  }
+
+  .product-grid:not(.list-view) .btn-whatsapp-order,
+  .product-grid:not(.list-view) .btn-add-to-cart {
+    padding: 7px 8px !important;
+    font-size: 0.72rem !important;
     gap: 4px !important;
   }
-  .product-grid.list-view .product-card-footer {
-    gap: 6px !important;
+}
+
+/* Small mobile phones (<= 360px) */
+@media (max-width: 360px) {
+  .product-grid.list-view .product-card-img-wrap {
+    width: 86px !important;
+    min-width: 86px !important;
+    max-width: 86px !important;
   }
-  .product-grid.list-view .btn-whatsapp-order,
-  .product-grid.list-view .btn-add-to-cart {
-    padding: 6px 6px !important;
+
+  .product-grid.list-view .product-card-content {
+    padding: 6px 8px !important;
+    gap: 3px !important;
+  }
+
+  .product-grid.list-view .btn-add-to-cart,
+  .product-grid.list-view .btn-whatsapp-order {
+    height: 28px !important;
+    min-height: 28px !important;
     font-size: 0.7rem !important;
+    padding: 0 6px !important;
+    gap: 4px !important;
+  }
+
+  .product-grid.list-view .btn-add-to-cart .svg-icon,
+  .product-grid.list-view .btn-whatsapp-order .svg-icon {
+    width: 13px !important;
+    height: 13px !important;
   }
 }
 
-/* From 326px to 480px the description should show */
-@media (min-width: 326px) and (max-width: 480px) {
+/* From 326px to 540px the description should show */
+@media (min-width: 326px) and (max-width: 540px) {
   .product-grid.list-view .product-card-desc {
     display: -webkit-box !important;
     -webkit-line-clamp: 2 !important;
