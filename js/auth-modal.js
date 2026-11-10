@@ -449,7 +449,7 @@
           <div style="text-align: center; margin-top: 10px; font-size: var(--font-xs); color: var(--text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;">
             <div style="display: flex; align-items: center; gap: 6px;">
               <span style="color: #25D366; display: inline-flex; align-items: center; font-size: 14px; line-height: 1;">${window.renderIcon('whatsapp')}</span>
-              <span>WhatsApp (Glo): <strong style="color: var(--accent-gold);">+234 815 560 8447</strong></span>
+              <span>WhatsApp: <strong style="color: var(--accent-gold);">+234 815 560 8447</strong></span>
               <button type="button" id="copyAdminWaBtn" style="background: none; border: 1px solid var(--border-color); color: var(--text-main); font-size: 11px; padding: 2px 6px; border-radius: 3px; margin-left: 4px; cursor: pointer;">Copy</button>
             </div>
             <div style="font-size: 11px; color: var(--text-subtle);">
