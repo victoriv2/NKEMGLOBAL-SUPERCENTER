@@ -152,6 +152,20 @@ window.SupabaseService = {
         ],
         sort_order: 1,
         created_at: new Date().toISOString()
+      },
+      {
+        id: 'prod-mercedes-gle-coupe-2019',
+        title: 'Mercedes-Benz GLE Coupe (AMG) 2019',
+        description: 'This is not just a car, this is a STATEMENT.\n\nColor: Stunning Matte Burgundy / Maroon (Wrapped)\nEngine: 3.0L V6 Bi-Turbo Petrol - 367HP\nDrive: 4MATIC All-Wheel Drive\nGearbox: 9-Speed Automatic\n\nFEATURES:\n- Panoramic Sunroof\n- AMG Diamond Grille & AMG Alloy Wheels\n- AMG Sports Leather Seats\n- Ambient Lighting\n- Burmester Sound System\n- Reverse Camera + Parking Sensors\n- Electric Memory Seats\n- Keyless Entry\n- Side Steps\n\nCONDITION: Tokunbo American spec\nPRICE: ₦69,000,000\nCALL / WHATSAPP: 07042087633\n\nSerious Buyers Only Please. First Come, First Served!',
+        price: 69000000,
+        category_id: 'cat-vehicles',
+        in_stock: true,
+        is_hidden: false,
+        images: [
+          'assets/products/mercedes-benz-gle-coupe-2019.jpg'
+        ],
+        sort_order: 2,
+        created_at: new Date().toISOString()
       }
     ];
   },
