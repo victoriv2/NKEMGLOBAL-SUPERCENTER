@@ -3619,19 +3619,28 @@ body.chat-body .chat-page-card.hidden {
   box-sizing: border-box;
   cursor: pointer;
   transition: var(--transition-fast);
+  overflow: hidden;
+  position: relative;
 }
 
 .chat-order-card-bubble:hover {
-  border-color: #f3d078;
-  background-color: #1a1d26;
+  border-color: #b38d45 !important;
+  background-color: #fcf9f2 !important;
+}
+
+.chat-order-card-bubble:hover .chat-order-card-footer {
+  color: #087f3b !important;
 }
 
 .chat-order-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 8px;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .chat-order-card-tag {
@@ -3643,15 +3652,29 @@ body.chat-body .chat-page-card.hidden {
   color: var(--accent-gold);
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
 }
 
 .chat-order-card-badge {
   font-size: 10px;
   font-weight: 700;
-  padding: 2px 7px;
+  padding: 3px 8px;
   border-radius: var(--radius-sm);
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1.2;
+  box-sizing: border-box;
+  margin: 0;
+  vertical-align: middle;
 }
 
 .order-card-status-pending {
