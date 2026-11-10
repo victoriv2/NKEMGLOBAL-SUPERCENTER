@@ -6271,11 +6271,47 @@ body:not(.admin-body) .details-modal-footer .details-whatsapp-btn:hover {
   justify-content: center;
   gap: 8px;
   box-shadow: 0 4px 14px rgba(8, 127, 59, 0.3);
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, transform 0.1s ease;
 }
 
 .btn-cart-checkout:hover {
   background-color: #065f2c;
+}
+
+.btn-cart-whatsapp {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px 14px;
+  background-color: #f7fbf8;
+  color: #166534;
+  border: 1.5px solid #25D366;
+  border-radius: 10px;
+  font-size: 0.98rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.15);
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.btn-cart-whatsapp:hover {
+  background-color: #e2f5ea;
+  border-color: #166534;
+  color: #0d4a22;
+}
+
+.btn-cart-whatsapp .svg-icon,
+.btn-cart-whatsapp .svg-whatsapp {
+  width: 20px !important;
+  height: 20px !important;
+  color: #25D366 !important;
+  fill: #25D366 !important;
+  flex-shrink: 0 !important;
 }
 
 /* ---------------- 7. REQUESTS VIEW (ORDERS & SOURCING REQUESTS) ---------------- */

@@ -1426,6 +1426,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <span>Create Free Account</span>
               </button>
             </div>
+
+            <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #d1ead9; width: 100%;">
+              <button type="button" class="btn btn-cart-whatsapp" id="cartGuestWhatsAppCheckoutBtn">
+                ${window.renderIcon('whatsapp')}
+                <span>Order on WhatsApp (${window.formatNaira(subtotal)})</span>
+              </button>
+            </div>
           </div>
         ` : `
           <!-- Verified Account Delivery Details (No Forms To Fill) -->
@@ -1489,9 +1496,57 @@ document.addEventListener('DOMContentLoaded', async () => {
             ${window.renderIcon('orderNow')}
             <span>Confirm & Place Order (${window.formatNaira(subtotal)})</span>
           </button>
+
+          <!-- Order on WhatsApp Underneath -->
+          <button type="button" class="btn btn-cart-whatsapp" id="cartWhatsAppCheckoutBtn">
+            ${window.renderIcon('whatsapp')}
+            <span>Order on WhatsApp (${window.formatNaira(subtotal)})</span>
+          </button>
         `}
       </div>
     `;
+
+    // Handler to compile cart items and open WhatsApp templated chat
+    const handleWhatsAppCartOrder = () => {
+      const currentCart = getCart();
+      if (!currentCart || currentCart.length === 0) {
+        if (window.showToast) window.showToast('Your cart is empty', 'warning');
+        return;
+      }
+
+      let grandTotal = 0;
+      let totalQty = 0;
+      const itemLines = currentCart.map((item, idx) => {
+        const qty = Number(item.quantity) || 1;
+        const price = Number(item.price) || 0;
+        const lineTotal = price * qty;
+        grandTotal += lineTotal;
+        totalQty += qty;
+        return `${idx + 1}. *${item.title}* (Qty: ${qty}) — ${window.formatNaira(lineTotal)}`;
+      });
+
+      let customerDetailsText = '';
+      if (activeUser && (activeUser.first_name || activeUser.name || activeUser.address)) {
+        const fullName = `${activeUser.first_name || activeUser.name || ''} ${activeUser.last_name || ''}`.trim() || 'Valued Customer';
+        const phone = (activeUser.whatsapp_number || activeUser.phone || '').trim();
+        const address = (activeUser.address || '').trim();
+        const stateName = (activeUser.state || '').trim();
+        const lgaName = (activeUser.lga || '').trim();
+
+        customerDetailsText = `\n\n*Customer Delivery Information:*\n• Name: ${fullName}`;
+        if (phone) customerDetailsText += `\n• WhatsApp / Phone: ${phone}`;
+        if (address) {
+          customerDetailsText += `\n• Destination: ${address}${lgaName ? ', ' + lgaName : ''}${stateName ? ', ' + stateName + ' State' : ''}`;
+        }
+      } else {
+        customerDetailsText = `\n\n*Customer Information:*\n• Guest Order (I will provide delivery address via this chat)`;
+      }
+
+      const orderMessage = `Hello Nkem Global, I would like to order the following items from my cart:\n\n${itemLines.join('\n')}\n\n*Total Items:* ${totalQty}\n*Grand Total:* *${window.formatNaira(grandTotal)}*${customerDetailsText}\n\nPlease confirm availability and payment details. Thank you!`;
+
+      const whatsappUrl = `https://wa.me/2348155608447?text=${encodeURIComponent(orderMessage)}`;
+      window.open(whatsappUrl, '_blank');
+    };
 
     // Quantity controls
     container.querySelectorAll('.cart-qty-minus').forEach(btn => {
@@ -1504,7 +1559,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       btn.addEventListener('click', () => removeFromCart(btn.getAttribute('data-id')));
     });
 
-    // Unauthenticated: Direct triggers to Login / Sign Up
+    // Unauthenticated: Direct triggers to Login / Sign Up / WhatsApp
     if (!isLoggedIn) {
       container.querySelector('#cartPromptSignInBtn')?.addEventListener('click', () => {
         if (window.AuthModal) window.AuthModal.showSignIn(() => renderCartView());
@@ -1512,8 +1567,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       container.querySelector('#cartPromptSignUpBtn')?.addEventListener('click', () => {
         if (window.AuthModal) window.AuthModal.showSignUp(() => renderCartView());
       });
+      container.querySelector('#cartGuestWhatsAppCheckoutBtn')?.addEventListener('click', handleWhatsAppCartOrder);
       return;
     }
+
+    // Authenticated WhatsApp Order Button
+    container.querySelector('#cartWhatsAppCheckoutBtn')?.addEventListener('click', handleWhatsAppCartOrder);
 
     // Authenticated: Address Management
     const openAddressEditor = () => {
