@@ -1288,8 +1288,7 @@ window.SupabaseService = {
       email: cleanEmail || null,
       state: (profileData.state || users[idx].state).trim(),
       lga: (profileData.lga || users[idx].lga).trim(),
-      address: (profileData.address || users[idx].address).trim(),
-      updated_at: new Date().toISOString()
+      address: (profileData.address || users[idx].address).trim()
     };
 
     users[idx] = updatedUser;
@@ -1300,41 +1299,65 @@ window.SupabaseService = {
       this.setCurrentUser(updatedUser);
     }
 
+    const dbPayload = {
+      first_name: updatedUser.first_name,
+      last_name: updatedUser.last_name,
+      whatsapp_number: updatedUser.whatsapp_number,
+      email: updatedUser.email,
+      state: updatedUser.state,
+      lga: updatedUser.lga,
+      address: updatedUser.address
+    };
+
     await this.request(`nkem_users?id=eq.${encodeURIComponent(userId)}`, {
       method: 'PATCH',
       headers: { 'Prefer': 'return=representation' },
-      body: JSON.stringify(updatedUser)
+      body: JSON.stringify(dbPayload)
     });
 
     return updatedUser;
   },
 
   async changeUserPassword(userId, oldPassword, newPassword) {
-    const users = await this.getUsers();
-    const idx = users.findIndex(u => u.id === userId);
-    if (idx === -1) throw new Error('User account not found.');
+    if (!userId) throw new Error('User ID is required.');
+    const cleanOld = String(oldPassword || '').trim();
+    const cleanNew = String(newPassword || '').trim();
 
-    if (users[idx].password_hash !== oldPassword) {
+    if (!cleanOld) throw new Error('Please enter your current password.');
+    if (!cleanNew || cleanNew.length < 6) throw new Error('New password must be at least 6 characters.');
+    if (cleanNew === cleanOld) throw new Error('New password must be different from current password.');
+
+    let users = await this.getUsers();
+    let idx = users.findIndex(u => u.id === userId);
+
+    if (idx === -1) {
+      const cur = this.getCurrentUser();
+      if (cur && cur.id === userId) {
+        users.unshift(cur);
+        idx = 0;
+      } else {
+        throw new Error('User account not found.');
+      }
+    }
+
+    const currentHash = String(users[idx].password_hash || '').trim();
+    if (currentHash !== cleanOld) {
       throw new Error('Current password is incorrect. Please recheck your old password.');
     }
 
-    if (!newPassword || newPassword.length < 6) {
-      throw new Error('New password must be at least 6 characters.');
-    }
-
-    users[idx].password_hash = newPassword;
-    users[idx].updated_at = new Date().toISOString();
+    users[idx].password_hash = cleanNew;
     localStorage.setItem('nkem_local_users', JSON.stringify(users));
 
     const current = this.getCurrentUser();
     if (current && current.id === userId) {
-      this.setCurrentUser(users[idx]);
+      current.password_hash = cleanNew;
+      this.setCurrentUser(current);
     }
 
     await this.request(`nkem_users?id=eq.${encodeURIComponent(userId)}`, {
       method: 'PATCH',
       headers: { 'Prefer': 'return=representation' },
-      body: JSON.stringify({ password_hash: newPassword, updated_at: users[idx].updated_at })
+      body: JSON.stringify({ password_hash: cleanNew })
     });
 
     return true;
@@ -1837,6 +1860,7 @@ window.SupabaseService = {
   async updateAdminPasswordCloud(newPassword) {
     const cleanPass = String(newPassword).trim();
     if (!cleanPass) throw new Error('Password cannot be empty.');
+    if (cleanPass.length < 6) throw new Error('New password must be at least 6 characters.');
 
     // 1. Update master admin record in Supabase
     await this.request('nkem_users?id=eq.usr-admin-master', {

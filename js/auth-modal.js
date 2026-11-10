@@ -780,9 +780,9 @@
     // Password Submit
     passwordChangeForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const oldPwd = overlay.querySelector('#oldPassword').value;
-      const newPwd = overlay.querySelector('#newPassword').value;
-      const confirmPwd = overlay.querySelector('#confirmNewPassword').value;
+      const oldPwd = (overlay.querySelector('#oldPassword')?.value || '').trim();
+      const newPwd = (overlay.querySelector('#newPassword')?.value || '').trim();
+      const confirmPwd = (overlay.querySelector('#confirmNewPassword')?.value || '').trim();
 
       if (!oldPwd) {
         window.CustomModal.toast({ message: 'Please enter your current password.', type: 'warning' });
@@ -794,6 +794,10 @@
       }
       if (newPwd !== confirmPwd) {
         window.CustomModal.toast({ message: 'New passwords do not match. Please retype carefully.', type: 'danger' });
+        return;
+      }
+      if (newPwd === oldPwd) {
+        window.CustomModal.toast({ message: 'New password must be different from current password.', type: 'warning' });
         return;
       }
 

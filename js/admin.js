@@ -2625,14 +2625,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         if (window.SupabaseService && typeof window.SupabaseService.updateAdminPasswordCloud === 'function') {
           await window.SupabaseService.updateAdminPasswordCloud(newPass);
-        } else {
-          saveAdminCredentials(creds.username, newPass);
         }
-        showPasswordMsg('Admin password updated successfully in Supabase database!', 'success');
-        window.CustomModal.toast({ message: 'Admin password updated successfully in Supabase database!', type: 'success' });
+        saveAdminCredentials(creds.username, newPass);
+        showPasswordMsg('Admin password updated successfully!', 'success');
+        window.CustomModal.toast({ message: 'Admin password updated successfully!', type: 'success' });
         changePasswordForm.reset();
       } catch (err) {
-        showPasswordMsg('Failed to update password in Supabase: ' + (err.message || 'Network error'), 'danger');
+        showPasswordMsg('Failed to update password: ' + (err.message || 'Error occurred'), 'danger');
       } finally {
         if (submitBtn) {
           submitBtn.disabled = false;
