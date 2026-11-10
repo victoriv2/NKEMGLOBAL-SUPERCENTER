@@ -990,12 +990,22 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div class="product-card-content">
             <h3 class="product-card-title">${window.CustomModal.escape(prod.title)}</h3>
             <p class="product-card-desc">${window.CustomModal.escape(prodDesc)}</p>
-            <div class="product-card-footer">
+            <div class="product-card-list-price">
               <span class="product-card-price">${window.formatNaira(prod.price)}</span>
+            </div>
+            <div class="product-card-divider"></div>
+            <div class="product-card-grid-price">
+              <span class="product-card-price">${window.formatNaira(prod.price)}</span>
+            </div>
+            <div class="product-card-footer">
               <button class="btn btn-add-to-cart" type="button" data-id="${prod.id}" title="Add to Cart">
                 ${window.renderIcon('cart')}
                 <span>Add to Cart</span>
               </button>
+              <a href="https://wa.me/2348142414888?text=${encodeURIComponent(`Hello Nkem Global, I would like to order: ${prod.title} (${window.formatNaira(prod.price)}). Is this available?`)}" target="_blank" rel="noopener" class="btn btn-whatsapp-order" title="Order on WhatsApp" onclick="event.stopPropagation();">
+                ${window.renderIcon('whatsapp')}
+                <span>Order on WhatsApp</span>
+              </a>
             </div>
           </div>
         </article>
@@ -1053,7 +1063,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Card click opens details modal
     productGrid.querySelectorAll('.product-card').forEach(card => {
       card.addEventListener('click', (e) => {
-        if (e.target.closest('.btn-add-to-cart')) return;
+        if (e.target.closest('.btn-add-to-cart') || e.target.closest('.btn-whatsapp-order')) return;
         const prodId = card.getAttribute('data-prod-id');
         openProductDetailsModal(prodId);
       });
