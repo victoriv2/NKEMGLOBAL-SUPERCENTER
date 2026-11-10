@@ -14,19 +14,19 @@ window.ReceiptGenerator = {
     canvas.width = w;
     canvas.height = h;
 
-    // Flat Dark Theme Background
-    ctx.fillStyle = '#0b0c0e';
+    // Clean White Theme Background
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, w, h);
 
-    // Outer Crisp Border
-    ctx.strokeStyle = '#c5a059';
-    ctx.lineWidth = 4;
+    // Outer Crisp Green Border
+    ctx.strokeStyle = '#087f3b';
+    ctx.lineWidth = 3;
     ctx.strokeRect(16, 16, w - 32, h - 32);
 
-    // Inner Header Card
-    ctx.fillStyle = '#14151a';
+    // Inner Header Card (Mint Tint)
+    ctx.fillStyle = '#f4fbf7';
     ctx.fillRect(24, 24, w - 48, 150);
-    ctx.strokeStyle = '#272a35';
+    ctx.strokeStyle = '#d1ead9';
     ctx.lineWidth = 1;
     ctx.strokeRect(24, 24, w - 48, 150);
 
@@ -36,9 +36,9 @@ window.ReceiptGenerator = {
       ctx.drawImage(logoImg, 46, 59, 160, 80);
     } catch (e) {
       // Fallback logo box
-      ctx.fillStyle = '#000';
+      ctx.fillStyle = '#087f3b';
       ctx.fillRect(46, 59, 160, 80);
-      ctx.fillStyle = '#c5a059';
+      ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 24px sans-serif';
       ctx.fillText('NKEM GLOBAL', 52, 108);
     }
@@ -62,50 +62,50 @@ window.ReceiptGenerator = {
     const productTitle = order.product_title || 'Italian Bespoke Wool Tailored Suit';
     const placedDate = order.created_at ? new Date(order.created_at).toLocaleString() : new Date().toLocaleString();
 
-    ctx.fillStyle = '#f5f6f8';
+    ctx.fillStyle = '#073b1f';
     ctx.font = 'bold 34px sans-serif';
     ctx.fillText('NKEM GLOBAL', 230, 72);
 
-    ctx.fillStyle = '#c5a059';
+    ctx.fillStyle = '#087f3b';
     ctx.font = 'bold 15px sans-serif';
     ctx.fillText(`OFFICIAL ORDER RECEIPT • #${ordRef}`, 230, 100);
 
-    ctx.fillStyle = '#9da1ad';
+    ctx.fillStyle = '#5a6e62';
     ctx.font = '14px sans-serif';
     ctx.fillText('WhatsApp: +234 815 560 8447  |  Major Line: +234 704 208 7633', 230, 128);
 
-    ctx.fillStyle = '#6d7280';
+    ctx.fillStyle = '#7d9285';
     ctx.font = '12px sans-serif';
     ctx.fillText('Nationwide Delivery  •  Direct Support', 230, 150);
 
     // Order Details Section
     let curY = 216;
-    ctx.fillStyle = '#f5f6f8';
+    ctx.fillStyle = '#073b1f';
     ctx.font = 'bold 20px sans-serif';
     ctx.fillText('ORDER SPECIFICATIONS', 40, curY);
 
     curY += 15;
-    ctx.strokeStyle = '#272a35';
+    ctx.strokeStyle = '#d1ead9';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(40, curY);
     ctx.lineTo(w - 40, curY);
     ctx.stroke();
 
-    const drawRow = (label, value) => {
+    const drawRow = (label, value, isHighlight = false) => {
       curY += 38;
-      ctx.fillStyle = '#9da1ad';
+      ctx.fillStyle = '#5a6e62';
       ctx.font = '600 16px sans-serif';
       ctx.fillText(label, 40, curY);
 
-      ctx.fillStyle = '#f5f6f8';
-      ctx.font = '16px sans-serif';
+      ctx.fillStyle = isHighlight ? '#087f3b' : '#2d3748';
+      ctx.font = isHighlight ? 'bold 17px sans-serif' : '16px sans-serif';
       ctx.fillText(String(value || 'N/A'), 260, curY);
     };
 
     drawRow('Order Reference ID:', '#' + ordRef);
     drawRow('Product:', productTitle);
-    drawRow('Amount / Price:', window.formatNaira(priceNum));
+    drawRow('Amount / Price:', window.formatNaira(priceNum), true);
     drawRow('Customer Name:', customerName);
     drawRow('WhatsApp Number:', customerPhone);
     if (customerEmail) drawRow('Email Address:', customerEmail);
@@ -115,7 +115,7 @@ window.ReceiptGenerator = {
     drawRow('Order Placed At:', placedDate);
 
     // Subtle divider above footer
-    ctx.strokeStyle = '#272a35';
+    ctx.strokeStyle = '#d1ead9';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(40, 670);
@@ -123,13 +123,13 @@ window.ReceiptGenerator = {
     ctx.stroke();
 
     // Verification Note
-    ctx.fillStyle = '#9da1ad';
-    ctx.font = '13px sans-serif';
+    ctx.fillStyle = '#087f3b';
+    ctx.font = '600 13px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('Verified Order • Track order status directly via customer account or live chat.', w / 2, 700);
 
     // Footer note
-    ctx.fillStyle = '#6d7280';
+    ctx.fillStyle = '#7d9285';
     ctx.font = '12px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('© Nkem Global — Verified Quality & Nationwide Delivery. All rights reserved.', w / 2, 735);
@@ -330,7 +330,7 @@ window.openChatOrderDetailsModal = function(orderData, isAdmin = false) {
   const modalOverlay = document.createElement('div');
   modalOverlay.className = 'c-modal-overlay active';
   modalOverlay.id = 'chatOrderDetailsModalOverlay';
-  modalOverlay.style.cssText = 'position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 2147483600 !important; display: flex !important; align-items: center !important; justify-content: center !important; background: rgba(6, 7, 9, 0.94) !important; opacity: 1 !important; pointer-events: auto !important; padding: 16px !important; box-sizing: border-box !important;';
+  modalOverlay.style.cssText = 'position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 2147483600 !important; display: flex !important; align-items: center !important; justify-content: center !important; background: rgba(7, 35, 20, 0.8) !important; opacity: 1 !important; pointer-events: auto !important; padding: 16px !important; box-sizing: border-box !important;';
 
   const getStatusBadge = (st) => {
     const s = String(st || 'pending').toLowerCase();
@@ -368,7 +368,7 @@ window.openChatOrderDetailsModal = function(orderData, isAdmin = false) {
           <img src="${coverImg}" alt="${window.CustomModal ? window.CustomModal.escape(fullOrder.product_title || 'Product') : 'Product'}" style="width: 80px; height: 80px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border-color); flex-shrink: 0; cursor: pointer;" id="chatOrderModalThumb" title="Click to view full image" />
           <div style="flex: 1; min-width: 0;">
             <h4 style="margin: 0 0 4px 0; font-size: var(--font-sm); color: var(--text-main); font-weight: 700;">${window.CustomModal ? window.CustomModal.escape(fullOrder.product_title || 'Product Item') : fullOrder.product_title}</h4>
-            <div style="font-size: var(--font-md); font-weight: 700; color: var(--accent-gold);">${window.formatNaira ? window.formatNaira(fullOrder.product_price || 0) : '₦' + (fullOrder.product_price || 0)}</div>
+            <div style="font-size: var(--font-md); font-weight: 700; color: #087f3b;">${window.formatNaira ? window.formatNaira(fullOrder.product_price || 0) : '₦' + (fullOrder.product_price || 0)}</div>
             <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; font-family: monospace;">Order ID: <strong>${String(orderId || '').toUpperCase()}</strong></div>
           </div>
         </div>

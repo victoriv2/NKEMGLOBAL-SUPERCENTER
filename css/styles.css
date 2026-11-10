@@ -39,12 +39,12 @@
   --accent-whatsapp: #25D366;
   --accent-whatsapp-hover: #20ba5a;
 
-  /* Luxury Gold Accent */
-  --accent-gold: #c5a059;
-  --accent-gold-hover: #b38d45;
-  --accent-gold-active: #9f7b34;
-  --accent-gold-subtle: #fbf6ec;
-  --accent-gold-border: #e8d7b3;
+  /* Site Theme Greens (Primary Brand Palette) */
+  --accent-gold: #087f3b;
+  --accent-gold-hover: #065f2c;
+  --accent-gold-active: #054821;
+  --accent-gold-subtle: #e8f7ee;
+  --accent-gold-border: #a1d7b3;
 
   /* Functional Status Colors */
   --status-success: #059669;
@@ -354,7 +354,7 @@ body {
 /* ---------------- HERO BANNER SLIDER (LANDSCAPE BRAND BANNER, TOUCH GESTURE ONLY) ---------------- */
 .banner-section {
   width: 100%;
-  background-color: #0b0c0e;
+  background-color: var(--bg-main);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: center;
@@ -367,7 +367,7 @@ body {
   aspect-ratio: 16 / 9;
   max-height: clamp(240px, 45vw, 480px);
   overflow: hidden;
-  background-color: #000;
+  background-color: var(--bg-main);
   user-select: none;
   cursor: default;
 }
@@ -387,7 +387,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #000;
+  background-color: var(--bg-main);
 }
 
 .banner-img {
@@ -395,7 +395,7 @@ body {
   height: 100%;
   object-fit: cover;
   object-position: center;
-  background-color: #000;
+  background-color: var(--bg-main);
   display: block;
 }
 
@@ -704,7 +704,7 @@ body {
   position: fixed !important;
   inset: 0 !important;
   z-index: 2147483620 !important;
-  background-color: rgba(6, 7, 9, 0.9) !important;
+  background-color: rgba(7, 35, 20, 0.78) !important;
   display: flex;
   opacity: 0;
   pointer-events: none;
@@ -942,7 +942,7 @@ body {
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
-  background-color: #0b0c0e;
+  background-color: var(--bg-main);
   overflow: hidden;
 }
 
@@ -1051,7 +1051,7 @@ body {
 .product-card-price {
   font-size: var(--font-lg);
   font-weight: 700;
-  color: var(--accent-gold);
+  color: var(--primary-green);
   white-space: nowrap;
 }
 
@@ -1059,9 +1059,9 @@ body {
   font-size: var(--font-sm);
   font-weight: 600;
   padding: 8px 14px;
-  background-color: var(--accent-gold);
+  background-color: var(--primary-green);
   color: var(--text-inverted);
-  border: 1px solid var(--accent-gold);
+  border: 1px solid var(--primary-green);
   border-radius: var(--radius-sm);
   cursor: pointer;
   display: inline-flex;
@@ -1075,8 +1075,8 @@ body {
 }
 
 .btn-order-now:hover {
-  background-color: var(--accent-gold-hover);
-  border-color: var(--accent-gold-hover);
+  background-color: var(--primary-green-dark);
+  border-color: var(--primary-green-dark);
 }
 
 /* ---------------- LIST VIEW ARRANGEMENT (GRID / LIST TOGGLE) ---------------- */
@@ -1198,14 +1198,14 @@ body {
 }
 
 .btn-primary {
-  background-color: var(--accent-gold);
+  background-color: var(--primary-green);
   color: var(--text-inverted);
-  border-color: var(--accent-gold);
+  border-color: var(--primary-green);
 }
 
 .btn-primary:hover {
-  background-color: var(--accent-gold-hover);
-  border-color: var(--accent-gold-hover);
+  background-color: var(--primary-green-dark);
+  border-color: var(--primary-green-dark);
 }
 
 .btn-secondary {
@@ -1252,7 +1252,7 @@ body {
   position: fixed !important;
   inset: 0 !important;
   z-index: 2147483600 !important;
-  background-color: rgba(6, 7, 9, 0.92) !important;
+  background-color: rgba(7, 35, 20, 0.8) !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1702,7 +1702,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.25) !important;
   box-shadow: none !important;
   display: block !important;
-  background-color: #07090c !important;
+  background-color: transparent !important;
 }
 
 .full-view-close-under {
@@ -1711,8 +1711,8 @@ body {
   height: 44px !important;
   min-width: 44px !important;
   min-height: 44px !important;
-  background-color: #14151a !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.45) !important;
+  background-color: #087f3b !important;
+  border: 1.5px solid #a1d7b3 !important;
   color: #fff !important;
   border-radius: var(--radius-full) !important;
   display: flex !important;
@@ -1726,8 +1726,8 @@ body {
 }
 
 .full-view-close-under:hover {
-  background-color: var(--status-danger) !important;
-  border-color: var(--status-danger) !important;
+  background-color: #065f2c !important;
+  border-color: #087f3b !important;
   color: #fff !important;
 }
 
@@ -1932,12 +1932,12 @@ body {
   width: clamp(34px, 5vw, 42px);
   height: clamp(34px, 5vw, 42px);
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border-color);
-  background-color: #000;
+  border: 1px solid #065f2c;
+  background-color: #087f3b;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent-gold);
+  color: #ffffff;
 }
 
 .chat-header-title {
@@ -2093,8 +2093,8 @@ body {
 }
 
 .chat-msg-actions-btn:hover {
-  color: var(--text-main);
-  background-color: var(--bg-surface-elevated);
+  color: #087f3b;
+  background-color: #e2f5ea;
 }
 
 /* Chat Input Bar - Matched styling across User Chat & Admin Chat */
@@ -2813,7 +2813,7 @@ body.admin-body .c-modal-footer {
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
   object-fit: cover;
-  background-color: #000;
+  background-color: var(--bg-main);
   flex-shrink: 0;
 }
 
@@ -3257,8 +3257,9 @@ body.admin-body .c-modal-footer {
   padding: 0 5px;
   font-size: 11px;
   font-weight: 700;
-  color: #0b0c0e;
-  background-color: var(--accent-gold);
+  color: #ffffff;
+  background-color: #087f3b;
+  border: 1px solid #065f2c;
   border-radius: var(--radius-full);
   margin-left: 6px;
   line-height: 1;
@@ -3572,10 +3573,10 @@ body.chat-body .chat-page-card.hidden {
 }
 
 .btn-see-more {
-  background-color: var(--bg-surface-elevated);
-  color: var(--accent-gold);
-  border: 1px solid var(--border-color);
-  font-weight: 600;
+  background-color: #ffffff;
+  color: #087f3b;
+  border: 1px solid #d1ead9;
+  font-weight: 700;
   font-size: var(--font-sm);
   padding: 12px 28px;
   border-radius: var(--radius-sm);
@@ -3590,9 +3591,9 @@ body.chat-body .chat-page-card.hidden {
 }
 
 .btn-see-more:hover:not(:disabled) {
-  background-color: var(--bg-surface);
-  border-color: var(--accent-gold);
-  color: var(--accent-gold-hover);
+  background-color: #e2f5ea;
+  border-color: #087f3b;
+  color: #065f2c;
   transform: none !important;
   box-shadow: none !important;
 }
@@ -3611,8 +3612,8 @@ body.chat-body .chat-page-card.hidden {
 /* ---------------- CHAT SPECIAL ORDER CARD BUBBLE ---------------- */
 .chat-order-card-bubble {
   max-width: min(88vw, 360px);
-  background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--accent-gold);
+  background-color: #ffffff;
+  border: 1px solid #d1ead9;
   border-radius: var(--radius-md);
   padding: 12px;
   display: flex;
@@ -3626,12 +3627,12 @@ body.chat-body .chat-page-card.hidden {
 }
 
 .chat-order-card-bubble:hover {
-  border-color: #b38d45 !important;
-  background-color: #fcf9f2 !important;
+  border-color: #087f3b !important;
+  background-color: #f4fbf7 !important;
 }
 
 .chat-order-card-bubble:hover .chat-order-card-footer {
-  color: #087f3b !important;
+  color: #065f2c !important;
 }
 
 .chat-order-card-header {
@@ -3680,39 +3681,39 @@ body.chat-body .chat-page-card.hidden {
 }
 
 .order-card-status-pending {
-  background-color: rgba(212, 175, 55, 0.15);
-  color: var(--accent-gold);
-  border: 1px solid rgba(212, 175, 55, 0.4);
+  background-color: #fef9c3;
+  color: #92400e;
+  border: 1px solid #fde047;
 }
 
 .order-card-status-approved {
-  background-color: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.4);
+  background-color: #e8f7ee;
+  color: #065f2c;
+  border: 1px solid #a1d7b3;
 }
 
 .order-card-status-shipping {
-  background-color: rgba(99, 102, 241, 0.15);
-  color: #818cf8;
-  border: 1px solid rgba(99, 102, 241, 0.4);
+  background-color: #e6f7f2;
+  color: #0d9488;
+  border: 1px solid #99f6e4;
 }
 
 .order-card-status-delivered {
-  background-color: rgba(40, 167, 69, 0.15);
-  color: #28a745;
-  border: 1px solid rgba(40, 167, 69, 0.4);
+  background-color: #e8f7ee;
+  color: #065f2c;
+  border: 1px solid #a1d7b3;
 }
 
 .order-card-status-declined {
-  background-color: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.4);
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
 }
 
 .order-card-status-cancelled {
-  background-color: rgba(220, 53, 69, 0.15);
-  color: #dc3545;
-  border: 1px solid rgba(220, 53, 69, 0.4);
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
 }
 
 .chat-order-card-content {
@@ -3868,39 +3869,39 @@ body.chat-body .chat-page-card.hidden {
 }
 
 .order-status-badge.status-pending {
-  background-color: rgba(212, 175, 55, 0.12);
-  color: var(--accent-gold);
-  border: 1px solid rgba(212, 175, 55, 0.4);
+  background-color: #fef9c3;
+  color: #92400e;
+  border: 1px solid #fde047;
 }
 
 .order-status-badge.status-approved {
-  background-color: rgba(56, 189, 248, 0.12);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.4);
+  background-color: #e8f7ee;
+  color: #065f2c;
+  border: 1px solid #a1d7b3;
 }
 
 .order-status-badge.status-shipping {
-  background-color: rgba(99, 102, 241, 0.14);
-  color: #818cf8;
-  border: 1px solid rgba(99, 102, 241, 0.4);
+  background-color: #e6f7f2;
+  color: #0d9488;
+  border: 1px solid #99f6e4;
 }
 
 .order-status-badge.status-delivered {
-  background-color: rgba(40, 167, 69, 0.12);
-  color: #28a745;
-  border: 1px solid rgba(40, 167, 69, 0.4);
+  background-color: #e8f7ee;
+  color: #065f2c;
+  border: 1px solid #a1d7b3;
 }
 
 .order-status-badge.status-declined {
-  background-color: rgba(239, 68, 68, 0.14);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.4);
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
 }
 
 .order-status-badge.status-cancelled {
-  background-color: rgba(220, 53, 69, 0.12);
-  color: #dc3545;
-  border: 1px solid rgba(220, 53, 69, 0.4);
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
 }
 
 /* Luxury Admin Orders Filter, Search & Sort Bar */
@@ -4682,7 +4683,7 @@ input::-webkit-credentials-auto-fill-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(6, 7, 9, 0.96);
+  background: rgba(7, 35, 20, 0.85);
   padding: 16px;
   box-sizing: border-box;
   transition: opacity 0.2s ease, visibility 0.2s ease;
@@ -4752,9 +4753,9 @@ input::-webkit-credentials-auto-fill-button {
   border-radius: var(--radius-sm);
   font-size: var(--font-xs);
   margin-bottom: 16px;
-  background: rgba(220, 53, 69, 0.15);
-  border: 1px solid rgba(220, 53, 69, 0.35);
-  color: #ff6b7b;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
   font-weight: 500;
 }
 
@@ -5068,9 +5069,9 @@ body:not(.admin-body) .brand-title span {
 
 .btn-send-request {
   flex-shrink: 0 !important;
-  background-color: #00c853;
+  background-color: #087f3b;
   color: #ffffff;
-  border: 1px solid #00c853;
+  border: 1px solid #065f2c;
   border-radius: 10px;
   padding: 12px clamp(14px, 2.5vw, 24px);
   font-size: clamp(0.84rem, 2vw, 0.96rem);
@@ -5086,7 +5087,8 @@ body:not(.admin-body) .brand-title span {
 }
 
 .btn-send-request:hover {
-  background-color: #00b34a;
+  background-color: #065f2c;
+  border-color: #054821;
 }
 
 /* ---------------- 4. "SHOP BY CATEGORY" 3-COLUMN MOCKUP GRID ---------------- */
@@ -6139,27 +6141,31 @@ body:not(.admin-body) .details-modal-footer .details-whatsapp-btn:hover {
 }
 
 .request-status-pill.pending {
-  background: #fef3c7;
+  background: #fef9c3;
   color: #92400e;
+  border: 1px solid #fde047;
 }
 
 .request-status-pill.confirmed,
 .request-status-pill.approved,
 .request-status-pill.delivered {
-  background: #dcfce7;
-  color: #166534;
+  background: #e8f7ee;
+  color: #065f2c;
+  border: 1px solid #a1d7b3;
 }
 
 .request-status-pill.shipping,
 .request-status-pill.shipped {
-  background: #e0e7ff;
-  color: #3730a3;
+  background: #e6f7f2;
+  color: #0d9488;
+  border: 1px solid #99f6e4;
 }
 
 .request-status-pill.declined,
 .request-status-pill.cancelled {
-  background: #fee2e2;
+  background: #fef2f2;
   color: #991b1b;
+  border: 1px solid #fecaca;
 }
 
 /* Chat Order Request Card matching My Orders exactly */
@@ -6204,8 +6210,9 @@ body:not(.admin-body) .details-modal-footer .details-whatsapp-btn:hover {
 
 .chat-msg-row.outgoing .chat-order-request-card .request-status-pill.pending,
 .chat-msg-row.incoming .chat-order-request-card .request-status-pill.pending {
-  background: #fef3c7 !important;
+  background: #fef9c3 !important;
   color: #92400e !important;
+  border: 1px solid #fde047 !important;
 }
 
 .request-card-info {
