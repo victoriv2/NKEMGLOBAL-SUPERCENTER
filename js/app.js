@@ -2236,8 +2236,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const totalOrderAmount = orders.reduce((sum, o) => sum + (Number(o.product_price) || 0), 0);
 
     orderSuccessModal.innerHTML = `
-      <div class="c-modal-box" style="max-width: 520px;">
-        <div class="c-modal-header">
+      <div class="c-modal-box" style="max-width: 520px; max-height: 90vh; max-height: 90dvh; display: flex; flex-direction: column;">
+        <div class="c-modal-header" style="flex-shrink: 0;">
           <div class="c-modal-title-wrap">
             <h3 class="c-modal-title" style="color: #087f3b;">${isMulti ? `${orders.length} Order Requests Received!` : 'Order Request Received!'}</h3>
           </div>
@@ -2246,53 +2246,53 @@ document.addEventListener('DOMContentLoaded', async () => {
           </button>
         </div>
 
-        <div class="c-modal-body receipt-modal-box">
-          <p class="c-modal-text">
+        <div class="c-modal-body receipt-modal-box" style="overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1 1 auto; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; text-align: left;">
+          <p class="c-modal-text" style="margin: 0; font-size: 0.88rem; color: #2d3748; flex-shrink: 0; line-height: 1.45;">
             Thank you, <strong>${window.CustomModal.escape(firstOrder.first_name)} ${window.CustomModal.escape(firstOrder.last_name)}</strong>! Your ${isMulti ? `<strong>${orders.length} orders</strong> have` : 'order has'} been recorded and sent to our admin team.
           </p>
 
-          <div style="display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; margin: 12px 0;">
+          <div class="success-order-items-list" style="display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; min-height: fit-content; margin: 4px 0;">
             ${orders.map((ord, i) => `
-              <div style="background: #f7fbf8; border: 1.5px solid #d1ead9; border-radius: 10px; padding: 10px 12px; font-size: 0.82rem; line-height: 1.5; text-align: left; display: flex; gap: 10px; align-items: center;">
-                <img src="${ord.product_image || 'assets/images/logo.png'}" alt="Item" style="width: 44px; height: 44px; border-radius: 6px; object-fit: cover; border: 1px solid #d1ead9; flex-shrink: 0;" />
+              <div class="success-order-item-card" style="background: #f7fbf8; border: 1.5px solid #d1ead9; border-radius: 12px; padding: 12px 14px; text-align: left; display: flex; gap: 12px; align-items: center; flex-shrink: 0; min-height: 78px; box-sizing: border-box;">
+                <img src="${ord.product_image || 'assets/images/logo.png'}" alt="Item" style="width: 58px; height: 58px; min-width: 58px; border-radius: 8px; object-fit: cover; border: 1.5px solid #d1ead9; background: #ffffff; flex-shrink: 0;" onerror="this.src='assets/images/logo.png';" />
                 <div style="flex: 1; min-width: 0;">
-                  <strong style="color: #073b1f; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${window.CustomModal.escape(ord.product_title)}</strong>
-                  <div style="color: #087f3b; font-weight: 800;">${window.formatNaira(ord.product_price)}</div>
-                  <div style="font-size: 0.74rem; color: #5a6e62;">Code: <span style="font-family: monospace; font-weight: 700; background: #e8f7ee; padding: 1px 4px; border-radius: 3px; color: #064e26;">${ord.retrieval_code || ord.id}</span></div>
+                  <div style="color: #073b1f; font-weight: 800; font-size: 0.92rem; line-height: 1.35; margin-bottom: 3px; word-break: break-word;">${window.CustomModal.escape(ord.product_title)}</div>
+                  <div style="color: #087f3b; font-weight: 800; font-size: 0.95rem; margin-bottom: 4px;">${window.formatNaira(ord.product_price)}</div>
+                  <div style="font-size: 0.76rem; color: #5a6e62;">Code: <span style="font-family: monospace; font-weight: 700; background: #e8f7ee; padding: 2px 6px; border-radius: 4px; color: #064e26; border: 1px solid #c2e8d0;">${ord.retrieval_code || ord.id}</span></div>
                 </div>
-                <button type="button" class="btn btn-secondary btn-sm req-mini-download-btn" data-index="${i}" title="Download Receipt" style="padding: 6px 8px; font-size: 0.74rem; flex-shrink: 0;">
+                <button type="button" class="btn btn-secondary btn-sm req-mini-download-btn" data-index="${i}" title="Download Receipt" style="padding: 8px 10px; font-size: 0.78rem; flex-shrink: 0;">
                   ${window.renderIcon('download')}
                 </button>
               </div>
             `).join('')}
           </div>
 
-          <div style="background: #e8f7ee; border: 1px solid #c2e8d0; border-radius: 8px; padding: 8px 12px; font-size: 0.82rem; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+          <div style="background: #e8f7ee; border: 1px solid #c2e8d0; border-radius: 10px; padding: 10px 14px; font-size: 0.86rem; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
             <span style="font-weight: 700; color: #073b1f;">Total Order Value:</span>
-            <span style="color: #087f3b; font-weight: 900; font-size: 1.05rem;">${window.formatNaira(totalOrderAmount)}</span>
+            <span style="color: #087f3b; font-weight: 900; font-size: 1.15rem;">${window.formatNaira(totalOrderAmount)}</span>
           </div>
 
-          <div class="code-actions-row">
-            <button class="btn btn-primary" type="button" id="downloadReceiptImgBtn" style="flex: 1; justify-content: center; padding: 12px; font-weight: 800; background-color: #087f3b; border-color: #087f3b;">
+          <div class="code-actions-row" style="flex-shrink: 0;">
+            <button class="btn btn-primary" type="button" id="downloadReceiptImgBtn" style="width: 100%; justify-content: center; padding: 12px; font-weight: 800; background-color: #087f3b; border-color: #087f3b;">
               ${window.renderIcon('download')}
               <span>Download Official Receipt${isMulti ? 's' : ''}</span>
             </button>
           </div>
 
-          <p style="font-size: 0.78rem; color: #5a6e62; margin-top: 8px;">
+          <p style="font-size: 0.78rem; color: #5a6e62; margin: 0; flex-shrink: 0; line-height: 1.4;">
             Official receipts carry Nkem Global brand details, shop contact info, and retrieval codes for instant tracking.
           </p>
 
-          <div style="padding-top: 12px; border-top: 1px solid #d1ead9; margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
-            <button class="btn btn-primary" style="width: 100%; justify-content: center; background-color: #065f2c; border-color: #065f2c;" type="button" id="trackInOrdersBtn">
+          <div style="padding-top: 10px; border-top: 1px solid #d1ead9; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;">
+            <button class="btn btn-primary" style="width: 100%; justify-content: center; background-color: #065f2c; border-color: #065f2c; padding: 11px;" type="button" id="trackInOrdersBtn">
               <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
               <span>Track in Requests Tab</span>
             </button>
-            <a href="chat.html" class="btn btn-secondary" style="width: 100%; justify-content: center; text-decoration: none;">
+            <a href="chat.html" class="btn btn-secondary" style="width: 100%; justify-content: center; text-decoration: none; padding: 11px;" id="orderSuccessChatBtn">
               ${window.renderIcon('chat')}
               <span>Open Direct Chat with Support</span>
             </a>
-            <button class="btn btn-secondary" style="width: 100%; justify-content: center;" type="button" id="closeSuccessBtn">
+            <button class="btn btn-secondary" style="width: 100%; justify-content: center; padding: 11px;" type="button" id="closeSuccessBtn">
               <span>Continue Shopping</span>
             </button>
           </div>

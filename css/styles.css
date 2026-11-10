@@ -6923,3 +6923,75 @@ body:not(.admin-body) .details-modal-footer .details-whatsapp-btn:hover {
   }
 }
 
+/* ---------------- ORDER SUCCESS MODAL SPACIOUS & UNSQUEEZED FIT ---------------- */
+#orderSuccessModal .c-modal-box {
+  width: 100% !important;
+  max-width: 520px !important;
+  max-height: 90vh !important;
+  max-height: 90dvh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  border-radius: 16px !important;
+  border: 1px solid #d1ead9 !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+}
+
+#orderSuccessModal .receipt-modal-box {
+  padding: 18px 20px !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  text-align: left !important;
+  max-height: calc(90vh - 65px) !important;
+  max-height: calc(90dvh - 65px) !important;
+}
+
+#orderSuccessModal .success-order-items-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  flex-shrink: 0 !important;
+  min-height: fit-content !important;
+  margin: 4px 0 !important;
+}
+
+#orderSuccessModal .success-order-item-card {
+  background: #f7fbf8 !important;
+  border: 1.5px solid #d1ead9 !important;
+  border-radius: 12px !important;
+  padding: 12px 14px !important;
+  display: flex !important;
+  gap: 12px !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+  min-height: 80px !important;
+}
+
+#orderSuccessModal .success-order-item-card:hover {
+  border-color: #087f3b !important;
+}
+
+@media (max-width: 480px) {
+  #orderSuccessModal .c-modal-box {
+    max-height: 95vh !important;
+    max-height: 95dvh !important;
+    border-radius: 14px !important;
+  }
+  #orderSuccessModal .receipt-modal-box {
+    padding: 14px 16px !important;
+    gap: 10px !important;
+    max-height: calc(95vh - 55px) !important;
+    max-height: calc(95dvh - 55px) !important;
+  }
+  #orderSuccessModal .success-order-item-card {
+    padding: 10px 12px !important;
+    gap: 10px !important;
+    min-height: 74px !important;
+  }
+}
+
+
