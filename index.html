@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, interactive-widget=resizes-content" />
   <title>Nkem Global — Everything Dey & Direct Orders</title>
-  <link rel="stylesheet" href="css/styles.css?v=20261110_1920" />
+  <link rel="stylesheet" href="css/styles.css?v=20261110_1950" />
 </head>
 <body>
 
@@ -191,8 +191,14 @@
         </div>
 
         <!-- Search / Filter bar for requests -->
-        <div style="margin-bottom: 14px; display: flex; gap: 8px;">
+        <div style="margin-bottom: 10px; display: flex; gap: 8px;">
           <input type="text" id="requestsSearchInput" class="c-input" placeholder="Search by Order ID, Item name, or Retrieval Code..." style="flex: 1; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #d1ead9; background: #ffffff;" />
+        </div>
+
+        <!-- Filter & Sort Toolbar for Requests -->
+        <div class="requests-filter-sort-bar" style="display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;">
+          <div class="c-picker-container" id="requestsFilterPickerMount" style="flex: 1; min-width: 140px;"></div>
+          <div class="c-picker-container" id="requestsSortPickerMount" style="flex: 1; min-width: 140px;"></div>
         </div>
 
         <div id="requestsListContainer">
@@ -311,6 +317,6 @@
   <script src="js/supabase-config.js?v=20261110_1920"></script>
   <script src="js/receipt-generator.js?v=20261110_1200"></script>
   <script src="js/auth-modal.js?v=20261110_1200"></script>
-  <script src="js/app.js?v=20261110_1920"></script>
+  <script src="js/app.js?v=20261110_1950"></script>
 </body>
 </html>

@@ -1141,7 +1141,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   let currentModalSelectedImage = '';
 
   function openProductDetailsModal(prodId) {
-    const prod = state.products.find(p => p.id === prodId) || state.filteredProducts.find(p => p.id === prodId);
+    let prod = state.products.find(p => p.id === prodId) || state.filteredProducts.find(p => p.id === prodId);
+    if (!prod && window.SupabaseService?.getLocalProducts) {
+      try {
+        const localProds = window.SupabaseService.getLocalProducts(true) || [];
+        prod = localProds.find(p => p.id === prodId);
+      } catch (_) {}
+    }
+    if (!prod) {
+      const cartItem = getCart().find(i => i.id === prodId || i.product_id === prodId);
+      if (cartItem && window.SupabaseService?.getLocalProducts) {
+        try {
+          const localProds = window.SupabaseService.getLocalProducts(true) || [];
+          prod = localProds.find(p => p.title && cartItem.title && p.title.toLowerCase().trim() === cartItem.title.toLowerCase().trim());
+        } catch (_) {}
+      }
+      if (!prod && cartItem) {
+        prod = {
+          id: cartItem.id || prodId,
+          title: cartItem.title,
+          price: cartItem.price,
+          description: cartItem.description || 'Authentic quality product available for nationwide delivery from Nkem Global.',
+          images: cartItem.images || (cartItem.image ? [cartItem.image] : ['assets/images/logo.png']),
+          category: cartItem.category || 'General',
+          in_stock: true
+        };
+      }
+    }
     if (!prod || !detailsModalOverlay) return;
 
     state.activeProductForOrder = prod;
@@ -1559,6 +1585,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       btn.addEventListener('click', () => removeFromCart(btn.getAttribute('data-id')));
     });
 
+    // Clicking on cart product image, title, or card opens the Product Details modal!
+    container.querySelectorAll('.cart-item-card').forEach(card => {
+      const itemId = card.getAttribute('data-item-id');
+      card.querySelectorAll('.cart-item-thumb, .cart-item-title, .cart-item-info').forEach(clickable => {
+        clickable.addEventListener('click', (e) => {
+          if (e.target.closest('.cart-item-actions') || e.target.closest('.cart-qty-group') || e.target.closest('.cart-item-remove-btn')) return;
+          openProductDetailsModal(itemId);
+        });
+      });
+    });
+
     // Unauthenticated: Direct triggers to Login / Sign Up / WhatsApp
     if (!isLoggedIn) {
       container.querySelector('#cartPromptSignInBtn')?.addEventListener('click', () => {
@@ -1712,19 +1749,78 @@ document.addEventListener('DOMContentLoaded', async () => {
   /* ==========================================================================
      8. REQUESTS VIEW (Orders & Sourcing Requests Tracking)
      ========================================================================== */
+  let requestsFilterStatus = 'all';
+  let requestsSortBy = 'newest';
+  let requestsFilterPickerInstance = null;
+  let requestsSortPickerInstance = null;
+  let cachedUserOrders = [];
+
+  function initRequestsPickers() {
+    const filterMount = document.getElementById('requestsFilterPickerMount');
+    const sortMount = document.getElementById('requestsSortPickerMount');
+
+    if (filterMount && window.CustomPicker && !requestsFilterPickerInstance) {
+      requestsFilterPickerInstance = window.CustomPicker.create({
+        container: filterMount,
+        id: 'requestsStatusFilterPicker',
+        title: 'Filter by Status',
+        placeholder: 'Filter: All Requests',
+        options: [
+          { value: 'all', label: 'All Requests' },
+          { value: 'pending', label: 'Pending Review' },
+          { value: 'approved', label: 'Approved (Confirmed)' },
+          { value: 'shipping', label: 'In Transit / Shipping' },
+          { value: 'delivered', label: 'Delivered' },
+          { value: 'declined', label: 'Declined / Cancelled' }
+        ],
+        value: requestsFilterStatus,
+        searchable: false,
+        onChange: (val) => {
+          requestsFilterStatus = val;
+          renderRequestsView();
+        }
+      });
+    }
+
+    if (sortMount && window.CustomPicker && !requestsSortPickerInstance) {
+      requestsSortPickerInstance = window.CustomPicker.create({
+        container: sortMount,
+        id: 'requestsSortPicker',
+        title: 'Sort Requests By',
+        placeholder: 'Sort: Newest First',
+        options: [
+          { value: 'newest', label: 'Newest First' },
+          { value: 'oldest', label: 'Oldest First' },
+          { value: 'price_desc', label: 'Price: High to Low' },
+          { value: 'price_asc', label: 'Price: Low to High' },
+          { value: 'title_asc', label: 'Item Name (A–Z)' }
+        ],
+        value: requestsSortBy,
+        searchable: false,
+        onChange: (val) => {
+          requestsSortBy = val;
+          renderRequestsView();
+        }
+      });
+    }
+  }
+
   async function renderRequestsView() {
     const container = document.getElementById('requestsListContainer');
     if (!container) return;
+
+    initRequestsPickers();
 
     const activeUser = getActiveUser() || {};
     let userPhone = (activeUser.whatsapp_number || activeUser.phone || '').trim();
     let userEmail = (activeUser.email || '').trim();
     let userId = activeUser.id || null;
 
-    let orders = [];
-    if (window.SupabaseService?.getUserOrdersSync) {
+    let orders = cachedUserOrders.length > 0 ? cachedUserOrders : [];
+    if (orders.length === 0 && window.SupabaseService?.getUserOrdersSync) {
       try {
         orders = window.SupabaseService.getUserOrdersSync(userId, userPhone, userEmail) || [];
+        if (orders.length > 0) cachedUserOrders = orders;
       } catch (e) {}
     }
 
@@ -1732,14 +1828,47 @@ document.addEventListener('DOMContentLoaded', async () => {
       const searchInput = document.getElementById('requestsSearchInput');
       const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
 
-      let filtered = orderItems || [];
+      let filtered = (orderItems || []).slice();
+
+      // 1. Text Search Filter
       if (query) {
         filtered = filtered.filter(o => {
           const title = (o.product_title || '').toLowerCase();
           const code = (o.retrieval_code || o.id || '').toLowerCase();
-          return title.includes(query) || code.includes(query);
+          const dest = (o.address || o.lga || o.state || '').toLowerCase();
+          return title.includes(query) || code.includes(query) || dest.includes(query);
         });
       }
+
+      // 2. Status Filter
+      if (requestsFilterStatus !== 'all') {
+        filtered = filtered.filter(o => {
+          const s = (o.status || 'pending').toLowerCase();
+          if (requestsFilterStatus === 'shipping') return s === 'shipping' || s === 'shipped';
+          if (requestsFilterStatus === 'declined') return s === 'declined' || s === 'cancelled';
+          return s === requestsFilterStatus;
+        });
+      }
+
+      // 3. Sorting
+      filtered.sort((a, b) => {
+        if (requestsSortBy === 'newest') {
+          return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        }
+        if (requestsSortBy === 'oldest') {
+          return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+        }
+        if (requestsSortBy === 'price_desc') {
+          return (Number(b.product_price) || 0) - (Number(a.product_price) || 0);
+        }
+        if (requestsSortBy === 'price_asc') {
+          return (Number(a.product_price) || 0) - (Number(b.product_price) || 0);
+        }
+        if (requestsSortBy === 'title_asc') {
+          return String(a.product_title || '').localeCompare(String(b.product_title || ''));
+        }
+        return 0;
+      });
 
       if (filtered.length === 0) {
         if (isStillLoading) {
@@ -1752,20 +1881,38 @@ document.addEventListener('DOMContentLoaded', async () => {
           return;
         }
 
+        const isFiltered = !!(query || requestsFilterStatus !== 'all');
         container.innerHTML = `
           <div class="cart-empty-state">
             <div class="cart-empty-icon">${window.renderIcon('requests')}</div>
-            <h3 class="cart-empty-title">No Orders or Requests Found</h3>
-            <p class="cart-empty-sub">When you place orders or submit sourcing requests via "Everything Dey", they will appear here with live tracking.</p>
-            <button class="btn btn-primary" type="button" id="reqStartShoppingBtn" style="padding: 12px 28px; font-weight: 800; background-color: #087f3b; border-color: #087f3b;">
-              ${window.renderIcon('shop')}
-              <span>Start Shopping Now</span>
-            </button>
+            <h3 class="cart-empty-title">${isFiltered ? 'No Matching Requests Found' : 'No Orders or Requests Found'}</h3>
+            <p class="cart-empty-sub">${isFiltered ? 'No orders match your search query or selected status filter.' : 'When you place orders or submit sourcing requests via "Everything Dey", they will appear here with live tracking.'}</p>
+            ${isFiltered ? `
+              <button class="btn btn-secondary" type="button" id="reqResetFilterBtn" style="padding: 10px 22px; font-weight: 700; border-color: #087f3b; color: #087f3b;">
+                Reset Filter & Search
+              </button>
+            ` : `
+              <button class="btn btn-primary" type="button" id="reqStartShoppingBtn" style="padding: 12px 28px; font-weight: 800; background-color: #087f3b; border-color: #087f3b;">
+                ${window.renderIcon('shop')}
+                <span>Start Shopping Now</span>
+              </button>
+            `}
           </div>
         `;
-        container.querySelector('#reqStartShoppingBtn')?.addEventListener('click', () => {
-          window.switchAppTab('shop');
-        });
+        if (isFiltered) {
+          container.querySelector('#reqResetFilterBtn')?.addEventListener('click', () => {
+            if (searchInput) searchInput.value = '';
+            requestsFilterStatus = 'all';
+            requestsSortBy = 'newest';
+            if (requestsFilterPickerInstance?.setValue) requestsFilterPickerInstance.setValue('all');
+            if (requestsSortPickerInstance?.setValue) requestsSortPickerInstance.setValue('newest');
+            renderRequestsView();
+          });
+        } else {
+          container.querySelector('#reqStartShoppingBtn')?.addEventListener('click', () => {
+            window.switchAppTab('shop');
+          });
+        }
         return;
       }
 
@@ -1851,6 +1998,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (window.SupabaseService?.getUserOrders) {
         const fresh = await window.SupabaseService.getUserOrders(userId, userPhone, userEmail, 3000);
         if (fresh && Array.isArray(fresh)) {
+          cachedUserOrders = fresh;
           renderList(fresh, false);
         }
       }

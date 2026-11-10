@@ -6132,6 +6132,14 @@ body:not(.admin-body) .details-modal-footer .details-whatsapp-btn:hover {
   object-fit: cover;
   flex-shrink: 0;
   border: 1px solid #e2f5ea;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
+}
+
+.cart-item-thumb:hover {
+  transform: scale(1.04);
+  border-color: #087f3b;
+  opacity: 0.95;
 }
 
 .cart-item-info {
@@ -6147,6 +6155,13 @@ body:not(.admin-body) .details-modal-footer .details-whatsapp-btn:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   margin-bottom: 4px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.cart-item-title:hover {
+  color: #087f3b;
+  text-decoration: underline;
 }
 
 .cart-item-unit-price {
