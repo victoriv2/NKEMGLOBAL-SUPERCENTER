@@ -588,8 +588,28 @@ window.SupabaseService = {
     const email = o.email || o.user_email || extra.email || null;
     const price = Number(o.product_price) || 0;
     const status = String(o.status || 'pending').toLowerCase();
-    const image = o.product_image || extra.product_image || 'assets/images/logo.jpeg';
-    const title = o.product_title || extra.product_title || 'Italian Bespoke Wool Tailored Suit';
+    let image = o.product_image || extra.product_image || o.image || extra.image || '';
+    const title = o.product_title || extra.product_title || 'Product Item';
+
+    // Auto-resolve real product image from product catalog if missing or generic
+    if (!image || image.includes('logo.png') || image.includes('logo.jpeg')) {
+      try {
+        const prods = this.getLocalProducts ? this.getLocalProducts(true) : [];
+        const match = (prods || []).find(p => {
+          if (o.product_id && p.id === o.product_id) return true;
+          if (title && p.title) {
+            const cleanT = title.toLowerCase().replace(/\s*\(qty:\s*\d+\)/i, '').trim();
+            const cleanP = p.title.toLowerCase().trim();
+            return cleanT === cleanP || cleanT.includes(cleanP) || cleanP.includes(cleanT);
+          }
+          return false;
+        });
+        if (match && Array.isArray(match.images) && match.images[0]) {
+          image = match.images[0];
+        }
+      } catch (_) {}
+    }
+    if (!image) image = 'assets/images/logo.png';
 
     return {
       ...o,
@@ -614,20 +634,39 @@ window.SupabaseService = {
     };
   },
 
+  resolveProductImage(orderOrProduct) {
+    if (!orderOrProduct) return 'assets/images/logo.png';
+    let img = orderOrProduct.product_image || orderOrProduct.image_url || orderOrProduct.image || '';
+    if (Array.isArray(orderOrProduct.images) && orderOrProduct.images[0]) {
+      img = orderOrProduct.images[0];
+    }
+    if (!img || img.includes('logo.png') || img.includes('logo.jpeg')) {
+      try {
+        const prods = this.getLocalProducts ? this.getLocalProducts(true) : [];
+        const match = (prods || []).find(p => {
+          if (orderOrProduct.product_id && p.id === orderOrProduct.product_id) return true;
+          if (orderOrProduct.id && p.id === orderOrProduct.id) return true;
+          const t = (orderOrProduct.product_title || orderOrProduct.title || '').toLowerCase().replace(/\s*\(qty:\s*\d+\)/i, '').trim();
+          const pt = (p.title || '').toLowerCase().trim();
+          return t && pt && (t === pt || t.includes(pt) || pt.includes(t));
+        });
+        if (match && Array.isArray(match.images) && match.images[0]) {
+          return match.images[0];
+        }
+      } catch (_) {}
+    }
+    return img || 'assets/images/logo.png';
+  },
+
   // ---------------- ORDERS ----------------
   getLocalOrders() {
-    // Chat order cards are the definitive source of truth for genuine customer orders
     const chatOrdersMap = new Map();
-    const chatUserIds = new Set();
-    const chatPhones = new Set();
-    const chatEmails = new Set();
 
     try {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith('nkem_user_chats_')) {
           const userIdFromKey = key.replace('nkem_user_chats_', '');
-          if (userIdFromKey) chatUserIds.add(userIdFromKey);
           const raw = localStorage.getItem(key);
           if (raw && (raw.includes('[ORDER_CARD]::') || raw.includes('"order_data"'))) {
             const msgs = JSON.parse(raw);
@@ -643,12 +682,6 @@ window.SupabaseService = {
                   const cid = this.canonicalOrderId(norm);
                   if (cid) {
                     chatOrdersMap.set(cid, norm);
-                    if (norm.user_id) chatUserIds.add(String(norm.user_id));
-                    if (norm.whatsapp_number) {
-                      const p = this.normalizePhone(norm.whatsapp_number);
-                      if (p) chatPhones.add(p);
-                    }
-                    if (norm.email) chatEmails.add(norm.email.trim().toLowerCase());
                   }
                 }
               });
@@ -658,15 +691,15 @@ window.SupabaseService = {
       }
     } catch (e) {}
 
-    // Load nkem_local_orders
+    // Load nkem_local_orders and merge cleanly
     const finalOrdersMap = new Map();
 
-    // 1. First add all authentic chat orders (definitive source of truth)
+    // 1. Add all chat orders
     chatOrdersMap.forEach((ord, cid) => {
       finalOrdersMap.set(cid, ord);
     });
 
-    // 2. Scan nkem_local_orders and prune orphan/phantom orders
+    // 2. Add and merge all stored local orders (never exclude genuine customer orders!)
     try {
       const local = localStorage.getItem('nkem_local_orders');
       const list = local ? JSON.parse(local) : [];
@@ -677,37 +710,16 @@ window.SupabaseService = {
           const cid = this.canonicalOrderId(norm);
           if (!cid) return;
 
-          // If this order is in chatOrdersMap, merge fields (such as updated status)
           if (finalOrdersMap.has(cid)) {
             const existing = finalOrdersMap.get(cid);
             finalOrdersMap.set(cid, {
-              ...existing,
               ...norm,
-              status: norm.status || existing.status
+              ...existing,
+              status: norm.status || existing.status,
+              product_image: (existing.product_image && !existing.product_image.includes('logo.png')) ? existing.product_image : norm.product_image
             });
           } else {
-            // Check if this order claims to belong to a customer who has chat history:
-            // If the user HAS chat orders, but this order is NOT in their chat orders,
-            // it is a phantom/stale order and MUST BE EXCLUDED!
-            const itemUserId = norm.user_id ? String(norm.user_id) : '';
-            const itemPhone = norm.whatsapp_number ? this.normalizePhone(norm.whatsapp_number) : '';
-            const itemEmail = norm.email ? norm.email.trim().toLowerCase() : '';
-
-            const belongsToChatUser = (
-              (itemUserId && chatUserIds.has(itemUserId)) ||
-              (itemPhone && chatPhones.has(itemPhone)) ||
-              (itemEmail && chatEmails.has(itemEmail))
-            );
-
-            // If it belongs to a user who already has genuine chat orders, DO NOT add phantom orders!
-            if (belongsToChatUser && chatOrdersMap.size > 0) {
-              return; // Exclude phantom order!
-            }
-
-            // Only keep if from an entirely different user with no chat record
-            if (!belongsToChatUser) {
-              finalOrdersMap.set(cid, norm);
-            }
+            finalOrdersMap.set(cid, norm);
           }
         });
       }
@@ -758,7 +770,7 @@ window.SupabaseService = {
   getUserOrdersSync(userId, phone, email) {
     const userOrdersMap = new Map();
 
-    // 1. Any order found in this user's direct chat cache IS THE AUTHENTIC SOURCE OF TRUTH
+    // 1. Check chat messages for this user
     if (userId) {
       try {
         const chatMsgs = this.getUserChatMessagesSync(userId);
@@ -777,35 +789,28 @@ window.SupabaseService = {
       } catch (e) {}
     }
 
-    // If orders were found in this user's chat, THE CHAT IS THE EXCLUSIVE COMPLETE TRUTH!
-    // We do NOT pull phantom orders from local orders that are missing from chat!
-    if (userOrdersMap.size > 0) {
-      const all = this.getLocalOrders();
-      all.forEach(o => {
-        const cid = this.canonicalOrderId(o);
-        if (userOrdersMap.has(cid)) {
-          const chatOrd = userOrdersMap.get(cid);
-          userOrdersMap.set(cid, {
-            ...chatOrd,
-            status: o.status || chatOrd.status
-          });
-        }
-      });
-      return Array.from(userOrdersMap.values());
-    }
-
-    // 2. Only if the user has NO orders in chat at all, fallback to filtering local orders
+    // 2. Filter from all local orders (matching userId OR phone OR email)
     const all = this.getLocalOrders();
     const filtered = this.filterUserOrders(all, userId, phone, email);
     filtered.forEach(o => {
       const norm = this.normalizeOrderRecord(o, { user_id: userId });
       const cid = this.canonicalOrderId(norm);
-      if (cid && !userOrdersMap.has(cid)) {
-        userOrdersMap.set(cid, norm);
+      if (cid) {
+        if (userOrdersMap.has(cid)) {
+          const existing = userOrdersMap.get(cid);
+          userOrdersMap.set(cid, {
+            ...norm,
+            ...existing,
+            status: norm.status || existing.status,
+            product_image: (existing.product_image && !existing.product_image.includes('logo.png')) ? existing.product_image : norm.product_image
+          });
+        } else {
+          userOrdersMap.set(cid, norm);
+        }
       }
     });
 
-    return Array.from(userOrdersMap.values());
+    return Array.from(userOrdersMap.values()).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   },
 
   async getOrders(timeoutMs = 3000) {
@@ -816,7 +821,6 @@ window.SupabaseService = {
       const cloud = await this.request('nkem_orders?select=*&order=created_at.desc', { signal: controller.signal, timeoutMs });
       clearTimeout(timer);
       if (cloud && Array.isArray(cloud)) {
-        const localValidIds = new Set(local.map(l => this.canonicalOrderId(l)));
         const orderMap = new Map();
 
         // Add local validated orders first
@@ -825,14 +829,20 @@ window.SupabaseService = {
           if (cid) orderMap.set(cid, loc);
         });
 
-        // Only merge cloud orders that match local or if no local orders existed
+        // Merge all cloud orders
         cloud.forEach(c => {
           const norm = this.normalizeOrderRecord(c);
           const cid = this.canonicalOrderId(norm);
           if (cid) {
             if (orderMap.has(cid)) {
-              orderMap.set(cid, { ...orderMap.get(cid), ...norm });
-            } else if (localValidIds.size === 0) {
+              const existing = orderMap.get(cid);
+              orderMap.set(cid, {
+                ...existing,
+                ...norm,
+                status: norm.status || existing.status,
+                product_image: (norm.product_image && !norm.product_image.includes('logo.png')) ? norm.product_image : (existing.product_image || norm.product_image)
+              });
+            } else {
               orderMap.set(cid, norm);
             }
           }
@@ -859,36 +869,88 @@ window.SupabaseService = {
     return orders.find(o => o.retrieval_code && o.retrieval_code.toUpperCase() === cleanCode) || null;
   },
 
-  async getUserOrders(userId, phone, email, timeoutMs = 2500) {
+  async getUserOrders(userId, phone, email, timeoutMs = 3000) {
     const local = this.getUserOrdersSync(userId, phone, email);
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-      let cloud = [];
+      const cloudOrdersMap = new Map();
+
+      // Query 1: by user_id
       if (userId) {
-        cloud = await this.request(`nkem_orders?user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc`, { signal: controller.signal, timeoutMs });
+        try {
+          const res = await this.request(`nkem_orders?user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc`, { signal: controller.signal, timeoutMs });
+          if (Array.isArray(res)) {
+            res.forEach(o => {
+              const norm = this.normalizeOrderRecord(o, { user_id: userId });
+              const cid = this.canonicalOrderId(norm);
+              if (cid) cloudOrdersMap.set(cid, norm);
+            });
+          }
+        } catch (_) {}
       }
-      if ((!cloud || cloud.length === 0) && phone) {
+
+      // Query 2: by whatsapp_number / phone (vital for guest or phone-based orders)
+      if (phone) {
         const last10 = this.normalizePhone(phone);
         if (last10) {
-          cloud = await this.request(`nkem_orders?whatsapp_number=ilike.*${encodeURIComponent(last10)}*&order=created_at.desc`, { signal: controller.signal, timeoutMs });
+          try {
+            const res = await this.request(`nkem_orders?whatsapp_number=ilike.*${encodeURIComponent(last10)}*&order=created_at.desc`, { signal: controller.signal, timeoutMs });
+            if (Array.isArray(res)) {
+              res.forEach(o => {
+                const norm = this.normalizeOrderRecord(o, { user_id: userId });
+                const cid = this.canonicalOrderId(norm);
+                if (cid) cloudOrdersMap.set(cid, norm);
+              });
+            }
+          } catch (_) {}
         }
       }
+
+      // Query 3: by email
+      if (email && email.trim()) {
+        try {
+          const res = await this.request(`nkem_orders?email=eq.${encodeURIComponent(email.trim().toLowerCase())}&order=created_at.desc`, { signal: controller.signal, timeoutMs });
+          if (Array.isArray(res)) {
+            res.forEach(o => {
+              const norm = this.normalizeOrderRecord(o, { user_id: userId });
+              const cid = this.canonicalOrderId(norm);
+              if (cid) cloudOrdersMap.set(cid, norm);
+            });
+          }
+        } catch (_) {}
+      }
+
       clearTimeout(timer);
 
-      if (cloud && Array.isArray(cloud) && cloud.length > 0) {
-        let localList = this.getLocalOrders();
-        cloud.forEach(c => {
-          const norm = this.normalizeOrderRecord(c, { user_id: userId });
-          const cid = this.canonicalOrderId(norm);
-          const idx = localList.findIndex(l => this.canonicalOrderId(l) === cid);
+      if (cloudOrdersMap.size > 0) {
+        let allLocal = this.getLocalOrders();
+        cloudOrdersMap.forEach((cloudOrd, cid) => {
+          const idx = allLocal.findIndex(l => this.canonicalOrderId(l) === cid);
           if (idx >= 0) {
-            localList[idx] = { ...localList[idx], ...norm };
+            allLocal[idx] = { ...allLocal[idx], ...cloudOrd };
+          } else {
+            allLocal.unshift(cloudOrd);
           }
         });
-        localStorage.setItem('nkem_local_orders', JSON.stringify(localList));
-        return this.getUserOrdersSync(userId, phone, email);
+        localStorage.setItem('nkem_local_orders', JSON.stringify(allLocal));
+
+        // Return combined list for this user directly!
+        const mergedUserOrders = new Map();
+        local.forEach(o => {
+          const cid = this.canonicalOrderId(o);
+          if (cid) mergedUserOrders.set(cid, o);
+        });
+        cloudOrdersMap.forEach((o, cid) => {
+          const existing = mergedUserOrders.get(cid) || {};
+          mergedUserOrders.set(cid, {
+            ...existing,
+            ...o,
+            product_image: (o.product_image && !o.product_image.includes('logo.png')) ? o.product_image : (existing.product_image || o.product_image)
+          });
+        });
+        return Array.from(mergedUserOrders.values()).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
       }
     } catch (err) {
       console.warn('Targeted getUserOrders notice (using local):', err);
@@ -1720,3 +1782,14 @@ try {
     window.SupabaseService.initCleanSlateOnce();
   }
 } catch (e) {}
+
+// Universal helper to resolve crisp product images across user store, admin, and chat bubbles
+window.resolveProductImage = function(item) {
+  if (window.SupabaseService && typeof window.SupabaseService.resolveProductImage === 'function') {
+    return window.SupabaseService.resolveProductImage(item);
+  }
+  if (!item) return 'assets/images/logo.png';
+  let img = item.product_image || item.image_url || item.image || '';
+  if (Array.isArray(item.images) && item.images[0]) img = item.images[0];
+  return img || 'assets/images/logo.png';
+};

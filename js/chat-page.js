@@ -253,22 +253,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         const priceNum = Number(ord.product_price || 0);
         const amountDisplay = priceNum > 0 ? window.formatNaira(priceNum) : 'Quote Pending';
         const productTitle = ord.product_title || 'Custom Order';
+        const prodImg = window.resolveProductImage ? window.resolveProductImage(ord) : (ord.product_image || 'assets/images/logo.png');
 
         return `
           <div class="chat-msg-row ${isOutgoing ? 'outgoing' : 'incoming'}" data-msg-id="${msg.id}">
             <div class="requests-card chat-order-request-card" data-msg-id="${msg.id}" data-order-id="${code}">
               <div class="request-card-top">
-                <div>
+                <div style="flex: 1; min-width: 0; padding-right: 8px;">
                   <h4 class="request-card-title">${window.CustomModal.escape(productTitle)}</h4>
                   <div style="font-size: 0.78rem; color: #5a6e62; margin-top: 2px;">Placed on ${dateStr}</div>
                 </div>
                 <span class="request-status-pill ${status}">${status}</span>
               </div>
 
-              <div class="request-card-info">
-                <div><strong>Code:</strong> <span class="request-code-badge">${code}</span></div>
-                <div><strong>Amount:</strong> <span style="color: #087f3b; font-weight: 800;">${amountDisplay}</span></div>
-                ${cleanAddr ? `<div><strong>Destination:</strong> ${window.CustomModal.escape(cleanAddr)}</div>` : ''}
+              <div style="display: flex; gap: 12px; align-items: flex-start; margin: 10px 0;">
+                <img src="${prodImg}" alt="${window.CustomModal.escape(productTitle)}" class="request-card-thumb" style="width: 72px; height: 72px; min-width: 72px; border-radius: 8px; object-fit: cover; border: 1.5px solid #d1ead9; background: #ffffff;" onerror="this.src='assets/images/logo.png';" />
+                <div class="request-card-info" style="flex: 1; min-width: 0; margin: 0; padding: 0; border: none;">
+                  <div><strong>Code:</strong> <span class="request-code-badge">${code}</span></div>
+                  <div><strong>Amount:</strong> <span style="color: #087f3b; font-weight: 800;">${amountDisplay}</span></div>
+                  ${cleanAddr ? `<div><strong>Destination:</strong> ${window.CustomModal.escape(cleanAddr)}</div>` : ''}
+                </div>
               </div>
 
               <div class="request-card-actions">
@@ -278,7 +282,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <span>Download Receipt</span>
                   </button>
                 ` : ''}
-                <a href="https://wa.me/2348142414888?text=${encodeURIComponent(`Hello Nkem Global, I am inquiring about my request (${code}): ${productTitle}`)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 0.78rem; color: #166534; border-color: #25D366; text-decoration: none;">
+                <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Global, I am inquiring about my request (${code}): ${productTitle}`)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 0.78rem; color: #166534; border-color: #25D366; text-decoration: none;">
                   ${window.renderIcon ? window.renderIcon('whatsapp') : '<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>'}
                   <span>WhatsApp Support</span>
                 </a>

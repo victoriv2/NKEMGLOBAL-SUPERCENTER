@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
     try {
-      const raw = localStorage.getItem('nkem_current_user');
+      const raw = localStorage.getItem('nkem_current_user') || localStorage.getItem('nkem_user');
       return raw ? JSON.parse(raw) : null;
     } catch (_) {
       return null;
@@ -1716,124 +1716,147 @@ document.addEventListener('DOMContentLoaded', async () => {
     const container = document.getElementById('requestsListContainer');
     if (!container) return;
 
-    container.innerHTML = `
-      <div style="text-align: center; padding: 30px; color: #5a6e62;">
-        <span class="spinner" style="display:inline-block; width:24px; height:24px; border:2.5px solid #087f3b; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-bottom:8px;"></span>
-        <div>Loading your orders and sourcing requests...</div>
-      </div>
-    `;
-
     const activeUser = getActiveUser() || {};
+    let userPhone = (activeUser.whatsapp_number || activeUser.phone || '').trim();
+    let userEmail = (activeUser.email || '').trim();
+    let userId = activeUser.id || null;
+
     let orders = [];
-
-    const userPhone = activeUser.whatsapp_number || activeUser.phone;
-    const userEmail = activeUser.email;
-    const userId = activeUser.id;
-
-    try {
-      if (window.SupabaseService.getUserOrdersSync) {
-        orders = window.SupabaseService.getUserOrdersSync(userId, userPhone, userEmail);
-      }
-    } catch (e) {}
-
-    try {
-      if (window.SupabaseService.getUserOrders) {
-        const fresh = await window.SupabaseService.getUserOrders(userId, userPhone, userEmail, 2000);
-        if (fresh && fresh.length > 0) orders = fresh;
-      }
-    } catch (e) {}
-
-    const searchInput = document.getElementById('requestsSearchInput');
-    const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
-
-    let filtered = orders;
-    if (query) {
-      filtered = orders.filter(o => {
-        const title = (o.product_title || '').toLowerCase();
-        const code = (o.retrieval_code || o.id || '').toLowerCase();
-        return title.includes(query) || code.includes(query);
-      });
+    if (window.SupabaseService?.getUserOrdersSync) {
+      try {
+        orders = window.SupabaseService.getUserOrdersSync(userId, userPhone, userEmail) || [];
+      } catch (e) {}
     }
 
-    if (filtered.length === 0) {
-      container.innerHTML = `
-        <div class="cart-empty-state">
-          <div class="cart-empty-icon">${window.renderIcon('requests')}</div>
-          <h3 class="cart-empty-title">No Orders or Requests Found</h3>
-          <p class="cart-empty-sub">When you place orders or submit sourcing requests via "Everything Dey", they will appear here with live tracking.</p>
-          <button class="btn btn-primary" type="button" id="reqStartShoppingBtn" style="padding: 12px 28px; font-weight: 800; background-color: #087f3b; border-color: #087f3b;">
-            ${window.renderIcon('shop')}
-            <span>Start Shopping Now</span>
-          </button>
-        </div>
-      `;
-      container.querySelector('#reqStartShoppingBtn')?.addEventListener('click', () => {
-        window.switchAppTab('shop');
-      });
-      return;
-    }
+    const renderList = (orderItems, isStillLoading = false) => {
+      const searchInput = document.getElementById('requestsSearchInput');
+      const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
 
-    container.innerHTML = filtered.map(o => {
-      const status = (o.status || 'pending').toLowerCase();
-      const code = o.retrieval_code || o.id || '';
-      const dateStr = o.created_at ? new Date(o.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent';
+      let filtered = orderItems || [];
+      if (query) {
+        filtered = filtered.filter(o => {
+          const title = (o.product_title || '').toLowerCase();
+          const code = (o.retrieval_code || o.id || '').toLowerCase();
+          return title.includes(query) || code.includes(query);
+        });
+      }
 
-      return `
-        <div class="requests-card">
-          <div class="request-card-top">
-            <div>
-              <h4 class="request-card-title">${window.CustomModal.escape(o.product_title || 'Order')}</h4>
-              <div style="font-size: 0.78rem; color: #5a6e62; margin-top: 2px;">Placed on ${dateStr}</div>
+      if (filtered.length === 0) {
+        if (isStillLoading) {
+          container.innerHTML = `
+            <div style="text-align: center; padding: 40px 20px; color: #5a6e62;">
+              <span class="spinner" style="display:inline-block; width:26px; height:26px; border:2.5px solid #087f3b; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-bottom:10px;"></span>
+              <div style="font-size: 0.92rem; font-weight: 600;">Loading your orders and sourcing requests...</div>
             </div>
-            <span class="request-status-pill ${status}">${status}</span>
-          </div>
+          `;
+          return;
+        }
 
-          <div class="request-card-info">
-            <div><strong>Code:</strong> <span class="request-code-badge">${code}</span></div>
-            <div><strong>Amount:</strong> <span style="color: #087f3b; font-weight: 800;">${Number(o.product_price) > 0 ? window.formatNaira(o.product_price) : 'Quote Pending'}</span></div>
-            ${o.state ? `<div><strong>Destination:</strong> ${window.CustomModal.escape(o.lga || '')}, ${window.CustomModal.escape(o.state)}</div>` : ''}
-          </div>
-
-          <div class="request-card-actions">
-            ${Number(o.product_price) > 0 ? `
-              <button type="button" class="btn btn-secondary btn-sm req-download-btn" data-id="${o.id}" style="padding: 6px 12px; font-size: 0.78rem;">
-                ${window.renderIcon('download')}
-                <span>Download Receipt</span>
-              </button>
-            ` : ''}
-            <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Global, I am inquiring about my request (${code}): ${o.product_title}`)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 0.78rem; color: #166534; border-color: #25D366; text-decoration: none;">
-              ${window.renderIcon('whatsapp')}
-              <span>WhatsApp Support</span>
-            </a>
-            <button type="button" class="btn btn-secondary btn-sm req-copy-btn" data-code="${code}" style="padding: 6px 12px; font-size: 0.78rem;">
-              ${window.renderIcon('copy')}
-              <span>Copy Code</span>
+        container.innerHTML = `
+          <div class="cart-empty-state">
+            <div class="cart-empty-icon">${window.renderIcon('requests')}</div>
+            <h3 class="cart-empty-title">No Orders or Requests Found</h3>
+            <p class="cart-empty-sub">When you place orders or submit sourcing requests via "Everything Dey", they will appear here with live tracking.</p>
+            <button class="btn btn-primary" type="button" id="reqStartShoppingBtn" style="padding: 12px 28px; font-weight: 800; background-color: #087f3b; border-color: #087f3b;">
+              ${window.renderIcon('shop')}
+              <span>Start Shopping Now</span>
             </button>
           </div>
-        </div>
-      `;
-    }).join('');
+        `;
+        container.querySelector('#reqStartShoppingBtn')?.addEventListener('click', () => {
+          window.switchAppTab('shop');
+        });
+        return;
+      }
 
-    // Attach listeners
-    container.querySelectorAll('.req-download-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const orderId = btn.getAttribute('data-id');
-        const order = filtered.find(o => o.id === orderId);
-        if (order) {
-          window.CustomModal.toast({ message: 'Generating official receipt...', type: 'info' });
-          await window.ReceiptGenerator.downloadReceiptImage(order);
-          window.CustomModal.toast({ message: 'Receipt downloaded!', type: 'success' });
+      container.innerHTML = filtered.map(o => {
+        const status = (o.status || 'pending').toLowerCase();
+        const code = o.retrieval_code || o.id || '';
+        const dateStr = o.created_at ? new Date(o.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent';
+        const prodImg = window.resolveProductImage ? window.resolveProductImage(o) : (o.product_image || 'assets/images/logo.png');
+        const productTitle = o.product_title || 'Custom Order';
+
+        return `
+          <div class="requests-card">
+            <div class="request-card-top">
+              <div style="flex: 1; min-width: 0; padding-right: 8px;">
+                <h4 class="request-card-title">${window.CustomModal.escape(productTitle)}</h4>
+                <div style="font-size: 0.78rem; color: #5a6e62; margin-top: 2px;">Placed on ${dateStr}</div>
+              </div>
+              <span class="request-status-pill ${status}">${status}</span>
+            </div>
+
+            <div style="display: flex; gap: 14px; align-items: flex-start; margin: 10px 0;">
+              <img src="${prodImg}" alt="${window.CustomModal.escape(productTitle)}" class="request-card-thumb" onerror="this.src='assets/images/logo.png';" />
+              <div style="flex: 1; min-width: 0;">
+                <div class="request-card-info" style="margin-bottom: 0;">
+                  <div><strong>Code:</strong> <span class="request-code-badge">${code}</span></div>
+                  <div><strong>Amount:</strong> <span style="color: #087f3b; font-weight: 800;">${Number(o.product_price) > 0 ? window.formatNaira(o.product_price) : 'Quote Pending'}</span></div>
+                  ${(o.state || o.address) ? `<div><strong>Destination:</strong> ${window.CustomModal.escape([o.address, o.lga, o.state ? o.state + ' State' : ''].filter(Boolean).join(', '))}</div>` : ''}
+                </div>
+              </div>
+            </div>
+
+            <div class="request-card-actions">
+              ${Number(o.product_price) > 0 ? `
+                <button type="button" class="btn btn-secondary btn-sm req-download-btn" data-id="${o.id}" style="padding: 6px 12px; font-size: 0.78rem;">
+                  ${window.renderIcon('download')}
+                  <span>Download Receipt</span>
+                </button>
+              ` : ''}
+              <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Global, I am inquiring about my request (${code}): ${productTitle}`)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 0.78rem; color: #166534; border-color: #25D366; text-decoration: none;">
+                ${window.renderIcon('whatsapp')}
+                <span>WhatsApp Support</span>
+              </a>
+              <button type="button" class="btn btn-secondary btn-sm req-copy-btn" data-code="${code}" style="padding: 6px 12px; font-size: 0.78rem;">
+                ${window.renderIcon('copy')}
+                <span>Copy Code</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Attach listeners
+      container.querySelectorAll('.req-download-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const orderId = btn.getAttribute('data-id');
+          const order = filtered.find(o => o.id === orderId);
+          if (order) {
+            window.CustomModal.toast({ message: 'Generating official receipt...', type: 'info' });
+            await window.ReceiptGenerator.downloadReceiptImage(order);
+            window.CustomModal.toast({ message: 'Receipt downloaded!', type: 'success' });
+          }
+        });
+      });
+
+      container.querySelectorAll('.req-copy-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const code = btn.getAttribute('data-code');
+          navigator.clipboard?.writeText(code);
+          window.CustomModal.toast({ message: `Copied code: ${code}`, type: 'success' });
+        });
+      });
+    };
+
+    // Initial render with sync cached data
+    if (orders.length > 0) {
+      renderList(orders, false);
+    } else {
+      renderList([], true); // Shows loading spinner
+    }
+
+    // Always fetch fresh orders from Supabase cloud database
+    try {
+      if (window.SupabaseService?.getUserOrders) {
+        const fresh = await window.SupabaseService.getUserOrders(userId, userPhone, userEmail, 3000);
+        if (fresh && Array.isArray(fresh)) {
+          renderList(fresh, false);
         }
-      });
-    });
-
-    container.querySelectorAll('.req-copy-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const code = btn.getAttribute('data-code');
-        navigator.clipboard?.writeText(code);
-        window.CustomModal.toast({ message: `Copied code: ${code}`, type: 'success' });
-      });
-    });
+      }
+    } catch (e) {
+      renderList(orders, false);
+    }
   }
 
   /* ==========================================================================

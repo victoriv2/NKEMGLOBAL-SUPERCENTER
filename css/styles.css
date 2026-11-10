@@ -6435,6 +6435,28 @@ body:not(.admin-body) .details-modal-footer .details-whatsapp-btn:hover {
   border: 1px solid #fde047 !important;
 }
 
+.request-card-thumb {
+  width: 72px;
+  height: 72px;
+  min-width: 72px;
+  max-width: 72px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1.5px solid #d1ead9;
+  background: #ffffff;
+  flex-shrink: 0;
+  display: block;
+}
+
+@media (max-width: 480px) {
+  .request-card-thumb {
+    width: 62px;
+    height: 62px;
+    min-width: 62px;
+    max-width: 62px;
+  }
+}
+
 .request-card-info {
   display: flex;
   align-items: center;

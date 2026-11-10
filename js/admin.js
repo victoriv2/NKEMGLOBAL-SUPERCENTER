@@ -1741,22 +1741,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         const amountDisplay = priceNum > 0 ? window.formatNaira(priceNum) : 'Quote Pending';
         const productTitle = ord.product_title || 'Custom Order';
         const custPhone = (adminState.activeChatCustomer?.phone || ord.user_whatsapp || ord.whatsapp || '').replace(/[^0-9]/g, '');
+        const prodImg = window.resolveProductImage ? window.resolveProductImage(ord) : (ord.product_image || 'assets/images/logo.png');
 
         return `
           <div class="chat-msg-row ${isOutgoing ? 'outgoing' : 'incoming'}" data-msg-id="${msg.id}">
             <div class="requests-card chat-order-request-card" data-msg-id="${msg.id}" data-order-id="${code}">
               <div class="request-card-top">
-                <div>
+                <div style="flex: 1; min-width: 0; padding-right: 8px;">
                   <h4 class="request-card-title">${window.CustomModal.escape(productTitle)}</h4>
                   <div style="font-size: 0.78rem; color: #5a6e62; margin-top: 2px;">Placed on ${dateStr}</div>
                 </div>
                 <span class="request-status-pill ${status}">${status}</span>
               </div>
 
-              <div class="request-card-info">
-                <div><strong>Code:</strong> <span class="request-code-badge">${code}</span></div>
-                <div><strong>Amount:</strong> <span style="color: #087f3b; font-weight: 800;">${amountDisplay}</span></div>
-                ${cleanAddr ? `<div><strong>Destination:</strong> ${window.CustomModal.escape(cleanAddr)}</div>` : ''}
+              <div style="display: flex; gap: 12px; align-items: flex-start; margin: 10px 0;">
+                <img src="${prodImg}" alt="${window.CustomModal.escape(productTitle)}" class="request-card-thumb" style="width: 72px; height: 72px; min-width: 72px; border-radius: 8px; object-fit: cover; border: 1.5px solid #d1ead9; background: #ffffff;" onerror="this.src='assets/images/logo.png';" />
+                <div class="request-card-info" style="flex: 1; min-width: 0; margin: 0; padding: 0; border: none;">
+                  <div><strong>Code:</strong> <span class="request-code-badge">${code}</span></div>
+                  <div><strong>Amount:</strong> <span style="color: #087f3b; font-weight: 800;">${amountDisplay}</span></div>
+                  ${cleanAddr ? `<div><strong>Destination:</strong> ${window.CustomModal.escape(cleanAddr)}</div>` : ''}
+                </div>
               </div>
 
               <div class="request-card-actions">
