@@ -223,11 +223,11 @@ window.handleOrderBubbleClick = function(cardOrTarget, orderId, msgId, isAdmin =
     }
 
     // Scrape from card DOM element as backup
-    const card = (cardOrTarget && cardOrTarget.closest) ? cardOrTarget.closest('.chat-order-card-bubble') : null;
+    const card = (cardOrTarget && cardOrTarget.closest) ? cardOrTarget.closest('.chat-order-card-bubble, .chat-order-request-card, .requests-card') : null;
     if (card) {
-      const domTitle = card.querySelector('.chat-order-card-title')?.textContent?.trim();
+      const domTitle = card.querySelector('.request-card-title, .chat-order-card-title')?.textContent?.trim();
       const domThumb = card.querySelector('.chat-order-card-thumb')?.getAttribute('src');
-      const domAddr = card.querySelector('.chat-order-card-addr')?.textContent?.replace(/^Delivery:\s*/i, '').trim();
+      const domAddr = card.querySelector('.chat-order-card-addr, .request-card-info')?.textContent?.replace(/^Delivery:\s*|^Destination:\s*/i, '').trim();
       const domId = card.getAttribute('data-order-id') || orderId;
 
       orderData = {

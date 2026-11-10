@@ -1733,30 +1733,47 @@ document.addEventListener('DOMContentLoaded', async () => {
           cleanAddr = deduped.join(', ');
         }
 
+        const code = ord.retrieval_code || ord.order_id || ord.id || 'N/A';
+        const dateStr = (ord.created_at || msg.created_at)
+          ? new Date(ord.created_at || msg.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+          : 'Recent';
+        const priceNum = Number(ord.product_price || 0);
+        const amountDisplay = priceNum > 0 ? window.formatNaira(priceNum) : 'Quote Pending';
+        const productTitle = ord.product_title || 'Custom Order';
+        const custPhone = (adminState.activeChatCustomer?.phone || ord.user_whatsapp || ord.whatsapp || '').replace(/[^0-9]/g, '');
+
         return `
           <div class="chat-msg-row ${isOutgoing ? 'outgoing' : 'incoming'}" data-msg-id="${msg.id}">
-            <div class="chat-order-card-bubble" data-msg-id="${msg.id}" data-order-id="${ord.order_id}" title="Click to view full order details & download receipt" onclick="window.handleOrderBubbleClick(this, '${ord.order_id}', '${msg.id}', true);">
-              <div class="chat-order-card-header">
-                <span class="chat-order-card-tag">
-                  <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px;"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-                  CUSTOMER ORDER REQUEST
-                </span>
-                <span class="chat-order-card-badge ${statusClass}">${statusLabel}</span>
-              </div>
-
-              <div class="chat-order-card-content">
-                <img src="${ord.product_image || 'assets/images/logo.jpeg'}" class="chat-order-card-thumb" alt="${window.CustomModal.escape(ord.product_title || 'Product')}" onclick="event.stopPropagation(); window.openFullViewLightbox('${ord.product_image || 'assets/images/logo.jpeg'}')" />
-                <div class="chat-order-card-info">
-                  <h4 class="chat-order-card-title">${window.CustomModal.escape(ord.product_title || 'Order')}</h4>
-                  <div class="chat-order-card-price">${window.formatNaira(ord.product_price || 0)}</div>
-                  <div class="chat-order-card-ref">Order ID: <strong>${ord.order_id}</strong></div>
-                  ${cleanAddr ? `<div class="chat-order-card-addr">Delivery: ${window.CustomModal.escape(cleanAddr)}</div>` : ''}
+            <div class="requests-card chat-order-request-card" data-msg-id="${msg.id}" data-order-id="${code}">
+              <div class="request-card-top">
+                <div>
+                  <h4 class="request-card-title">${window.CustomModal.escape(productTitle)}</h4>
+                  <div style="font-size: 0.78rem; color: #5a6e62; margin-top: 2px;">Placed on ${dateStr}</div>
                 </div>
+                <span class="request-status-pill ${status}">${status}</span>
               </div>
 
-              <div class="chat-order-card-footer" style="display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--accent-gold); font-size: 11px; font-weight: 600; cursor: pointer;" onclick="event.stopPropagation(); window.handleOrderBubbleClick(this, '${ord.order_id}', '${msg.id}', true);">
-                <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                <span>Tap to view order details &amp; download receipt</span>
+              <div class="request-card-info">
+                <div><strong>Code:</strong> <span class="request-code-badge">${code}</span></div>
+                <div><strong>Amount:</strong> <span style="color: #087f3b; font-weight: 800;">${amountDisplay}</span></div>
+                ${cleanAddr ? `<div><strong>Destination:</strong> ${window.CustomModal.escape(cleanAddr)}</div>` : ''}
+              </div>
+
+              <div class="request-card-actions">
+                ${priceNum > 0 ? `
+                  <button type="button" class="btn btn-secondary btn-sm chat-req-download-btn" data-code="${code}" style="padding: 6px 12px; font-size: 0.78rem;">
+                    ${window.renderIcon ? window.renderIcon('download') : '<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>'}
+                    <span>Download Receipt</span>
+                  </button>
+                ` : ''}
+                <a href="https://wa.me/${custPhone || '2348142414888'}?text=${encodeURIComponent(`Hello, regarding order (${code}): ${productTitle}`)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 0.78rem; color: #166534; border-color: #25D366; text-decoration: none;">
+                  ${window.renderIcon ? window.renderIcon('whatsapp') : '<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>'}
+                  <span>WhatsApp ${custPhone ? 'Customer' : 'Support'}</span>
+                </a>
+                <button type="button" class="btn btn-secondary btn-sm chat-req-copy-btn" data-code="${code}" style="padding: 6px 12px; font-size: 0.78rem;">
+                  ${window.renderIcon ? window.renderIcon('copy') : '<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'}
+                  <span>Copy Code</span>
+                </button>
               </div>
             </div>
 
@@ -1797,10 +1814,44 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     chatMessagesList.scrollTop = chatMessagesList.scrollHeight;
 
-    // Attach click listeners to all order card chat bubbles in admin view
-    chatMessagesList.querySelectorAll('.chat-order-card-bubble').forEach(card => {
+    // Attach action listeners for chat order request cards in admin view
+    chatMessagesList.querySelectorAll('.chat-order-request-card .chat-req-download-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const code = btn.getAttribute('data-code');
+        const card = btn.closest('.chat-order-request-card');
+        const msgId = card?.getAttribute('data-msg-id');
+        const orderData = (window._chatOrdersMap && (window._chatOrdersMap[code] || window._chatOrdersMap[msgId])) || { order_id: code, retrieval_code: code, id: code };
+
+        if (window.ReceiptGenerator && window.ReceiptGenerator.downloadReceiptImage) {
+          if (window.CustomModal) window.CustomModal.toast({ message: 'Generating official receipt...', type: 'info' });
+          await window.ReceiptGenerator.downloadReceiptImage(orderData);
+          if (window.CustomModal) window.CustomModal.toast({ message: 'Receipt downloaded successfully!', type: 'success' });
+        } else if (window.handleOrderBubbleClick) {
+          window.handleOrderBubbleClick(card, code, msgId, true);
+        }
+      });
+    });
+
+    chatMessagesList.querySelectorAll('.chat-order-request-card .chat-req-copy-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const code = btn.getAttribute('data-code');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code).then(() => {
+            if (window.CustomModal) window.CustomModal.toast({ message: `Order code copied: ${code}`, type: 'success' });
+          }).catch(() => {
+            prompt('Copy Order Code:', code);
+          });
+        } else {
+          prompt('Copy Order Code:', code);
+        }
+      });
+    });
+
+    chatMessagesList.querySelectorAll('.chat-order-request-card, .chat-order-card-bubble').forEach(card => {
       card.addEventListener('click', (e) => {
-        if (e.target.closest('.chat-order-card-thumb')) return;
+        if (e.target.closest('button') || e.target.closest('a')) return;
         const msgId = card.getAttribute('data-msg-id');
         const ordId = card.getAttribute('data-order-id');
         if (window.handleOrderBubbleClick) {
