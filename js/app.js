@@ -88,10 +88,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   let lastExplicitClearTime = 0;
 
   function saveCart(cart, skipCloud = false) {
+    const safeCart = Array.isArray(cart) ? cart : [];
     try {
-      localStorage.setItem('nkem_cart', JSON.stringify(cart));
+      if (safeCart.length === 0) {
+        localStorage.removeItem('nkem_cart');
+      } else {
+        localStorage.setItem('nkem_cart', JSON.stringify(safeCart));
+      }
     } catch (e) {}
-    state.cart = cart;
+    state.cart = safeCart;
     updateCartBadges();
 
     // Multi-device Cloud Cart Sync
@@ -100,7 +105,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const activeUser = getActiveUser();
       if (activeUser && activeUser.id && window.SupabaseService?.syncUserCartToCloud) {
         isSyncingCartToCloud = true;
-        window.SupabaseService.syncUserCartToCloud(activeUser.id, cart)
+        window.SupabaseService.syncUserCartToCloud(activeUser.id, safeCart)
           .catch(err => console.warn('Cloud cart sync dispatch notice:', err))
           .finally(() => {
             isSyncingCartToCloud = false;
@@ -114,8 +119,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const activeUser = getActiveUser();
     if (!activeUser || !activeUser.id || !window.SupabaseService?.getUserCartFromCloud) return;
 
-    // Guard against race conditions right after local mutations (wait 8s after user action)
-    if (!isInitialLogin && (isSyncingCartToCloud || (Date.now() - lastLocalCartMutationTime < 8000))) {
+    // Guard against race conditions right after local mutations (wait 10s after local action)
+    if (!isInitialLogin && (isSyncingCartToCloud || (Date.now() - lastLocalCartMutationTime < 10000))) {
       return;
     }
 
@@ -126,46 +131,54 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const localCart = getCart();
 
-      // If user recently explicitly cleared the cart, respect that and do not resurrect old items
-      if (Date.now() - lastExplicitClearTime < 15000) {
+      // If user recently explicitly cleared or placed an order, never resurrect old items from cloud
+      if (Date.now() - lastExplicitClearTime < 120000) {
+        if (cloudCart.length > 0) {
+          window.SupabaseService.syncUserCartToCloud(activeUser.id, []).catch(() => {});
+        }
         return;
       }
 
-      // If local cart has items, but cloud cart is empty (e.g. freshly logged in or cloud had no items):
-      // NEVER delete local cart! Instead, push local cart up to cloud so cloud catches up!
-      if (localCart.length > 0 && cloudCart.length === 0) {
-        saveCart(localCart, false);
+      // Initial login on fresh device (no local cart, but user has saved cloud cart):
+      if (isInitialLogin) {
+        if (localCart.length === 0 && cloudCart.length > 0) {
+          saveCart(cloudCart, true);
+          if (state.currentTab === 'cart') renderCartView();
+          return;
+        }
+        if (localCart.length > 0) {
+          // Merge guest cart with cloud cart
+          const mergedMap = new Map();
+          cloudCart.forEach(item => { if (item && item.id) mergedMap.set(item.id, { ...item }); });
+          localCart.forEach(item => {
+            if (item && item.id) {
+              if (mergedMap.has(item.id)) {
+                const existing = mergedMap.get(item.id);
+                existing.quantity = Math.max(Number(existing.quantity) || 1, Number(item.quantity) || 1);
+              } else {
+                mergedMap.set(item.id, { ...item });
+              }
+            }
+          });
+          const mergedCart = Array.from(mergedMap.values());
+          saveCart(mergedCart, false);
+          if (state.currentTab === 'cart') renderCartView();
+          return;
+        }
+      }
+
+      // Active in-session background polling:
+      // Local cart is authoritative. If local cart is empty, keep cloud cart empty!
+      if (localCart.length === 0) {
+        if (cloudCart.length > 0) {
+          window.SupabaseService.syncUserCartToCloud(activeUser.id, []).catch(() => {});
+        }
         return;
       }
 
-      // Merge local cart and cloud cart safely by item ID:
-      // An item added by user locally will NEVER be wiped out by stale cloud cache!
-      const mergedMap = new Map();
-      cloudCart.forEach(item => {
-        if (item && item.id) mergedMap.set(item.id, { ...item });
-      });
-      localCart.forEach(item => {
-        if (item && item.id) {
-          if (mergedMap.has(item.id)) {
-            const existing = mergedMap.get(item.id);
-            existing.quantity = Math.max(Number(existing.quantity) || 1, Number(item.quantity) || 1);
-          } else {
-            mergedMap.set(item.id, { ...item });
-          }
-        }
-      });
-
-      const mergedCart = Array.from(mergedMap.values());
-      const localJson = JSON.stringify(localCart);
-      const mergedJson = JSON.stringify(mergedCart);
-      const cloudJson = JSON.stringify(cloudCart);
-
-      if (localJson !== mergedJson) {
-        const needCloudUpload = (mergedJson !== cloudJson);
-        saveCart(mergedCart, !needCloudUpload);
-        if (state.currentTab === 'cart') {
-          renderCartView();
-        }
+      // If local has items and cloud differs, push local to cloud
+      if (JSON.stringify(localCart) !== JSON.stringify(cloudCart)) {
+        window.SupabaseService.syncUserCartToCloud(activeUser.id, localCart).catch(() => {});
       }
     } catch (e) {
       console.warn('Sync cart notice:', e);
@@ -253,8 +266,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function clearCart() {
     lastExplicitClearTime = Date.now();
+    lastLocalCartMutationTime = Date.now();
     saveCart([]);
     renderCartView();
+    const activeUser = getActiveUser();
+    if (activeUser && activeUser.id && window.SupabaseService?.syncUserCartToCloud) {
+      window.SupabaseService.syncUserCartToCloud(activeUser.id, []).catch(() => {});
+    }
     window.CustomModal.toast({ message: 'Cart cleared.', type: 'info' });
   }
 
@@ -1672,10 +1690,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const address = (activeUser.address || '').trim();
         const baseTimestamp = Date.now();
 
-        const createdOrders = [];
-
-        for (let idx = 0; idx < currentCart.length; idx++) {
-          const item = currentCart[idx];
+        const orderTasks = currentCart.map(async (item, idx) => {
           const qty = Number(item.quantity) || 1;
           const unitPrice = Number(item.price) || 0;
           const itemTotal = unitPrice * qty;
@@ -1705,7 +1720,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           try {
             await window.SupabaseService.createOrder(orderData);
-            createdOrders.push(orderData);
 
             // Send individual rich Order Card into chat
             if (activeUser.id) {
@@ -1741,16 +1755,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                 deleted_for_admin: false,
                 created_at: new Date(baseTimestamp + idx * 1000).toISOString()
               };
-              await window.SupabaseService.sendUserChatMessage(orderChatMessage);
+              await window.SupabaseService.sendUserChatMessage(orderChatMessage).catch(() => {});
             }
           } catch (itemErr) {
             console.error('Error placing individual item order:', itemErr);
-            createdOrders.push(orderData);
           }
+          return orderData;
+        });
+
+        const createdOrders = await Promise.all(orderTasks);
+
+        // Immediate Cart Clear (Memory, LocalStorage, Cloud, Badges & UI View)
+        lastExplicitClearTime = Date.now();
+        lastLocalCartMutationTime = Date.now();
+        saveCart([], false);
+        renderCartView();
+
+        if (activeUser && activeUser.id && window.SupabaseService?.syncUserCartToCloud) {
+          await window.SupabaseService.syncUserCartToCloud(activeUser.id, []).catch(() => {});
         }
 
-        // Clear cart
-        saveCart([]);
         isSubmittingCartOrder = false;
 
         // Open Order Success Modal & Receipt Download
@@ -2321,8 +2345,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     const closeSuccess = () => orderSuccessModal.classList.remove('active');
-    orderSuccessModal.querySelector('#closeSuccessModalBtn')?.addEventListener('click', closeSuccess);
-    orderSuccessModal.querySelector('#closeSuccessBtn')?.addEventListener('click', closeSuccess);
+    orderSuccessModal.querySelector('#closeSuccessModalBtn')?.addEventListener('click', () => {
+      closeSuccess();
+      window.switchAppTab('shop');
+    });
+    orderSuccessModal.querySelector('#closeSuccessBtn')?.addEventListener('click', () => {
+      closeSuccess();
+      window.switchAppTab('shop');
+    });
 
     const trackBtn = orderSuccessModal.querySelector('#trackInOrdersBtn');
     if (trackBtn) {

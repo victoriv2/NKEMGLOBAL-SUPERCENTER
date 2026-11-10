@@ -13,15 +13,27 @@ window.SupabaseService = {
   },
 
   async request(endpoint, options = {}) {
-    const timeoutMs = options.timeoutMs || 8000;
+    const timeoutMs = options.timeoutMs || 6000;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
-    const signal = options.signal || controller.signal;
+
+    if (options.signal) {
+      if (options.signal.aborted) {
+        clearTimeout(timer);
+        return null;
+      }
+      options.signal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
 
     try {
       const url = `${this.URL}/rest/v1/${endpoint}`;
       const headers = { ...this.getHeaders(), ...(options.headers || {}) };
-      const response = await fetch(url, { ...options, headers, signal });
+      const fetchOpts = { ...options };
+      delete fetchOpts.timeoutMs;
+      fetchOpts.headers = headers;
+      fetchOpts.signal = controller.signal;
+
+      const response = await fetch(url, fetchOpts);
       clearTimeout(timer);
       if (!response.ok) {
         const errorText = await response.text();
@@ -913,63 +925,37 @@ window.SupabaseService = {
     return orders.find(o => o.retrieval_code && o.retrieval_code.toUpperCase() === cleanCode) || null;
   },
 
-  async getUserOrders(userId, phone, email, timeoutMs = 3000) {
+  async getUserOrders(userId, phone, email, timeoutMs = 3500) {
     const local = this.getUserOrdersSync(userId, phone, email);
     try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-      const cloudOrdersMap = new Map();
-
-      // Query 1: by user_id
+      const orClauses = [];
       if (userId) {
-        try {
-          const res = await this.request(`nkem_orders?user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc`, { signal: controller.signal, timeoutMs });
-          if (Array.isArray(res)) {
-            res.forEach(o => {
-              if (this.isSourcingOrder(o)) return;
-              const norm = this.normalizeOrderRecord(o, { user_id: userId });
-              const cid = this.canonicalOrderId(norm);
-              if (cid) cloudOrdersMap.set(cid, norm);
-            });
-          }
-        } catch (_) {}
+        orClauses.push(`user_id.eq.${encodeURIComponent(userId)}`);
       }
-
-      // Query 2: by whatsapp_number / phone (vital for guest or phone-based orders)
       if (phone) {
         const last10 = this.normalizePhone(phone);
         if (last10) {
-          try {
-            const res = await this.request(`nkem_orders?whatsapp_number=ilike.*${encodeURIComponent(last10)}*&order=created_at.desc`, { signal: controller.signal, timeoutMs });
-            if (Array.isArray(res)) {
-              res.forEach(o => {
-                if (this.isSourcingOrder(o)) return;
-                const norm = this.normalizeOrderRecord(o, { user_id: userId });
-                const cid = this.canonicalOrderId(norm);
-                if (cid) cloudOrdersMap.set(cid, norm);
-              });
-            }
-          } catch (_) {}
+          orClauses.push(`whatsapp_number.ilike.*${encodeURIComponent(last10)}*`);
         }
       }
-
-      // Query 3: by email
       if (email && email.trim()) {
-        try {
-          const res = await this.request(`nkem_orders?email=eq.${encodeURIComponent(email.trim().toLowerCase())}&order=created_at.desc`, { signal: controller.signal, timeoutMs });
-          if (Array.isArray(res)) {
-            res.forEach(o => {
-              if (this.isSourcingOrder(o)) return;
-              const norm = this.normalizeOrderRecord(o, { user_id: userId });
-              const cid = this.canonicalOrderId(norm);
-              if (cid) cloudOrdersMap.set(cid, norm);
-            });
-          }
-        } catch (_) {}
+        orClauses.push(`email.eq.${encodeURIComponent(email.trim().toLowerCase())}`);
       }
 
-      clearTimeout(timer);
+      if (orClauses.length === 0) return local;
+
+      const cloudOrdersMap = new Map();
+      const filterParam = orClauses.length > 1 ? `or=(${orClauses.join(',')})` : orClauses[0];
+      const res = await this.request(`nkem_orders?${filterParam}&order=created_at.desc`, { timeoutMs });
+
+      if (Array.isArray(res)) {
+        res.forEach(o => {
+          if (this.isSourcingOrder(o)) return;
+          const norm = this.normalizeOrderRecord(o, { user_id: userId });
+          const cid = this.canonicalOrderId(norm);
+          if (cid) cloudOrdersMap.set(cid, norm);
+        });
+      }
 
       if (cloudOrdersMap.size > 0) {
         let allLocal = this.getLocalOrders();
