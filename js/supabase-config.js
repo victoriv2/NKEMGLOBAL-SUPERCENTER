@@ -659,6 +659,15 @@ window.SupabaseService = {
   },
 
   // ---------------- ORDERS ----------------
+  isSourcingOrder(o) {
+    if (!o) return false;
+    const pid = String(o.product_id || '').toLowerCase();
+    const id = String(o.id || o.order_id || '').toLowerCase();
+    const code = String(o.retrieval_code || '').toLowerCase();
+    const title = String(o.product_title || '').toLowerCase();
+    return pid === 'custom-sourcing' || id.startsWith('req-') || id.startsWith('sreq-') || code.startsWith('nkg-req-') || title.startsWith('sourcing request:');
+  },
+
   getLocalOrders() {
     const chatOrdersMap = new Map();
 
@@ -673,12 +682,14 @@ window.SupabaseService = {
             if (Array.isArray(msgs)) {
               msgs.forEach(m => {
                 if (m && m.order_data) {
+                  if (this.isSourcingOrder(m.order_data)) return;
                   const norm = this.normalizeOrderRecord(m.order_data, {
                     user_id: m.user_id || userIdFromKey,
                     user_name: m.user_name,
                     user_whatsapp: m.user_whatsapp,
                     created_at: m.created_at
                   });
+                  if (this.isSourcingOrder(norm)) return;
                   const cid = this.canonicalOrderId(norm);
                   if (cid) {
                     chatOrdersMap.set(cid, norm);
@@ -705,8 +716,9 @@ window.SupabaseService = {
       const list = local ? JSON.parse(local) : [];
       if (Array.isArray(list)) {
         list.forEach(item => {
-          if (!item) return;
+          if (!item || this.isSourcingOrder(item)) return;
           const norm = this.normalizeOrderRecord(item);
+          if (this.isSourcingOrder(norm)) return;
           const cid = this.canonicalOrderId(norm);
           if (!cid) return;
 
@@ -725,7 +737,7 @@ window.SupabaseService = {
       }
     } catch (e) {}
 
-    const deduplicated = Array.from(finalOrdersMap.values());
+    const deduplicated = Array.from(finalOrdersMap.values()).filter(o => !this.isSourcingOrder(o));
     try {
       localStorage.setItem('nkem_local_orders', JSON.stringify(deduplicated));
     } catch (e) {}
@@ -831,6 +843,7 @@ window.SupabaseService = {
 
         // Merge all cloud orders
         cloud.forEach(c => {
+          if (this.isSourcingOrder(c)) return;
           const norm = this.normalizeOrderRecord(c);
           const cid = this.canonicalOrderId(norm);
           if (cid) {
@@ -883,6 +896,7 @@ window.SupabaseService = {
           const res = await this.request(`nkem_orders?user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc`, { signal: controller.signal, timeoutMs });
           if (Array.isArray(res)) {
             res.forEach(o => {
+              if (this.isSourcingOrder(o)) return;
               const norm = this.normalizeOrderRecord(o, { user_id: userId });
               const cid = this.canonicalOrderId(norm);
               if (cid) cloudOrdersMap.set(cid, norm);
@@ -899,6 +913,7 @@ window.SupabaseService = {
             const res = await this.request(`nkem_orders?whatsapp_number=ilike.*${encodeURIComponent(last10)}*&order=created_at.desc`, { signal: controller.signal, timeoutMs });
             if (Array.isArray(res)) {
               res.forEach(o => {
+                if (this.isSourcingOrder(o)) return;
                 const norm = this.normalizeOrderRecord(o, { user_id: userId });
                 const cid = this.canonicalOrderId(norm);
                 if (cid) cloudOrdersMap.set(cid, norm);
@@ -914,6 +929,7 @@ window.SupabaseService = {
           const res = await this.request(`nkem_orders?email=eq.${encodeURIComponent(email.trim().toLowerCase())}&order=created_at.desc`, { signal: controller.signal, timeoutMs });
           if (Array.isArray(res)) {
             res.forEach(o => {
+              if (this.isSourcingOrder(o)) return;
               const norm = this.normalizeOrderRecord(o, { user_id: userId });
               const cid = this.canonicalOrderId(norm);
               if (cid) cloudOrdersMap.set(cid, norm);
@@ -1418,12 +1434,28 @@ window.SupabaseService = {
         } catch (e) {}
       }
 
+      if (m.message && typeof m.message === 'string' && m.message.startsWith('[SOURCING_REQUEST]:::') && !m.sourcing_data) {
+        try {
+          m.sourcing_data = JSON.parse(m.message.slice(21));
+          m.message_type = 'sourcing_request';
+        } catch (e) {}
+      }
+
       // If it is an order card, deduplicate by canonical order ID
       if (m.message_type === 'order_card' && m.order_data) {
         const ordRef = this.canonicalOrderId(m.order_data);
         if (ordRef) {
           if (seenOrderRefs.has(ordRef)) return;
           seenOrderRefs.add(ordRef);
+        }
+      }
+
+      // If it is a sourcing request card, deduplicate by request ID
+      if (m.message_type === 'sourcing_request' && m.sourcing_data) {
+        const sref = String(m.sourcing_data.request_id || m.id || '').trim().toLowerCase();
+        if (sref) {
+          if (seenOrderRefs.has(sref)) return;
+          seenOrderRefs.add(sref);
         }
       }
 
@@ -1450,6 +1482,12 @@ window.SupabaseService = {
             m.message_type = 'order_card';
           } catch (e) {}
         }
+        if (m.message && typeof m.message === 'string' && m.message.startsWith('[SOURCING_REQUEST]:::') && !m.sourcing_data) {
+          try {
+            m.sourcing_data = JSON.parse(m.message.slice(21));
+            m.message_type = 'sourcing_request';
+          } catch (e) {}
+        }
         return m;
       });
       return this.deduplicateChatMessages(decoded);
@@ -1469,6 +1507,12 @@ window.SupabaseService = {
             m.message_type = 'order_card';
           } catch (e) {}
         }
+        if (m.message && typeof m.message === 'string' && m.message.startsWith('[SOURCING_REQUEST]:::')) {
+          try {
+            m.sourcing_data = JSON.parse(m.message.slice(21));
+            m.message_type = 'sourcing_request';
+          } catch (e) {}
+        }
         return m;
       });
       const deduplicated = this.deduplicateChatMessages(decoded);
@@ -1484,6 +1528,12 @@ window.SupabaseService = {
           m.message_type = 'order_card';
         } catch (e) {}
       }
+      if (m.message && typeof m.message === 'string' && m.message.startsWith('[SOURCING_REQUEST]:::') && !m.sourcing_data) {
+        try {
+          m.sourcing_data = JSON.parse(m.message.slice(21));
+          m.message_type = 'sourcing_request';
+        } catch (e) {}
+      }
       return m;
     });
     return this.deduplicateChatMessages(decoded);
@@ -1496,10 +1546,12 @@ window.SupabaseService = {
     // Ensure order_code is NEVER empty (required by nkem_chats schema)
     const cleanOrderCode = msg.order_code || msg.user_id || 'DIRECT';
 
-    // Serialize order_card data cleanly into message text if present
+    // Serialize order_card or sourcing_request data cleanly into message text if present
     let cleanMessage = msg.message || null;
     if (msg.message_type === 'order_card' && msg.order_data) {
       cleanMessage = `[ORDER_CARD]:::${JSON.stringify(msg.order_data)}`;
+    } else if (msg.message_type === 'sourcing_request' && msg.sourcing_data) {
+      cleanMessage = `[SOURCING_REQUEST]:::${JSON.stringify(msg.sourcing_data)}`;
     }
 
     // Strict sanitization: ONLY send valid nkem_chats database columns to Supabase
@@ -1524,17 +1576,22 @@ window.SupabaseService = {
     // Save to local cache preserving decoded in-memory structure
     const memoryMsg = {
       ...cleanPayload,
-      message_type: msg.message_type || (cleanMessage && cleanMessage.startsWith('[ORDER_CARD]:::') ? 'order_card' : undefined),
-      order_data: msg.order_data || undefined
+      message_type: msg.message_type || (cleanMessage && cleanMessage.startsWith('[ORDER_CARD]:::') ? 'order_card' : (cleanMessage && cleanMessage.startsWith('[SOURCING_REQUEST]:::') ? 'sourcing_request' : undefined)),
+      order_data: msg.order_data || undefined,
+      sourcing_data: msg.sourcing_data || undefined
     };
 
     let localList = this.getUserChatMessagesSync(userId);
     const newOrdRef = memoryMsg.order_data ? this.canonicalOrderId(memoryMsg.order_data) : '';
+    const newSourcingRef = memoryMsg.sourcing_data ? (memoryMsg.sourcing_data.request_id || memoryMsg.id) : '';
 
     const existingIdx = localList.findIndex(m => {
       if (m.id === memoryMsg.id) return true;
       if (newOrdRef && m.message_type === 'order_card' && m.order_data) {
         return this.canonicalOrderId(m.order_data) === newOrdRef;
+      }
+      if (newSourcingRef && m.message_type === 'sourcing_request' && m.sourcing_data) {
+        return (m.sourcing_data.request_id || m.id) === newSourcingRef;
       }
       return false;
     });
@@ -1689,6 +1746,8 @@ window.SupabaseService = {
           c.latestMessage = 'This message was deleted';
         } else if (last.message_type === 'order_card' && last.order_data) {
           c.latestMessage = `[Order Request: ${last.order_data.product_title || 'Item'}]`;
+        } else if (last.message_type === 'sourcing_request' && last.sourcing_data) {
+          c.latestMessage = `[Sourcing Request: ${last.sourcing_data.item || 'Item'}]`;
         } else if (last.image_url) {
           c.latestMessage = '[Image attachment]';
         } else {

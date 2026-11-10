@@ -1155,6 +1155,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  const adminTabOrdersBadge = document.getElementById('adminTabOrdersBadge');
+
+  function isSourcingRequestOrder(o) {
+    if (!o) return false;
+    const pid = String(o.product_id || '').toLowerCase();
+    const id = String(o.id || o.order_id || '').toLowerCase();
+    const code = String(o.retrieval_code || '').toLowerCase();
+    const title = String(o.product_title || '').toLowerCase();
+    return pid === 'custom-sourcing' || id.startsWith('req-') || id.startsWith('sreq-') || code.startsWith('nkg-req-') || title.startsWith('sourcing request:');
+  }
+
+  function updateAdminOrdersPendingBadge() {
+    if (!adminTabOrdersBadge) return;
+    const pendingOrders = (adminState.orders || []).filter(o => !isSourcingRequestOrder(o) && (o.status || 'pending').toLowerCase() === 'pending');
+    const count = pendingOrders.length;
+    if (count > 0) {
+      adminTabOrdersBadge.textContent = count > 99 ? '99+' : count;
+      adminTabOrdersBadge.style.display = 'inline-flex';
+    } else {
+      adminTabOrdersBadge.style.display = 'none';
+    }
+  }
+
   async function loadOrdersAndChats() {
     try {
       const [orders, convs] = await Promise.all([
@@ -1162,10 +1185,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.SupabaseService.getAllCustomerConversations()
       ]);
 
-      // Deduplicate orders by canonical order ID
+      // Deduplicate orders by canonical order ID & strictly exclude custom sourcing requests (they belong in Live Chat)
       const deduplicatedOrders = [];
       const seenOrderIds = new Set();
       (orders || []).forEach(o => {
+        if (!o || isSourcingRequestOrder(o)) return;
         const cid = String(o.id || o.order_id || o.order_code || o.retrieval_code || '').trim().toLowerCase();
         if (cid && !seenOrderIds.has(cid)) {
           seenOrderIds.add(cid);
@@ -1176,6 +1200,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       adminState.orders = deduplicatedOrders;
       adminState.conversations = convs || [];
 
+      // Purge any legacy sourcing orders from cloud and local storage so they never linger in Orders table
+      try {
+        if (window.SupabaseService && window.SupabaseService.request) {
+          window.SupabaseService.request('nkem_orders?product_id=eq.custom-sourcing', { method: 'DELETE' }).catch(() => {});
+          window.SupabaseService.request('nkem_orders?id=like.req-*', { method: 'DELETE' }).catch(() => {});
+        }
+        const local = JSON.parse(localStorage.getItem('nkem_local_orders') || '[]');
+        if (Array.isArray(local) && local.length > 0) {
+          const cleaned = local.filter(o => !isSourcingRequestOrder(o));
+          localStorage.setItem('nkem_local_orders', JSON.stringify(cleaned));
+        }
+      } catch (_) {}
+
+      updateAdminOrdersPendingBadge();
       updateAdminChatTotalBadge();
       setupOrdersControls();
       renderOrdersManager();
@@ -1199,6 +1237,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderOrdersManager() {
     if (!orderListContainer) return;
     setupOrdersControls();
+    updateAdminOrdersPendingBadge();
 
     const orders = adminState.orders || [];
 
@@ -1648,6 +1687,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           seenOrderRefs.add(ordRef);
         }
       }
+      if (msg.message_type === 'sourcing_request' && msg.sourcing_data) {
+        const sref = String(msg.sourcing_data.request_id || msg.id || '').trim().toLowerCase();
+        if (sref) {
+          if (seenOrderRefs.has(sref)) return;
+          seenOrderRefs.add(sref);
+        }
+      }
       const mid = String(msg.id || '').trim();
       if (mid) {
         if (seenMsgIds.has(mid)) return;
@@ -1778,6 +1824,63 @@ document.addEventListener('DOMContentLoaded', async () => {
                   ${window.renderIcon ? window.renderIcon('copy') : '<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'}
                   <span>Copy Code</span>
                 </button>
+              </div>
+            </div>
+
+            <div class="chat-msg-meta">
+              <span>${new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+          </div>
+        `;
+      }
+
+      // Special Custom Sourcing Request Bubble for Admin View
+      if (msg.message_type === 'sourcing_request' && msg.sourcing_data) {
+        const src = msg.sourcing_data;
+        const itemName = src.item || 'Custom Sourcing Item';
+        const userNotes = src.notes || '';
+        const requesterName = src.user_name || (adminState.activeChatCustomer ? adminState.activeChatCustomer.userName : 'Customer');
+        const requesterPhone = src.user_whatsapp || (adminState.activeChatCustomer ? adminState.activeChatCustomer.userWhatsapp : '');
+        const cleanDigits = String(requesterPhone || '').replace(/\D/g, '').replace(/^0/, '');
+        const waLink = cleanDigits ? `234${cleanDigits}` : '';
+        const dateStr = (src.created_at || msg.created_at)
+          ? new Date(src.created_at || msg.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+          : 'Recent';
+
+        return `
+          <div class="chat-msg-row incoming" data-msg-id="${msg.id}">
+            <div class="chat-sourcing-request-card" data-msg-id="${msg.id}">
+              <div class="sourcing-card-header">
+                <span class="sourcing-card-badge">
+                  <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  <span>CUSTOM SOURCING REQUEST</span>
+                </span>
+                <span class="sourcing-card-guarantee">Reply with 2 Options & Photos</span>
+              </div>
+
+              <div class="sourcing-card-body">
+                <div class="sourcing-item-eyebrow">Customer Wants:</div>
+                <h4 class="sourcing-item-name">${window.CustomModal.escape(itemName)}</h4>
+                
+                ${userNotes ? `
+                  <div class="sourcing-details-pill">
+                    <strong>Budget / Details:</strong> ${window.CustomModal.escape(userNotes)}
+                  </div>
+                ` : ''}
+
+                <div class="sourcing-requester-info">
+                  <strong>Requester:</strong> ${window.CustomModal.escape(requesterName)} 
+                  ${requesterPhone ? `(${window.CustomModal.escape(requesterPhone)})` : ''}
+                </div>
+              </div>
+
+              <div class="sourcing-card-actions">
+                ${waLink ? `
+                  <a href="https://wa.me/${waLink}?text=${encodeURIComponent(`Hello ${requesterName}, regarding your sourcing request for "${itemName}": we have 2 great options with pictures for you!`)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm sourcing-wa-btn">
+                    ${window.renderIcon ? window.renderIcon('whatsapp') : '<svg class="svg-icon svg-whatsapp" viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px;"><path d="M17.472 14.382c-.301-.15-1.78-.878-2.056-.978-.275-.101-.476-.15-.676.15-.2.301-.776.978-.952 1.18-.175.2-.351.225-.652.075-.301-.15-1.27-.468-2.42-1.494-.894-.799-1.498-1.786-1.674-2.087-.175-.301-.019-.464.132-.614.136-.135.301-.351.451-.527.151-.175.201-.301.301-.501.1-.2.05-.376-.025-.526-.075-.15-.676-1.63-.926-2.232-.244-.588-.492-.508-.676-.517-.175-.009-.376-.011-.577-.011s-.527.075-.802.376c-.276.301-1.053 1.029-1.053 2.509 0 1.48 1.078 2.91 1.229 3.111.15.2 2.122 3.24 5.141 4.545.718.31 1.278.496 1.716.635.722.23 1.38.197 1.9-.119.58-.354 1.78-1.455 2.03-2.866.25-1.411.25-2.621.175-2.871-.075-.25-.276-.376-.577-.526zM12.04 2C6.51 2 2.03 6.48 2.03 12.01c0 1.98.58 3.82 1.58 5.37L2 22l4.78-1.55c1.5 1 3.29 1.56 5.26 1.56 5.53 0 10.01-4.48 10.01-10.01C22.05 6.48 17.57 2 12.04 2zm0 18.25c-1.72 0-3.32-.51-4.67-1.39l-.33-.22-2.84.92.93-2.77-.24-.35A8.2 8.2 0 0 1 3.83 12c0-4.53 3.68-8.21 8.21-8.21 4.53 0 8.21 3.68 8.21 8.21 0 4.53-3.68 8.25-8.21 8.25z"/></svg>'}
+                    <span>Send Options on WhatsApp</span>
+                  </a>
+                ` : ''}
               </div>
             </div>
 

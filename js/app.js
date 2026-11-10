@@ -496,7 +496,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
             <button type="submit" class="btn btn-primary" id="submitSourcingBtn" style="width: 100%; justify-content: center; padding: 12px; font-weight: 800; background-color: #087f3b; border-color: #087f3b;">
               ${window.renderIcon('send')}
-              <span>Submit Sourcing Request (Within 30 Mins)</span>
+              <span>Submit Sourcing Request</span>
             </button>
 
             <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Global, I am requesting: ${itemQuery}. Please send me 2 best options with pictures within 30 minutes!`)}" target="_blank" rel="noopener" class="btn btn-secondary" style="width: 100%; justify-content: center; padding: 11px; font-weight: 700; color: #166534; border-color: #25D366; text-decoration: none;">
@@ -545,41 +545,54 @@ document.addEventListener('DOMContentLoaded', async () => {
             <span>Submitting Request...</span>
           `;
 
-          const reqId = `req-${Date.now()}`;
-          const code = `NKG-REQ-${Date.now()}`;
-          const title = `Sourcing Request: ${itemQuery}${userNotes ? ` (${userNotes})` : ''}`;
+          const reqId = `sreq-${Date.now()}`;
+          const userName = [activeUser.first_name, activeUser.last_name].filter(Boolean).join(' ') || activeUser.name || 'Valued Customer';
+          const userPhone = activeUser.whatsapp_number || activeUser.phone || '';
 
-          const orderData = {
-            id: reqId,
-            retrieval_code: code,
+          const sourcingData = {
+            request_id: reqId,
+            item: itemQuery,
+            notes: userNotes || null,
             user_id: activeUser.id,
-            product_id: 'custom-sourcing',
-            product_title: title,
-            product_price: 0,
-            product_image: 'assets/images/logo.png',
-            first_name: activeUser.first_name || activeUser.name?.split(' ')[0] || 'Valued',
-            last_name: activeUser.last_name || activeUser.name?.split(' ').slice(1).join(' ') || 'Customer',
-            whatsapp_number: activeUser.whatsapp_number || activeUser.phone || '',
-            email: activeUser.email || null,
-            state: activeUser.state || '',
-            lga: activeUser.lga || '',
-            address: activeUser.address || '',
-            status: 'pending',
+            user_name: userName,
+            user_whatsapp: userPhone,
+            created_at: new Date().toISOString()
+          };
+
+          const msgObj = {
+            id: `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            order_code: activeUser.id,
+            user_id: activeUser.id,
+            user_name: userName,
+            user_whatsapp: userPhone,
+            sender: 'user',
+            message_type: 'sourcing_request',
+            sourcing_data: sourcingData,
+            message: `[SOURCING_REQUEST]:::${JSON.stringify(sourcingData)}`,
+            image_url: null,
+            is_edited: false,
+            is_read_by_admin: false,
+            is_read_by_user: true,
+            deleted_for_everyone: false,
+            deleted_for_user: false,
+            deleted_for_admin: false,
             created_at: new Date().toISOString()
           };
 
           try {
-            await window.SupabaseService.createOrder(orderData);
-          } catch (err) {}
+            await window.SupabaseService.sendUserChatMessage(msgObj);
+          } catch (err) {
+            console.warn('Failed to send sourcing chat message:', err);
+          }
 
           closeModal();
           window.CustomModal.toast({
-            message: 'Request submitted! Our team will send 2 options within 30 mins.',
+            message: 'Sourcing request sent to Live Chat! Opening Live Chat...',
             type: 'success'
           });
 
-          // Navigate to Requests tab
-          window.switchAppTab('requests');
+          // Redirect to Live Chat where special sourcing request bubble is displayed
+          window.location.href = 'chat.html';
         });
       }
     }
@@ -1828,7 +1841,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const searchInput = document.getElementById('requestsSearchInput');
       const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
 
-      let filtered = (orderItems || []).slice();
+      let filtered = (orderItems || []).filter(o => !window.SupabaseService?.isSourcingOrder || !window.SupabaseService.isSourcingOrder(o)).slice();
 
       // 1. Text Search Filter
       if (query) {

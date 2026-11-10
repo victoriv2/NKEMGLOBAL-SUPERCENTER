@@ -6450,6 +6450,147 @@ body:not(.admin-body) .details-modal-footer .details-whatsapp-btn:hover {
   border: 1px solid #fde047 !important;
 }
 
+/* ---------------- SPECIAL SOURCING REQUEST CHAT BUBBLE (DIFFERENTIATED) ---------------- */
+.chat-sourcing-request-card {
+  width: 100%;
+  max-width: min(92vw, 440px);
+  background: #f2faf5 !important;
+  border-radius: 14px !important;
+  border: 2px solid #087f3b !important;
+  box-shadow: none !important;
+  padding: 14px 16px !important;
+  box-sizing: border-box !important;
+  margin-bottom: 2px !important;
+  text-align: left;
+}
+
+.chat-msg-row.outgoing .chat-sourcing-request-card,
+.chat-msg-row.incoming .chat-sourcing-request-card {
+  color: #1a1a1a !important;
+}
+
+.chat-msg-row.outgoing .chat-sourcing-request-card *,
+.chat-msg-row.incoming .chat-sourcing-request-card * {
+  color: inherit;
+}
+
+.sourcing-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #d1ead9;
+  margin-bottom: 10px;
+}
+
+.sourcing-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: #087f3b !important;
+  color: #ffffff !important;
+  font-size: 0.69rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.sourcing-card-badge svg {
+  stroke: #ffffff;
+}
+
+.sourcing-card-guarantee {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #073b1f !important;
+  background-color: #d1f2de;
+  border: 1px solid #a3e2bb;
+  padding: 3px 8px;
+  border-radius: 12px;
+}
+
+.sourcing-item-eyebrow {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: #5a6e62 !important;
+  letter-spacing: 0.04em;
+}
+
+.sourcing-item-name {
+  font-size: 1.15rem !important;
+  font-weight: 900 !important;
+  color: #073b1f !important;
+  margin: 3px 0 8px 0 !important;
+  line-height: 1.3 !important;
+}
+
+.sourcing-details-pill {
+  background: #ffffff !important;
+  border: 1px solid #d1ead9 !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  font-size: 0.82rem !important;
+  color: #1e3a29 !important;
+  margin: 8px 0 !important;
+  line-height: 1.4 !important;
+}
+
+.sourcing-details-pill strong {
+  color: #087f3b !important;
+  font-weight: 800;
+}
+
+.sourcing-meta-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #5a6e62 !important;
+  margin-top: 8px;
+}
+
+.sourcing-status-dot {
+  color: #087f3b !important;
+  font-weight: 700;
+}
+
+.sourcing-requester-info {
+  font-size: 0.8rem;
+  color: #3b5043 !important;
+  margin-top: 8px;
+}
+
+.sourcing-requester-info strong {
+  color: #073b1f !important;
+}
+
+.sourcing-card-actions {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #d1ead9;
+}
+
+.sourcing-wa-btn {
+  width: 100% !important;
+  justify-content: center !important;
+  padding: 9px 12px !important;
+  font-weight: 700 !important;
+  color: #166534 !important;
+  border-color: #25D366 !important;
+  background-color: #ffffff !important;
+  text-decoration: none !important;
+  font-size: 0.82rem !important;
+}
+
+.sourcing-wa-btn:hover {
+  background-color: #eafaf1 !important;
+  border-color: #128c7e !important;
+}
+
 .request-card-thumb {
   width: 72px;
   height: 72px;
