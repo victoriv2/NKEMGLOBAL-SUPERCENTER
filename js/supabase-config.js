@@ -563,25 +563,28 @@ window.SupabaseService = {
     } catch (e) {}
   },
 
-  // One-time clean slate reset requested by user:
-  // Clears all test chat history and all test order records, leaving user accounts and catalog products untouched.
+  // Factory reset clean slate initialization:
+  // Purges all legacy customer accounts, cart, test orders, and chat records from client localStorage
+  // Leaves the master admin credentials and catalog products completely intact.
   initCleanSlateOnce() {
-    const RESET_FLAG = 'nkem_user_and_activities_purged_final';
+    const RESET_FLAG = 'nkem_factory_reset_2026_11_10_v2';
     if (!localStorage.getItem(RESET_FLAG)) {
       try {
         localStorage.removeItem('nkem_current_user');
+        localStorage.removeItem('nkem_user');
         localStorage.removeItem('nkem_local_users');
+        localStorage.removeItem('nkem_cart');
         localStorage.removeItem('nkem_local_orders');
         localStorage.removeItem('nkem_order_statuses');
         localStorage.removeItem('nkem_active_chat_user');
         for (let i = localStorage.length - 1; i >= 0; i--) {
           const k = localStorage.key(i);
-          if (k && (k.startsWith('nkem_user_chats_') || k.startsWith('nkem_chats_'))) {
+          if (k && (k.startsWith('nkem_user_chats_') || k.startsWith('nkem_chats_') || k.startsWith('nkem_cached_'))) {
             localStorage.removeItem(k);
           }
         }
         localStorage.setItem(RESET_FLAG, 'true');
-        console.log('Nkem Global: User and all activities purged cleanly from local storage.');
+        console.log('Nkem Global: Factory reset completed. User accounts and activities purged cleanly.');
       } catch (e) {}
     }
   },
