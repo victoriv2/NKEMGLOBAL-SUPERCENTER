@@ -1325,10 +1325,15 @@ window.SupabaseService = {
           'Cache-Control': 'no-cache, no-store'
         }
       });
-      if (res && Array.isArray(res) && res.length > 0) {
+      // STRICT FIX: If network failed or timed out, res is null/undefined.
+      // Return null so callers NEVER treat network drops as an empty cart!
+      if (res === null || res === undefined) {
+        return null;
+      }
+      if (Array.isArray(res) && res.length > 0) {
         return Array.isArray(res[0].cart) ? res[0].cart : [];
       }
-      return [];
+      return null;
     } catch (e) {
       console.warn('Cart cloud fetch notice:', e);
       return null;

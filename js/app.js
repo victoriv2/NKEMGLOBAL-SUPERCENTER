@@ -46,9 +46,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const user = evt?.detail?.user || getActiveUser();
       if (user && user.id) {
         syncCartWithCloud(true);
-      } else {
-        saveCart([], true);
       }
+      // Never wipe local cart on auth check or guest mode
       renderAccountView();
       renderCartView();
       renderRequestsView();
@@ -86,6 +85,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let lastLocalCartMutationTime = 0;
   let isSyncingCartToCloud = false;
+  let lastExplicitClearTime = 0;
 
   function saveCart(cart, skipCloud = false) {
     try {
@@ -114,48 +114,55 @@ document.addEventListener('DOMContentLoaded', async () => {
     const activeUser = getActiveUser();
     if (!activeUser || !activeUser.id || !window.SupabaseService?.getUserCartFromCloud) return;
 
-    // Guard against race conditions right after local mutations
-    if (!isInitialLogin && (isSyncingCartToCloud || (Date.now() - lastLocalCartMutationTime < 2500))) {
+    // Guard against race conditions right after local mutations (wait 8s after user action)
+    if (!isInitialLogin && (isSyncingCartToCloud || (Date.now() - lastLocalCartMutationTime < 8000))) {
       return;
     }
 
     try {
       const cloudCart = await window.SupabaseService.getUserCartFromCloud(activeUser.id);
-      // If network failed, cloudCart is null -> DO NOT overwrite local cart
+      // If network failed, timed out, or returned null -> DO NOT TOUCH local cart
       if (cloudCart === null || !Array.isArray(cloudCart)) return;
 
       const localCart = getCart();
 
-      // If user just transitioned from guest mode and had local items, merge once into cloud cart
-      if (isInitialLogin && localCart.length > 0) {
-        const mergedMap = new Map();
-        cloudCart.forEach(item => {
-          if (item && item.id) mergedMap.set(item.id, { ...item });
-        });
-        localCart.forEach(item => {
-          if (item && item.id) {
-            if (mergedMap.has(item.id)) {
-              const existing = mergedMap.get(item.id);
-              existing.quantity = Math.max(existing.quantity || 1, item.quantity || 1);
-            } else {
-              mergedMap.set(item.id, { ...item });
-            }
-          }
-        });
-
-        const mergedCart = Array.from(mergedMap.values());
-        saveCart(mergedCart, false);
-        if (state.currentTab === 'cart') renderCartView();
+      // If user recently explicitly cleared the cart, respect that and do not resurrect old items
+      if (Date.now() - lastExplicitClearTime < 15000) {
         return;
       }
 
-      // Authoritative cloud cart sync:
-      // When logged in, cloud cart is the single source of truth across all devices.
+      // If local cart has items, but cloud cart is empty (e.g. freshly logged in or cloud had no items):
+      // NEVER delete local cart! Instead, push local cart up to cloud so cloud catches up!
+      if (localCart.length > 0 && cloudCart.length === 0) {
+        saveCart(localCart, false);
+        return;
+      }
+
+      // Merge local cart and cloud cart safely by item ID:
+      // An item added by user locally will NEVER be wiped out by stale cloud cache!
+      const mergedMap = new Map();
+      cloudCart.forEach(item => {
+        if (item && item.id) mergedMap.set(item.id, { ...item });
+      });
+      localCart.forEach(item => {
+        if (item && item.id) {
+          if (mergedMap.has(item.id)) {
+            const existing = mergedMap.get(item.id);
+            existing.quantity = Math.max(Number(existing.quantity) || 1, Number(item.quantity) || 1);
+          } else {
+            mergedMap.set(item.id, { ...item });
+          }
+        }
+      });
+
+      const mergedCart = Array.from(mergedMap.values());
       const localJson = JSON.stringify(localCart);
+      const mergedJson = JSON.stringify(mergedCart);
       const cloudJson = JSON.stringify(cloudCart);
 
-      if (localJson !== cloudJson) {
-        saveCart(cloudCart, true); // true = skip sending back to cloud since we just fetched from cloud
+      if (localJson !== mergedJson) {
+        const needCloudUpload = (mergedJson !== cloudJson);
+        saveCart(mergedCart, !needCloudUpload);
         if (state.currentTab === 'cart') {
           renderCartView();
         }
@@ -245,6 +252,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function clearCart() {
+    lastExplicitClearTime = Date.now();
     saveCart([]);
     renderCartView();
     window.CustomModal.toast({ message: 'Cart cleared.', type: 'info' });
@@ -2166,12 +2174,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 10000);
   }
 
-  // Multi-device real-time cart sync polling (every 8 seconds) and visibility listener
+  // Multi-device real-time cart sync polling (relaxed interval to prevent cellular flapping)
   if (!window._cartCloudSyncInterval) {
     window._cartCloudSyncInterval = setInterval(() => {
       if (typeof syncCartWithCloud === 'function') syncCartWithCloud(false);
-    }, 8000);
+    }, 25000);
   }
+
+  window.addEventListener('online', () => {
+    if (typeof syncCartWithCloud === 'function') syncCartWithCloud(false);
+  });
 
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
