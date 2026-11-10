@@ -55,7 +55,7 @@ window.SupabaseService = {
       { id: "cat-inverters",   name: "Buses & Inverters",            sort_order: 9,  image_url: "assets/categories/cat-inverters.png" },
       { id: "cat-building",    name: "Building Materials",           sort_order: 10, image_url: "assets/categories/cat-building.png" },
       { id: "cat-services",    name: "Services & Cleaning",          sort_order: 11, image_url: "assets/categories/cat-services.png" },
-      { id: "cat-clothes",     name: "Clothes & Shoes",              sort_order: 12, image_url: "assets/categories/cat-clothes.png" },
+      { id: "cat-clothes",     name: "Fashion (Clothes & Shoes)",    sort_order: 12, image_url: "assets/categories/cat-clothes.png" },
       { id: "cat-beauty",      name: "Beauty & Ladies Attire",       sort_order: 13, image_url: "assets/categories/cat-beauty.png" },
       { id: "cat-babies",      name: "Babies & Kids",                sort_order: 14, image_url: "assets/categories/cat-babies.png" },
       { id: "cat-agriculture", name: "Agricultural & Farming",       sort_order: 15, image_url: "assets/categories/cat-agriculture.png" },
@@ -69,7 +69,15 @@ window.SupabaseService = {
   getLocalCategories() {
     try {
       const local = localStorage.getItem('nkem_local_categories');
-      return local ? JSON.parse(local) : this._getDefaultCategories();
+      let list = local ? JSON.parse(local) : this._getDefaultCategories();
+      if (Array.isArray(list)) {
+        list = list.filter(c => c && c.id !== 'cat-suits');
+        const clothes = list.find(c => c && c.id === 'cat-clothes');
+        if (clothes && clothes.name !== 'Fashion (Clothes & Shoes)') {
+          clothes.name = 'Fashion (Clothes & Shoes)';
+        }
+      }
+      return list;
     } catch (e) {
       return this._getDefaultCategories();
     }
@@ -78,11 +86,16 @@ window.SupabaseService = {
   async getCategories() {
     const cloud = await this.request('nkem_categories?select=*&order=sort_order.asc');
     if (cloud && Array.isArray(cloud) && cloud.length > 0) {
-      localStorage.setItem('nkem_local_categories', JSON.stringify(cloud));
-      return cloud;
+      const filtered = cloud.filter(c => c && c.id !== 'cat-suits');
+      const clothes = filtered.find(c => c && c.id === 'cat-clothes');
+      if (clothes && clothes.name !== 'Fashion (Clothes & Shoes)') {
+        clothes.name = 'Fashion (Clothes & Shoes)';
+      }
+      localStorage.setItem('nkem_local_categories', JSON.stringify(filtered));
+      return filtered;
     }
     const local = localStorage.getItem('nkem_local_categories');
-    return local ? JSON.parse(local) : this._getDefaultCategories();
+    return this.getLocalCategories();
   },
 
   async saveCategory(cat) {
@@ -123,7 +136,7 @@ window.SupabaseService = {
         title: 'Italian Bespoke Wool Tailored Suit',
         description: 'These particular suits are authentic Italian bespoke cuts, crafted with premium high-twist wool blend fabric for exceptional drape, comfort, and structure. Designed with classic notch lapels, flap pockets, soft interior lining, and dual side vents. Meticulously finished for modern executives and high-profile occasions.',
         price: 300000,
-        category_id: 'cat-suits',
+        category_id: 'cat-clothes',
         in_stock: true,
         is_hidden: false,
         images: [
@@ -185,6 +198,10 @@ window.SupabaseService = {
             if (this.isProductHidden(p)) {
               p.is_hidden = true;
               p.hidden = true;
+            }
+            if (p.category_id === 'cat-suits') {
+              p.category_id = 'cat-clothes';
+              needsUpdate = true;
             }
             const currentDesc = p.description || p.desc || p.details || p.product_description || '';
             if (!currentDesc || typeof currentDesc !== 'string' || !currentDesc.trim()) {
