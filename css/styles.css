@@ -703,7 +703,7 @@ body {
 .c-picker-overlay {
   position: fixed !important;
   inset: 0 !important;
-  z-index: 2147483647 !important;
+  z-index: 2147483620 !important;
   background-color: rgba(6, 7, 9, 0.9) !important;
   display: flex;
   opacity: 0;
@@ -1247,11 +1247,11 @@ body {
 }
 
 /* ---------------- CUSTOM MODAL SYSTEM (REPLACING NATIVE ALERTS & DIALOGS) ---------------- */
-/* STRICT RULE: MODALS MUST OVERLAY OVER EVERYTHING, NEVER BEHIND */
+/* STRICT RULE: MODALS MUST OVERLAY OVER EVERYTHING, NEVER BEHIND (LIGHTBOX OVERLAYS OVER MODALS) */
 .c-modal-overlay {
   position: fixed !important;
   inset: 0 !important;
-  z-index: 2147483647 !important;
+  z-index: 2147483600 !important;
   background-color: rgba(6, 7, 9, 0.92) !important;
   display: flex;
   align-items: center;
@@ -1651,10 +1651,19 @@ body {
 /* ---------------- FULL VIEW LIGHTBOX (STRICT: ONLY IMAGE & CIRCULAR X UNDER, NO TEXT) ---------------- */
 .full-view-lightbox {
   position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
   inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  min-height: 100vh !important;
   z-index: 2147483647 !important;
   background-color: rgba(6, 8, 10, 0.96) !important;
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
@@ -1669,6 +1678,7 @@ body {
 .full-view-lightbox.active {
   opacity: 1 !important;
   pointer-events: auto !important;
+  display: flex !important;
 }
 
 .full-view-img-container {

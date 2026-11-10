@@ -1274,12 +1274,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   function openFullViewLightbox(imgSrc) {
     if (!fullViewLightbox || !imgSrc) return;
 
+    // Move to end of body to ensure it overlays on top of ANY open modal
+    document.body.appendChild(fullViewLightbox);
+
     fullViewLightbox.innerHTML = `
       <div class="full-view-img-container">
         <img class="full-view-img" src="${imgSrc}" alt="" />
       </div>
       <button class="full-view-close-under" type="button" id="fullViewCloseUnderBtn" aria-label="Close View">
-        ${window.renderIcon('close')}
+        ${window.renderIcon ? window.renderIcon('close') : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}
       </button>
     `;
 
@@ -1309,6 +1312,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     fullViewLightbox.classList.add('active');
   }
+
+  window.openFullViewLightbox = openFullViewLightbox;
+  window.openLightbox = openFullViewLightbox;
 
   /* ==========================================================================
      7. CART VIEW (Items, Totals, Delivery Info & Protected Checkout)

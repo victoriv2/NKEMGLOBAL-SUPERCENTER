@@ -330,7 +330,7 @@ window.openChatOrderDetailsModal = function(orderData, isAdmin = false) {
   const modalOverlay = document.createElement('div');
   modalOverlay.className = 'c-modal-overlay active';
   modalOverlay.id = 'chatOrderDetailsModalOverlay';
-  modalOverlay.style.cssText = 'position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 2147483647 !important; display: flex !important; align-items: center !important; justify-content: center !important; background: rgba(6, 7, 9, 0.94) !important; opacity: 1 !important; pointer-events: auto !important; padding: 16px !important; box-sizing: border-box !important;';
+  modalOverlay.style.cssText = 'position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 2147483600 !important; display: flex !important; align-items: center !important; justify-content: center !important; background: rgba(6, 7, 9, 0.94) !important; opacity: 1 !important; pointer-events: auto !important; padding: 16px !important; box-sizing: border-box !important;';
 
   const getStatusBadge = (st) => {
     const s = String(st || 'pending').toLowerCase();
@@ -492,3 +492,73 @@ window.openChatOrderDetailsModal = function(orderData, isAdmin = false) {
     }).catch(e => console.warn('Background modal refresh notice:', e));
   }
 };
+
+/* ---------------- UNIVERSAL FULL VIEW LIGHTBOX OVERLAY ---------------- */
+window.openFullViewLightbox = function(imgSrc) {
+  if (!imgSrc) return;
+  let box = document.getElementById('fullViewLightbox');
+  if (!box) {
+    box = document.createElement('div');
+    box.className = 'full-view-lightbox';
+    box.id = 'fullViewLightbox';
+    document.body.appendChild(box);
+  }
+
+  // Always move to the end of document.body so it overlays on top of ANY currently open modal!
+  document.body.appendChild(box);
+
+  const closeIcon = (window.renderIcon && window.renderIcon('close')) ||
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+  box.innerHTML = `
+    <div class="full-view-img-container">
+      <img class="full-view-img" src="${imgSrc}" alt="Full View" />
+    </div>
+    <button class="full-view-close-under" type="button" id="closeLightboxUnderBtn" aria-label="Close View">
+      ${closeIcon}
+    </button>
+  `;
+
+  box.style.setProperty('z-index', '2147483647', 'important');
+  box.style.setProperty('position', 'fixed', 'important');
+  box.style.setProperty('top', '0', 'important');
+  box.style.setProperty('left', '0', 'important');
+  box.style.setProperty('right', '0', 'important');
+  box.style.setProperty('bottom', '0', 'important');
+  box.style.setProperty('width', '100vw', 'important');
+  box.style.setProperty('height', '100vh', 'important');
+  box.style.setProperty('height', '100dvh', 'important');
+  box.style.setProperty('display', 'flex', 'important');
+  box.style.setProperty('opacity', '1', 'important');
+  box.style.setProperty('pointer-events', 'auto', 'important');
+
+  box.classList.add('active');
+
+  const closeBox = () => {
+    box.classList.remove('active');
+    box.style.removeProperty('display');
+    box.style.removeProperty('opacity');
+    box.style.removeProperty('pointer-events');
+    document.removeEventListener('keydown', onEsc);
+  };
+
+  const onEsc = (e) => {
+    if (e.key === 'Escape') closeBox();
+  };
+  document.addEventListener('keydown', onEsc);
+
+  const closeBtn = box.querySelector('#closeLightboxUnderBtn');
+  if (closeBtn) {
+    closeBtn.onclick = (e) => {
+      e.stopPropagation();
+      closeBox();
+    };
+  }
+
+  box.onclick = (e) => {
+    if (e.target === box || e.target.classList.contains('full-view-img-container')) {
+      closeBox();
+    }
+  };
+};
+window.openLightbox = window.openFullViewLightbox;
