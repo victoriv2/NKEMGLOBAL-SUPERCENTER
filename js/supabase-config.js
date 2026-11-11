@@ -64,7 +64,7 @@ window.SupabaseService = {
       { id: "cat-land",        name: "Land",                         sort_order: 6,  image_url: "assets/categories/cat-land.png" },
       { id: "cat-vehicles",    name: "Vehicles",                     sort_order: 7,  image_url: "assets/categories/cat-vehicles.png" },
       { id: "cat-tricycles",   name: "Tricycles & Transportation",   sort_order: 8,  image_url: "assets/categories/cat-tricycles.png" },
-      { id: "cat-inverters",   name: "Buses & Inverters",            sort_order: 9,  image_url: "assets/categories/cat-inverters.png" },
+      { id: "cat-inverters",   name: "Solar & Inverters",            sort_order: 9,  image_url: "assets/categories/cat-inverters.png" },
       { id: "cat-building",    name: "Building Materials",           sort_order: 10, image_url: "assets/categories/cat-building.png" },
       { id: "cat-services",    name: "Services & Cleaning",          sort_order: 11, image_url: "assets/categories/cat-services.png" },
       { id: "cat-clothes",     name: "Fashion (Clothes & Shoes)",    sort_order: 12, image_url: "assets/categories/cat-clothes.png" },
@@ -88,6 +88,10 @@ window.SupabaseService = {
         if (clothes && clothes.name !== 'Fashion (Clothes & Shoes)') {
           clothes.name = 'Fashion (Clothes & Shoes)';
         }
+        const inverters = list.find(c => c && c.id === 'cat-inverters');
+        if (inverters && inverters.name !== 'Solar & Inverters') {
+          inverters.name = 'Solar & Inverters';
+        }
       }
       return list;
     } catch (e) {
@@ -102,6 +106,10 @@ window.SupabaseService = {
       const clothes = filtered.find(c => c && c.id === 'cat-clothes');
       if (clothes && clothes.name !== 'Fashion (Clothes & Shoes)') {
         clothes.name = 'Fashion (Clothes & Shoes)';
+      }
+      const inverters = filtered.find(c => c && c.id === 'cat-inverters');
+      if (inverters && inverters.name !== 'Solar & Inverters') {
+        inverters.name = 'Solar & Inverters';
       }
       localStorage.setItem('nkem_local_categories', JSON.stringify(filtered));
       return filtered;
