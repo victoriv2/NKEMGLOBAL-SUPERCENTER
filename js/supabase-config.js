@@ -196,6 +196,20 @@ window.SupabaseService = {
         ],
         sort_order: 2,
         created_at: new Date().toISOString()
+      },
+      {
+        id: 'prod-royal-sceptre-black-gold-shirt',
+        title: 'Royal Sceptre Luxury Embroidered Black Designer Shirt',
+        description: "Royal Sceptre Luxury Men's Embroidered Senator & Formal Shirt\n\nElevate your formal and ceremonial wardrobe with this authentic Royal Sceptre luxury designer shirt. Meticulously tailored in jet-black premium fabric with intricate metallic gold and silver chain embroidery detailing down the front placket.\n\nProduct Details:\n• Brand: Royal Sceptre (Signature High-Class Collection)\n• Color: Classic Jet Black with Metallic Gold & Silver Accents\n• Detailing: Vertical pin-tuck pleats, geometric micro-dot collar & matching cuff/pocket square fold\n• Cut & Fit: Classic Tailored Fit (Tagged Size M)\n• Material: High-grade breathable cotton-poly blend with soft hand-feel and anti-wrinkle structure\n• Occasions: Weddings, Sunday service, high-profile corporate galas, and ceremonial events\n• Condition: Brand New with Original Tags & Seals\n\nPrice: ₦16,000 only\nNationwide Doorstep Delivery across Nigeria. Direct order on website or via WhatsApp.",
+        price: 16000,
+        category_id: 'cat-clothes',
+        in_stock: true,
+        is_hidden: false,
+        images: [
+          'assets/products/royal-sceptre-black-gold-shirt.jpg'
+        ],
+        sort_order: 3,
+        created_at: new Date().toISOString()
       }
     ];
   },
