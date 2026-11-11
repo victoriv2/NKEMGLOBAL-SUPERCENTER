@@ -74,7 +74,7 @@ window.SupabaseService = {
       { id: "cat-animals",     name: "Animals & Pets",               sort_order: 16, image_url: "assets/categories/cat-animals.png" },
       { id: "cat-jobs",        name: "Jobs",                         sort_order: 17, image_url: "assets/categories/cat-jobs.png" },
       { id: "cat-handbags",    name: "Hand Bags & Luggage",          sort_order: 18, image_url: "assets/categories/cat-handbags.png" },
-      { id: "cat-baggage",     name: "Baggage",                      sort_order: 19, image_url: "assets/categories/cat-baggage.png" }
+      { id: "cat-baggage",     name: "Equipment & Oil Tools",        sort_order: 19, image_url: "assets/categories/cat-equipment.png" }
     ];
   },
 
@@ -91,6 +91,11 @@ window.SupabaseService = {
         const inverters = list.find(c => c && c.id === 'cat-inverters');
         if (inverters && inverters.name !== 'Solar & Inverters') {
           inverters.name = 'Solar & Inverters';
+        }
+        const equipment = list.find(c => c && c.id === 'cat-baggage');
+        if (equipment && equipment.name !== 'Equipment & Oil Tools') {
+          equipment.name = 'Equipment & Oil Tools';
+          equipment.image_url = 'assets/categories/cat-equipment.png';
         }
       }
       return list;
@@ -110,6 +115,11 @@ window.SupabaseService = {
       const inverters = filtered.find(c => c && c.id === 'cat-inverters');
       if (inverters && inverters.name !== 'Solar & Inverters') {
         inverters.name = 'Solar & Inverters';
+      }
+      const equipment = filtered.find(c => c && c.id === 'cat-baggage');
+      if (equipment && equipment.name !== 'Equipment & Oil Tools') {
+        equipment.name = 'Equipment & Oil Tools';
+        equipment.image_url = 'assets/categories/cat-equipment.png';
       }
       localStorage.setItem('nkem_local_categories', JSON.stringify(filtered));
       return filtered;
