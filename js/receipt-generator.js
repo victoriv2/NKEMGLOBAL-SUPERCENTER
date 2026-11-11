@@ -63,20 +63,24 @@ window.ReceiptGenerator = {
     const placedDate = order.created_at ? new Date(order.created_at).toLocaleString() : new Date().toLocaleString();
 
     ctx.fillStyle = '#073b1f';
-    ctx.font = 'bold 34px sans-serif';
-    ctx.fillText('NKEM GLOBAL', 230, 72);
+    ctx.font = 'bold 30px sans-serif';
+    ctx.fillText('NKEM GLOBAL SERVICES LTD', 230, 68);
 
     ctx.fillStyle = '#087f3b';
-    ctx.font = 'bold 15px sans-serif';
-    ctx.fillText(`OFFICIAL ORDER RECEIPT • #${ordRef}`, 230, 100);
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText(`OFFICIAL ORDER RECEIPT • #${ordRef}`, 230, 94);
+
+    ctx.fillStyle = '#2d5a3f';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('RC: Fully Registered Indigenous Nigerian Enterprise (CAC)', 230, 114);
 
     ctx.fillStyle = '#5a6e62';
-    ctx.font = '14px sans-serif';
-    ctx.fillText('WhatsApp: +234 815 560 8447  |  Major Line: +234 704 208 7633', 230, 128);
-
-    ctx.fillStyle = '#7d9285';
     ctx.font = '12px sans-serif';
-    ctx.fillText('Nationwide Delivery  •  Direct Support', 230, 150);
+    ctx.fillText('Base: No. 5, Chief Owna St, Obeama, Oyigbo, Rivers State, Nigeria', 230, 134);
+
+    ctx.fillStyle = '#5a6e62';
+    ctx.font = '12px sans-serif';
+    ctx.fillText('WhatsApp: +234 704 208 7633  |  Tel: +234 815 560 8447  |  info@nkemglobalservices.com', 230, 154);
 
     // Order Details Section
     let curY = 216;
@@ -132,7 +136,7 @@ window.ReceiptGenerator = {
     ctx.fillStyle = '#7d9285';
     ctx.font = '12px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('© Nkem Global — Verified Quality & Nationwide Delivery. All rights reserved.', w / 2, 735);
+    ctx.fillText('© 2026 NKEM GLOBAL SERVICES LIMITED • Excellence · Integrity · Results • CAC Registered', w / 2, 735);
 
     // Trigger download
     const dataUrl = canvas.toDataURL('image/png');

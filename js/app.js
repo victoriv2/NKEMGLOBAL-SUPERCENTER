@@ -2170,10 +2170,10 @@ document.addEventListener('DOMContentLoaded', async () => {
           </span>
         </a>
 
-        <a href="https://wa.me/2348155608447?text=Hello%20Nkem%20Global%2C%20I%20am%20inquiring%20about%20my%20account" target="_blank" rel="noopener" class="account-support-btn">
+        <a href="https://wa.me/2347042087633?text=Hello%20Nkem%20Global%2C%20I%20am%20inquiring%20about%20my%20account" target="_blank" rel="noopener" class="account-support-btn">
           <div class="support-left">
             <span style="color: #25D366;">${window.renderIcon('whatsapp')}</span>
-            <span>WhatsApp Official Support (+234 815 560 8447)</span>
+            <span>WhatsApp Business Desk (+234 704 208 7633)</span>
           </div>
           <span class="support-action-link">
             <span>Chat</span>
@@ -2181,16 +2181,81 @@ document.addEventListener('DOMContentLoaded', async () => {
           </span>
         </a>
 
-        <a href="tel:+2347042087633" class="account-support-btn">
+        <a href="tel:+2348155608447" class="account-support-btn">
           <div class="support-left">
             <span style="color: #087f3b;">${window.renderIcon('phone')}</span>
-            <span>Major Line Call / Support (+234 704 208 7633)</span>
+            <span>Direct Enquiries Line (+234 815 560 8447)</span>
           </div>
           <span class="support-action-link">
             <span>Call</span>
             <svg class="support-chevron-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
           </span>
         </a>
+
+        <a href="mailto:info@nkemglobalservices.com" class="account-support-btn">
+          <div class="support-left">
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="#087f3b" stroke-width="2" style="width: 17px; height: 17px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <span>Official Email (info@nkemglobalservices.com)</span>
+          </div>
+          <span class="support-action-link">
+            <span>Email</span>
+            <svg class="support-chevron-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </span>
+        </a>
+      </div>
+
+      <!-- Corporate Accreditation & CAC Verification Card -->
+      <div class="account-card-box" style="border-left: 4px solid #087f3b;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 6px;">
+          <h4 style="color: #073b1f; font-size: 1.05rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="#087f3b" stroke-width="2.2" style="width: 20px; height: 20px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>Corporate Governance &amp; CAC Profile</span>
+          </h4>
+          <span style="font-size: 0.72rem; font-weight: 800; color: #087f3b; background: #e8f7ee; padding: 3px 9px; border-radius: 999px; border: 1px solid #c2e8d0;">
+            CAC Verified Entity
+          </span>
+        </div>
+
+        <p style="font-size: 0.82rem; color: #4b5563; line-height: 1.5; margin-bottom: 12px;">
+          <strong>NKEM GLOBAL SERVICES LIMITED (NGS)</strong> is an indigenous Nigerian enterprise fully registered under the Corporate Affairs Commission (CAC).
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 14px;">
+          <div style="background: #f9fbf9; border: 1px solid #e2ece5; border-radius: 8px; padding: 10px 12px; font-size: 0.8rem;">
+            <div style="color: #6b7280; font-size: 0.72rem; text-transform: uppercase; font-weight: 700;">Statutory Authority</div>
+            <strong style="color: #073b1f;">Corporate Affairs Commission (CAC)</strong>
+            <div style="color: #087f3b; font-weight: 600; margin-top: 2px;">Fully Registered Indigenous Enterprise</div>
+          </div>
+
+          <div style="background: #f9fbf9; border: 1px solid #e2ece5; border-radius: 8px; padding: 10px 12px; font-size: 0.8rem;">
+            <div style="color: #6b7280; font-size: 0.72rem; text-transform: uppercase; font-weight: 700;">Executive Leadership</div>
+            <strong style="color: #073b1f;">Raphael Nkemjika Julius</strong>
+            <div style="color: #4b5563; margin-top: 2px;">Managing Director</div>
+          </div>
+
+          <div style="background: #f9fbf9; border: 1px solid #e2ece5; border-radius: 8px; padding: 10px 12px; font-size: 0.8rem;">
+            <div style="color: #6b7280; font-size: 0.72rem; text-transform: uppercase; font-weight: 700;">Tax &amp; Safety Compliance</div>
+            <strong style="color: #073b1f;">FIRS (TIN &amp; VAT) &bull; NSITF</strong>
+            <div style="color: #4b5563; margin-top: 2px;">100% Nigerian Content (NOGICD)</div>
+          </div>
+
+          <div style="background: #f9fbf9; border: 1px solid #e2ece5; border-radius: 8px; padding: 10px 12px; font-size: 0.8rem;">
+            <div style="color: #6b7280; font-size: 0.72rem; text-transform: uppercase; font-weight: 700;">Operational Base</div>
+            <strong style="color: #073b1f;">Oyigbo, Rivers State</strong>
+            <div style="color: #4b5563; margin-top: 2px;">No. 5, Chief Owna St, Obeama</div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <a href="https://www.nkemglobalservices.com" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="flex: 1; min-width: 140px; justify-content: center; font-size: 0.78rem; padding: 8px 12px; text-decoration: none;">
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <span>Visit Corporate Website</span>
+          </a>
+          <a href="mailto:info@nkemglobalservices.com" class="btn btn-secondary btn-sm" style="flex: 1; min-width: 140px; justify-content: center; font-size: 0.78rem; padding: 8px 12px; text-decoration: none;">
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <span>Send Formal RFQ / Inquiry</span>
+          </a>
+        </div>
       </div>
     `;
 
