@@ -1,4 +1,4 @@
-// Public Storefront Engine - Nkem Global
+﻿// Public Storefront Engine - Nkem Global
 // Complete 5-Tab Architecture: Home ("Everything Dey" & 3-Col Categories), Shop (Catalog & Add to Cart),
 // Requests (Tracking Orders & Sourcing Inquiries), Cart (Quantity Steppers, State/LGA Pickers, Checkout), Account (Profile, Live Chat, WhatsApp)
 
@@ -508,7 +508,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <form id="customSourcingForm" autocomplete="on">
           <div class="c-input-group" style="margin-bottom: 14px;">
             <label class="c-input-label" style="display: block; font-size: 0.76rem; color: #5a6e62; font-weight: 700; margin-bottom: 4px;">Target Budget / Specific Details (Optional)</label>
-            <input type="text" class="c-input" id="reqUserNotes" placeholder="e.g. Budget ₦250k, Brand new, Size 42, Black color" style="padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1ead9; background: #ffffff;" />
+            <input type="text" class="c-input" id="reqUserNotes" placeholder="e.g. Budget â‚¦250k, Brand new, Size 42, Black color" style="padding: 10px 12px; border-radius: 8px; border: 1.5px solid #d1ead9; background: #ffffff;" />
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
@@ -1268,7 +1268,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       <div class="details-modal-footer">
         <button class="btn btn-primary" type="button" id="detailsAddToCartBtn" ${!prod.in_stock ? 'disabled' : ''}>
           ${window.renderIcon('cart')}
-          <span>Add to Cart — ${window.formatNaira(prod.price)}</span>
+          <span>Add to Cart â€” ${window.formatNaira(prod.price)}</span>
         </button>
 
         <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Global, I would like to order: ${prod.title} (${window.formatNaira(prod.price)}). Is this available?`)}" target="_blank" rel="noopener" class="btn btn-secondary details-whatsapp-btn">
@@ -1579,7 +1579,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const lineTotal = price * qty;
         grandTotal += lineTotal;
         totalQty += qty;
-        return `${idx + 1}. *${item.title}* (Qty: ${qty}) — ${window.formatNaira(lineTotal)}`;
+        return `${idx + 1}. *${item.title}* (Qty: ${qty}) â€” ${window.formatNaira(lineTotal)}`;
       });
 
       let customerDetailsText = '';
@@ -1590,13 +1590,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const stateName = (activeUser.state || '').trim();
         const lgaName = (activeUser.lga || '').trim();
 
-        customerDetailsText = `\n\n*Customer Delivery Information:*\n• Name: ${fullName}`;
-        if (phone) customerDetailsText += `\n• WhatsApp / Phone: ${phone}`;
+        customerDetailsText = `\n\n*Customer Delivery Information:*\nâ€¢ Name: ${fullName}`;
+        if (phone) customerDetailsText += `\nâ€¢ WhatsApp / Phone: ${phone}`;
         if (address) {
-          customerDetailsText += `\n• Destination: ${address}${lgaName ? ', ' + lgaName : ''}${stateName ? ', ' + stateName + ' State' : ''}`;
+          customerDetailsText += `\nâ€¢ Destination: ${address}${lgaName ? ', ' + lgaName : ''}${stateName ? ', ' + stateName + ' State' : ''}`;
         }
       } else {
-        customerDetailsText = `\n\n*Customer Information:*\n• Guest Order (I will provide delivery address via this chat)`;
+        customerDetailsText = `\n\n*Customer Information:*\nâ€¢ Guest Order (I will provide delivery address via this chat)`;
       }
 
       const orderMessage = `Hello Nkem Global, I would like to order the following items from my cart:\n\n${itemLines.join('\n')}\n\n*Total Items:* ${totalQty}\n*Grand Total:* *${window.formatNaira(grandTotal)}*${customerDetailsText}\n\nPlease confirm availability and payment details. Thank you!`;
@@ -1830,7 +1830,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           { value: 'oldest', label: 'Oldest First' },
           { value: 'price_desc', label: 'Price: High to Low' },
           { value: 'price_asc', label: 'Price: Low to High' },
-          { value: 'title_asc', label: 'Item Name (A–Z)' }
+          { value: 'title_asc', label: 'Item Name (Aâ€“Z)' }
         ],
         value: requestsSortBy,
         searchable: false,
@@ -2192,10 +2192,10 @@ document.addEventListener('DOMContentLoaded', async () => {
           </span>
         </a>
 
-        <a href="mailto:info@nkemglobalservices.com" class="account-support-btn">
+        <a href="mailto:info@nkemmarket.com" class="account-support-btn">
           <div class="support-left">
             <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="#087f3b" stroke-width="2" style="width: 17px; height: 17px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            <span>Official Email (info@nkemglobalservices.com)</span>
+            <span>Official Email (info@nkemmarket.com)</span>
           </div>
           <span class="support-action-link">
             <span>Email</span>
@@ -2247,11 +2247,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
 
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <a href="https://www.nkemglobalservices.com" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="flex: 1; min-width: 140px; justify-content: center; font-size: 0.78rem; padding: 8px 12px; text-decoration: none;">
+          <a href="https://nkemmarket.com" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="flex: 1; min-width: 140px; justify-content: center; font-size: 0.78rem; padding: 8px 12px; text-decoration: none;">
             <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             <span>Visit Corporate Website</span>
           </a>
-          <a href="mailto:info@nkemglobalservices.com" class="btn btn-secondary btn-sm" style="flex: 1; min-width: 140px; justify-content: center; font-size: 0.78rem; padding: 8px 12px; text-decoration: none;">
+          <a href="mailto:info@nkemmarket.com" class="btn btn-secondary btn-sm" style="flex: 1; min-width: 140px; justify-content: center; font-size: 0.78rem; padding: 8px 12px; text-decoration: none;">
             <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
             <span>Send Formal RFQ / Inquiry</span>
           </a>

@@ -1,4 +1,4 @@
-// Receipt Image Generator for Online Orders
+﻿// Receipt Image Generator for Online Orders
 // Generates a downloadable image carrying Logo (16:9 Aspect Ratio), Shop Name, Contact Info, and Order Specifications
 window.ReceiptGenerator = {
   /**
@@ -68,7 +68,7 @@ window.ReceiptGenerator = {
 
     ctx.fillStyle = '#087f3b';
     ctx.font = 'bold 14px sans-serif';
-    ctx.fillText(`OFFICIAL ORDER RECEIPT • #${ordRef}`, 230, 94);
+    ctx.fillText(`OFFICIAL ORDER RECEIPT â€¢ #${ordRef}`, 230, 94);
 
     ctx.fillStyle = '#2d5a3f';
     ctx.font = 'bold 12px sans-serif';
@@ -80,7 +80,7 @@ window.ReceiptGenerator = {
 
     ctx.fillStyle = '#5a6e62';
     ctx.font = '12px sans-serif';
-    ctx.fillText('WhatsApp: +234 704 208 7633  |  Tel: +234 815 560 8447  |  info@nkemglobalservices.com', 230, 154);
+    ctx.fillText('WhatsApp: +234 704 208 7633  |  Tel: +234 815 560 8447  |  info@nkemmarket.com', 230, 154);
 
     // Order Details Section
     let curY = 216;
@@ -130,13 +130,13 @@ window.ReceiptGenerator = {
     ctx.fillStyle = '#087f3b';
     ctx.font = '600 13px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Verified Order • Track order status directly via customer account or live chat.', w / 2, 700);
+    ctx.fillText('Verified Order â€¢ Track order status directly via customer account or live chat.', w / 2, 700);
 
     // Footer note
     ctx.fillStyle = '#7d9285';
     ctx.font = '12px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('© 2026 NKEM GLOBAL SERVICES LIMITED • Excellence · Integrity · Results • CAC Registered', w / 2, 735);
+    ctx.fillText('Â© 2026 NKEM GLOBAL SERVICES LIMITED â€¢ Excellence Â· Integrity Â· Results â€¢ CAC Registered', w / 2, 735);
 
     // Trigger download
     const dataUrl = canvas.toDataURL('image/png');
@@ -372,7 +372,7 @@ window.openChatOrderDetailsModal = function(orderData, isAdmin = false) {
           <img src="${coverImg}" alt="${window.CustomModal ? window.CustomModal.escape(fullOrder.product_title || 'Product') : 'Product'}" style="width: 80px; height: 80px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border-color); flex-shrink: 0; cursor: pointer;" id="chatOrderModalThumb" title="Click to view full image" />
           <div style="flex: 1; min-width: 0;">
             <h4 style="margin: 0 0 4px 0; font-size: var(--font-sm); color: var(--text-main); font-weight: 700;">${window.CustomModal ? window.CustomModal.escape(fullOrder.product_title || 'Product Item') : fullOrder.product_title}</h4>
-            <div style="font-size: var(--font-md); font-weight: 700; color: #087f3b;">${window.formatNaira ? window.formatNaira(fullOrder.product_price || 0) : '₦' + (fullOrder.product_price || 0)}</div>
+            <div style="font-size: var(--font-md); font-weight: 700; color: #087f3b;">${window.formatNaira ? window.formatNaira(fullOrder.product_price || 0) : 'â‚¦' + (fullOrder.product_price || 0)}</div>
             <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; font-family: monospace;">Order ID: <strong>${String(orderId || '').toUpperCase()}</strong></div>
           </div>
         </div>
