@@ -945,7 +945,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (state.selectedSort === 'price_desc') {
       prods.sort((a, b) => Number(b.price) - Number(a.price));
     } else {
-      prods.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      // Sequential continuation order matching catalog pagination (sort_order ASC 1, 2, 3... then natural continuation)
+      prods.sort((a, b) => {
+        const sA = (a.sort_order !== undefined && a.sort_order !== null) ? Number(a.sort_order) : 999999;
+        const sB = (b.sort_order !== undefined && b.sort_order !== null) ? Number(b.sort_order) : 999999;
+        if (sA !== sB) return sA - sB;
+        return 0;
+      });
     }
 
     state.filteredProducts = prods;
@@ -1149,9 +1155,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (Array.isArray(nextProducts) && nextProducts.length > 0) {
           const visibleBatch = nextProducts.filter(p => !window.SupabaseService?.isProductHidden?.(p));
-          state.products = [...state.products, ...visibleBatch];
-          state.hasMoreProducts = nextProducts.length === state.pageSize;
-          applyFiltersAndSort();
+          const existingIds = new Set(state.products.map(p => p.id));
+          const newItems = visibleBatch.filter(p => !existingIds.has(p.id));
+          if (newItems.length > 0) {
+            state.products = [...state.products, ...newItems];
+            state.hasMoreProducts = nextProducts.length === state.pageSize;
+            applyFiltersAndSort();
+          } else {
+            state.hasMoreProducts = false;
+            updateSeeMoreButton();
+          }
         } else {
           state.hasMoreProducts = false;
           updateSeeMoreButton();

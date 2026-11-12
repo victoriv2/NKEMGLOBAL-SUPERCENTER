@@ -522,9 +522,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (nextBatch && nextBatch.length > 0) {
           const newItems = nextBatch.filter(nb => !adminState.products.some(p => p.id === nb.id));
-          adminState.products = [...adminState.products, ...newItems];
-          adminState.hasMoreProducts = (nextBatch.length === adminState.productPageSize);
-          renderProductsManager();
+          if (newItems.length > 0) {
+            adminState.products = [...adminState.products, ...newItems];
+            adminState.hasMoreProducts = (nextBatch.length === adminState.productPageSize);
+            renderProductsManager();
+          } else {
+            adminState.hasMoreProducts = false;
+          }
         } else {
           adminState.hasMoreProducts = false;
         }
@@ -620,10 +624,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const tB = new Date(b.created_at || 0).getTime();
         return tA - tB;
       }
-      // 'newest' default
-      const tA = new Date(a.created_at || 0).getTime();
-      const tB = new Date(b.created_at || 0).getTime();
-      if (tA && tB && tA !== tB) return tB - tA;
+      // 'newest' default: sequential sort_order ASC matching catalog pagination, maintaining continuation
+      const sA = (a.sort_order !== undefined && a.sort_order !== null) ? Number(a.sort_order) : 999999;
+      const sB = (b.sort_order !== undefined && b.sort_order !== null) ? Number(b.sort_order) : 999999;
+      if (sA !== sB) return sA - sB;
       return 0;
     });
 

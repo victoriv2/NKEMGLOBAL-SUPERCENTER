@@ -294,14 +294,20 @@ window.SupabaseService = {
     }
 
     if (categoryId && categoryId !== 'all') {
-      queryParts.push(`category_id=eq.${encodeURIComponent(categoryId)}`);
+      let resolvedCatId = categoryId;
+      try {
+        const cats = this.getLocalCategories ? this.getLocalCategories() : [];
+        const match = cats.find(c => c.id === categoryId || c.name === categoryId || (c.name && c.name.toLowerCase() === categoryId.toLowerCase()));
+        if (match) resolvedCatId = match.id;
+      } catch (_) {}
+      queryParts.push(`category_id=eq.${encodeURIComponent(resolvedCatId)}`);
     }
 
     if (sort === 'oldest') {
       queryParts.push('order=created_at.asc');
-    } else if (sort === 'price_low') {
+    } else if (sort === 'price_low' || sort === 'price_asc') {
       queryParts.push('order=price.asc');
-    } else if (sort === 'price_high') {
+    } else if (sort === 'price_high' || sort === 'price_desc') {
       queryParts.push('order=price.desc');
     } else if (sort === 'name_asc') {
       queryParts.push('order=title.asc');
@@ -375,14 +381,19 @@ window.SupabaseService = {
       }
       if (sort === 'oldest') {
         result.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
-      } else if (sort === 'price_low') {
+      } else if (sort === 'price_low' || sort === 'price_asc') {
         result.sort((a, b) => Number(a.price) - Number(b.price));
-      } else if (sort === 'price_high') {
+      } else if (sort === 'price_high' || sort === 'price_desc') {
         result.sort((a, b) => Number(b.price) - Number(a.price));
       } else if (sort === 'name_asc') {
         result.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
       } else {
-        result.sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99));
+        result.sort((a, b) => {
+          const sA = (a.sort_order !== undefined && a.sort_order !== null) ? Number(a.sort_order) : 999999;
+          const sB = (b.sort_order !== undefined && b.sort_order !== null) ? Number(b.sort_order) : 999999;
+          if (sA !== sB) return sA - sB;
+          return 0;
+        });
       }
 
       if (limit !== null) {
