@@ -2205,10 +2205,10 @@ document.addEventListener('DOMContentLoaded', async () => {
           </span>
         </a>
 
-        <a href="mailto:info@nkemmarket.com" class="account-support-btn">
+        <a href="mailto:Info@nkemglobalservices.com" class="account-support-btn">
           <div class="support-left">
             <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="#087f3b" stroke-width="2" style="width: 17px; height: 17px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            <span>Official Email (info@nkemmarket.com)</span>
+            <span>Official Email (Info@nkemglobalservices.com)</span>
           </div>
           <span class="support-action-link">
             <span>Email</span>
@@ -2218,7 +2218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>
 
       <!-- Corporate Accreditation & CAC Verification Card -->
-      <div class="account-card-box" style="border-left: 4px solid #087f3b;">
+      <div class="account-card-box">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 6px;">
           <h4 style="color: #073b1f; font-size: 1.05rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
             <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="#087f3b" stroke-width="2.2" style="width: 20px; height: 20px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -2259,13 +2259,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
         </div>
 
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <a href="https://nkemmarket.com" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="flex: 1; min-width: 140px; justify-content: center; font-size: 0.78rem; padding: 8px 12px; text-decoration: none;">
-            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <div class="account-corp-actions">
+          <a href="https://nkemmarket.com" target="_blank" rel="noopener" class="btn btn-secondary btn-sm account-corp-btn">
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px; flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             <span>Visit Corporate Website</span>
           </a>
-          <a href="mailto:info@nkemmarket.com" class="btn btn-secondary btn-sm" style="flex: 1; min-width: 140px; justify-content: center; font-size: 0.78rem; padding: 8px 12px; text-decoration: none;">
-            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <a href="mailto:Info@nkemglobalservices.com" class="btn btn-secondary btn-sm account-corp-btn">
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px; flex-shrink: 0;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
             <span>Send Formal RFQ / Inquiry</span>
           </a>
         </div>

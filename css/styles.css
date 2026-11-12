@@ -6760,6 +6760,44 @@ body:not(.admin-body) .details-modal-footer .details-whatsapp-btn:hover {
   flex-shrink: 0 !important;
 }
 
+/* Corporate Card Action Buttons Responsive Layout */
+.account-corp-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 6px;
+  box-sizing: border-box;
+}
+
+@media (min-width: 540px) {
+  .account-corp-actions {
+    flex-direction: row;
+    align-items: stretch;
+  }
+}
+
+.account-corp-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-sizing: border-box;
+  width: 100%;
+  text-align: center;
+  border-radius: 8px;
+}
+
+@media (min-width: 540px) {
+  .account-corp-btn {
+    flex: 1 1 0;
+  }
+}
+
 /* ---------------- 9. BOTTOM APP NAVIGATION BAR (5 TABS) ---------------- */
 .bottom-nav-bar {
   position: fixed !important;

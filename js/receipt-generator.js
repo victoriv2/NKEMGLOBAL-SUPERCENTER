@@ -80,7 +80,7 @@ window.ReceiptGenerator = {
 
     ctx.fillStyle = '#5a6e62';
     ctx.font = '12px sans-serif';
-    ctx.fillText('WhatsApp: +234 704 208 7633  |  Tel: +234 815 560 8447  |  info@nkemmarket.com', 230, 154);
+    ctx.fillText('WhatsApp: +234 704 208 7633  |  Tel: +234 815 560 8447  |  Info@nkemglobalservices.com', 230, 154);
 
     // Order Details Section
     let curY = 216;
