@@ -289,7 +289,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <span>Download Receipt</span>
                   </button>
                 ` : ''}
-                <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Global, I am inquiring about my request (${code}): ${productTitle}`)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 0.78rem; color: #166534; border-color: #25D366; text-decoration: none;">
+                <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Market, I am inquiring about my request (${code}): ${productTitle}`)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 0.78rem; color: #166534; border-color: #25D366; text-decoration: none;">
                   ${window.renderIcon ? window.renderIcon('whatsapp') : '<svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>'}
                   <span>WhatsApp Support</span>
                 </a>
@@ -343,7 +343,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               </div>
 
               <div class="sourcing-card-actions">
-                <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Global, I am checking on my sourcing request for: ${itemName}${userNotes ? ` (${userNotes})` : ''}`)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm sourcing-wa-btn">
+                <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Market, I am checking on my sourcing request for: ${itemName}${userNotes ? ` (${userNotes})` : ''}`)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm sourcing-wa-btn">
                   ${window.renderIcon ? window.renderIcon('whatsapp') : '<svg class="svg-icon svg-whatsapp" viewBox="0 0 24 24" fill="currentColor" style="width: 14px; height: 14px;"><path d="M17.472 14.382c-.301-.15-1.78-.878-2.056-.978-.275-.101-.476-.15-.676.15-.2.301-.776.978-.952 1.18-.175.2-.351.225-.652.075-.301-.15-1.27-.468-2.42-1.494-.894-.799-1.498-1.786-1.674-2.087-.175-.301-.019-.464.132-.614.136-.135.301-.351.451-.527.151-.175.201-.301.301-.501.1-.2.05-.376-.025-.526-.075-.15-.676-1.63-.926-2.232-.244-.588-.492-.508-.676-.517-.175-.009-.376-.011-.577-.011s-.527.075-.802.376c-.276.301-1.053 1.029-1.053 2.509 0 1.48 1.078 2.91 1.229 3.111.15.2 2.122 3.24 5.141 4.545.718.31 1.278.496 1.716.635.722.23 1.38.197 1.9-.119.58-.354 1.78-1.455 2.03-2.866.25-1.411.25-2.621.175-2.871-.075-.25-.276-.376-.577-.526zM12.04 2C6.51 2 2.03 6.48 2.03 12.01c0 1.98.58 3.82 1.58 5.37L2 22l4.78-1.55c1.5 1 3.29 1.56 5.26 1.56 5.53 0 10.01-4.48 10.01-10.01C22.05 6.48 17.57 2 12.04 2zm0 18.25c-1.72 0-3.32-.51-4.67-1.39l-.33-.22-2.84.92.93-2.77-.24-.35A8.2 8.2 0 0 1 3.83 12c0-4.53 3.68-8.21 8.21-8.21 4.53 0 8.21 3.68 8.21 8.21 0 4.53-3.68 8.25-8.21 8.25z"/></svg>'}
                   <span>Follow up on WhatsApp</span>
                 </a>

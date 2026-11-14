@@ -493,7 +493,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
         </div>
 
-        <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Global, I am requesting: ${itemQuery}. Please send me 2 best options with pictures within 30 minutes!`)}" target="_blank" rel="noopener" class="btn btn-secondary" style="width: 100%; justify-content: center; padding: 11px; font-weight: 700; color: #166534; border-color: #25D366; text-decoration: none;">
+        <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Market, I am requesting: ${itemQuery}. Please send me 2 best options with pictures within 30 minutes!`)}" target="_blank" rel="noopener" class="btn btn-secondary" style="width: 100%; justify-content: center; padding: 11px; font-weight: 700; color: #166534; border-color: #25D366; text-decoration: none;">
           ${window.renderIcon('whatsapp')}
           <span>Send Directly on WhatsApp (+234 815 560 8447)</span>
         </a>
@@ -517,7 +517,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               <span>Submit Sourcing Request</span>
             </button>
 
-            <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Global, I am requesting: ${itemQuery}. Please send me 2 best options with pictures within 30 minutes!`)}" target="_blank" rel="noopener" class="btn btn-secondary" style="width: 100%; justify-content: center; padding: 11px; font-weight: 700; color: #166534; border-color: #25D366; text-decoration: none;">
+            <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Market, I am requesting: ${itemQuery}. Please send me 2 best options with pictures within 30 minutes!`)}" target="_blank" rel="noopener" class="btn btn-secondary" style="width: 100%; justify-content: center; padding: 11px; font-weight: 700; color: #166534; border-color: #25D366; text-decoration: none;">
               ${window.renderIcon('whatsapp')}
               <span>Send Directly on WhatsApp (+234 815 560 8447)</span>
             </a>
@@ -1047,7 +1047,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ${window.renderIcon('cart')}
                 <span>Add to Cart</span>
               </button>
-              <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Global, I would like to order: ${prod.title} (${window.formatNaira(prod.price)}). Is this available?`)}" target="_blank" rel="noopener" class="btn btn-whatsapp-order" title="Order on WhatsApp" onclick="event.stopPropagation();">
+              <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Market, I would like to order: ${prod.title} (${window.formatNaira(prod.price)}). Is this available?`)}" target="_blank" rel="noopener" class="btn btn-whatsapp-order" title="Order on WhatsApp" onclick="event.stopPropagation();">
                 ${window.renderIcon('whatsapp')}
                 <span>Order on WhatsApp</span>
               </a>
@@ -1284,7 +1284,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <span>Add to Cart - ${window.formatNaira(prod.price)}</span>
         </button>
 
-        <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Global, I would like to order: ${prod.title} (${window.formatNaira(prod.price)}). Is this available?`)}" target="_blank" rel="noopener" class="btn btn-secondary details-whatsapp-btn">
+        <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Market, I would like to order: ${prod.title} (${window.formatNaira(prod.price)}). Is this available?`)}" target="_blank" rel="noopener" class="btn btn-secondary details-whatsapp-btn">
           <span style="color: #25D366; display: inline-flex; align-items: center; font-size: 16px; line-height: 1;">${window.renderIcon('whatsapp')}</span>
           <span>Order on WhatsApp</span>
         </a>
@@ -1476,7 +1476,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
 
           <!-- Account Required Gate (No Unnecessary Forms) -->
-          <div class="cart-auth-gate" style="background: #f0fbf4; border: 1.5px solid #087f3b; border-radius: 12px; padding: 22px 18px; text-align: center;">
+          <div class="cart-auth-gate" style="background: #f0fbf4; border: 1.5px solid #087f3b; border-radius: 12px; padding: clamp(16px, 4vw, 22px) clamp(12px, 3.5vw, 18px); text-align: center;">
             <div class="cart-auth-gate-badge" style="width: 44px; height: 44px; border-radius: 50%; background: #e2f5ea; color: #087f3b; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto; font-size: 22px;">
               <span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; color: #087f3b;">
                 ${window.renderIcon ? (window.renderIcon('user') || window.renderIcon('account')) : ''}
@@ -1500,7 +1500,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #d1ead9; width: 100%;">
               <button type="button" class="btn btn-cart-whatsapp" id="cartGuestWhatsAppCheckoutBtn">
                 ${window.renderIcon('whatsapp')}
-                <span>Order on WhatsApp (${window.formatNaira(subtotal)})</span>
+                <span class="btn-cart-whatsapp-content">
+                  <span class="btn-cart-whatsapp-action">Order on WhatsApp</span>
+                  <span class="btn-cart-whatsapp-price">(${window.formatNaira(subtotal)})</span>
+                </span>
               </button>
             </div>
           </div>
@@ -1564,13 +1567,19 @@ document.addEventListener('DOMContentLoaded', async () => {
           <!-- Direct One-Click Checkout Button -->
           <button type="button" class="btn btn-primary btn-cart-checkout" id="cartDirectCheckoutBtn">
             ${window.renderIcon('orderNow')}
-            <span>Confirm & Place Order (${window.formatNaira(subtotal)})</span>
+            <span class="btn-cart-checkout-content">
+              <span class="btn-cart-checkout-action">Confirm & Place Order</span>
+              <span class="btn-cart-checkout-price">(${window.formatNaira(subtotal)})</span>
+            </span>
           </button>
 
           <!-- Order on WhatsApp Underneath -->
           <button type="button" class="btn btn-cart-whatsapp" id="cartWhatsAppCheckoutBtn">
             ${window.renderIcon('whatsapp')}
-            <span>Order on WhatsApp (${window.formatNaira(subtotal)})</span>
+            <span class="btn-cart-whatsapp-content">
+              <span class="btn-cart-whatsapp-action">Order on WhatsApp</span>
+              <span class="btn-cart-whatsapp-price">(${window.formatNaira(subtotal)})</span>
+            </span>
           </button>
         `}
       </div>
@@ -1612,7 +1621,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         customerDetailsText = `\n\n*Customer Information:*\n- Guest Order (I will provide delivery address via this chat)`;
       }
 
-      const orderMessage = `Hello Nkem Global, I would like to order the following items from my cart:\n\n${itemLines.join('\n')}\n\n*Total Items:* ${totalQty}\n*Grand Total:* *${window.formatNaira(grandTotal)}*${customerDetailsText}\n\nPlease confirm availability and payment details. Thank you!`;
+      const orderMessage = `Hello Nkem Market, I would like to order the following items from my cart:\n\n${itemLines.join('\n')}\n\n*Total Items:* ${totalQty}\n*Grand Total:* *${window.formatNaira(grandTotal)}*${customerDetailsText}\n\nPlease confirm availability and payment details. Thank you!`;
 
       const whatsappUrl = `https://wa.me/2348155608447?text=${encodeURIComponent(orderMessage)}`;
       window.open(whatsappUrl, '_blank');
@@ -2001,7 +2010,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                   <span>Download Receipt</span>
                 </button>
               ` : ''}
-              <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Global, I am inquiring about my request (${code}): ${productTitle}`)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 0.78rem; color: #166534; border-color: #25D366; text-decoration: none;">
+              <a href="https://wa.me/2348155608447?text=${encodeURIComponent(`Hello Nkem Market, I am inquiring about my request (${code}): ${productTitle}`)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 0.78rem; color: #166534; border-color: #25D366; text-decoration: none;">
                 ${window.renderIcon('whatsapp')}
                 <span>WhatsApp Support</span>
               </a>
