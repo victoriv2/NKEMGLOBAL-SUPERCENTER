@@ -1498,7 +1498,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
 
             <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #d1ead9; width: 100%;">
-              <button type="button" class="btn btn-cart-whatsapp" id="cartGuestWhatsAppCheckoutBtn">
+              <button type="button" class="btn btn-cart-whatsapp" id="cartGuestWhatsAppCheckoutBtn" style="display: flex !important; flex-direction: row; align-items: center; justify-content: center; gap: 8px; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; white-space: normal !important; min-height: 48px; padding: 10px 14px;">
                 ${window.renderIcon('whatsapp')}
                 <span class="btn-cart-whatsapp-content">
                   <span class="btn-cart-whatsapp-action">Order on WhatsApp</span>
@@ -1565,7 +1565,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
 
           <!-- Direct One-Click Checkout Button -->
-          <button type="button" class="btn btn-primary btn-cart-checkout" id="cartDirectCheckoutBtn">
+          <button type="button" class="btn btn-primary btn-cart-checkout" id="cartDirectCheckoutBtn" style="display: flex !important; flex-direction: row; align-items: center; justify-content: center; gap: 8px; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; white-space: normal !important; min-height: 48px; padding: 11px 14px;">
             ${window.renderIcon('orderNow')}
             <span class="btn-cart-checkout-content">
               <span class="btn-cart-checkout-action">Confirm & Place Order</span>
@@ -1574,7 +1574,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           </button>
 
           <!-- Order on WhatsApp Underneath -->
-          <button type="button" class="btn btn-cart-whatsapp" id="cartWhatsAppCheckoutBtn">
+          <button type="button" class="btn btn-cart-whatsapp" id="cartWhatsAppCheckoutBtn" style="display: flex !important; flex-direction: row; align-items: center; justify-content: center; gap: 8px; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; white-space: normal !important; min-height: 48px; padding: 10px 14px;">
             ${window.renderIcon('whatsapp')}
             <span class="btn-cart-whatsapp-content">
               <span class="btn-cart-whatsapp-action">Order on WhatsApp</span>
