@@ -2219,7 +2219,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
 
         <p style="font-size: 0.82rem; color: #4b5563; line-height: 1.5; margin-bottom: 12px;">
-          <strong>NKEM GLOBAL SERVICES LIMITED (NGS)</strong> is an indigenous Nigerian enterprise fully registered under the Corporate Affairs Commission (CAC).
+          <strong>NKEM MARKET (nkemmarket.com)</strong> is an indigenous Nigerian enterprise fully registered under the Corporate Affairs Commission (CAC).
         </p>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 14px;">
