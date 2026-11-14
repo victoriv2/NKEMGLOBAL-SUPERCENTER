@@ -2204,17 +2204,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             <svg class="support-chevron-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
           </span>
         </a>
-
-        <a href="mailto:Info@nkemglobalservices.com" class="account-support-btn">
-          <div class="support-left">
-            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="#087f3b" stroke-width="2" style="width: 17px; height: 17px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            <span>Official Email (Info@nkemglobalservices.com)</span>
-          </div>
-          <span class="support-action-link">
-            <span>Email</span>
-            <svg class="support-chevron-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </span>
-        </a>
       </div>
 
       <!-- Corporate Accreditation & CAC Verification Card -->
@@ -2264,8 +2253,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px; flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             <span>Visit Corporate Website</span>
           </a>
-          <a href="mailto:Info@nkemglobalservices.com" class="btn btn-secondary btn-sm account-corp-btn">
-            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px; flex-shrink: 0;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <a href="https://wa.me/2347042087633?text=Hello%20Nkem%20Global%2C%20I%20would%20like%20to%20submit%20a%20formal%20corporate%20RFQ%20%2F%20Inquiry" target="_blank" rel="noopener" class="btn btn-secondary btn-sm account-corp-btn">
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px; flex-shrink: 0;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             <span>Send Formal RFQ / Inquiry</span>
           </a>
         </div>
