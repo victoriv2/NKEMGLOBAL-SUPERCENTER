@@ -13,7 +13,10 @@ window.SupabaseService = {
   },
 
   async request(endpoint, options = {}) {
-    const timeoutMs = options.timeoutMs || 6000;
+    const method = (options.method || 'GET').toUpperCase();
+    const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+    // Allow up to 35 seconds for mobile uploads (e.g. photos/payloads), 12 seconds for reads
+    const timeoutMs = options.timeoutMs || (isMutation ? 35000 : 12000);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -138,13 +141,19 @@ window.SupabaseService = {
     }
     localStorage.setItem('nkem_local_categories', JSON.stringify(localList));
 
-    // Sync to Supabase
-    await this.request('nkem_categories', {
-      method: 'POST',
-      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
-      body: JSON.stringify(cat)
-    });
-    return cat;
+    // Sync to Supabase with generous 30s mobile timeout
+    let cloudRes = null;
+    try {
+      cloudRes = await this.request('nkem_categories', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+        body: JSON.stringify(cat),
+        timeoutMs: 30000
+      });
+    } catch (e) {
+      console.warn('saveCategory cloud notice:', e);
+    }
+    return { ...cat, _cloudSynced: Boolean(cloudRes) };
   },
 
   async deleteCategory(id) {
@@ -448,22 +457,19 @@ window.SupabaseService = {
     };
     if (cleanProd.created_at) dbPayload.created_at = cleanProd.created_at;
 
+    let cloudRes = null;
     try {
-      const patchRes = await this.request(`nkem_products?id=eq.${encodeURIComponent(cleanProd.id)}`, {
-        method: 'PATCH',
-        headers: { 'Prefer': 'return=representation' },
-        body: JSON.stringify(dbPayload)
+      // Single direct upsert with 45s mobile timeout - handles both new items & updates seamlessly in 1 round trip
+      cloudRes = await this.request('nkem_products', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+        body: JSON.stringify(dbPayload),
+        timeoutMs: 45000
       });
-      if (!patchRes || (Array.isArray(patchRes) && patchRes.length === 0)) {
-        await this.request('nkem_products', {
-          method: 'POST',
-          headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
-          body: JSON.stringify(dbPayload)
-        });
-      }
     } catch (e) {
       console.warn('saveProduct cloud notice:', e);
     }
+    cleanProd._cloudSynced = Boolean(cloudRes && (typeof cloudRes === 'object' || cloudRes === true));
     return cleanProd;
   },
 
@@ -477,10 +483,11 @@ window.SupabaseService = {
     localList = localList.filter(p => p.id !== id);
     localStorage.setItem('nkem_local_products', JSON.stringify(localList));
 
-    await this.request(`nkem_products?id=eq.${encodeURIComponent(id)}`, {
-      method: 'DELETE'
+    const cloudRes = await this.request(`nkem_products?id=eq.${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      timeoutMs: 25000
     });
-    return true;
+    return Boolean(cloudRes);
   },
 
   // ---------------- BANNERS ----------------
@@ -542,12 +549,18 @@ window.SupabaseService = {
     }
     localStorage.setItem('nkem_local_banners', JSON.stringify(localList));
 
-    await this.request('nkem_banners', {
-      method: 'POST',
-      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
-      body: JSON.stringify(banner)
-    });
-    return banner;
+    let cloudRes = null;
+    try {
+      cloudRes = await this.request('nkem_banners', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+        body: JSON.stringify(banner),
+        timeoutMs: 30000
+      });
+    } catch (e) {
+      console.warn('saveBanner cloud notice:', e);
+    }
+    return { ...banner, _cloudSynced: Boolean(cloudRes) };
   },
 
   async deleteBanner(id) {
@@ -555,10 +568,11 @@ window.SupabaseService = {
     localList = localList.filter(b => b.id !== id);
     localStorage.setItem('nkem_local_banners', JSON.stringify(localList));
 
-    await this.request(`nkem_banners?id=eq.${encodeURIComponent(id)}`, {
-      method: 'DELETE'
+    const cloudRes = await this.request(`nkem_banners?id=eq.${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      timeoutMs: 25000
     });
-    return true;
+    return Boolean(cloudRes);
   },
 
   // ---------------- CANONICAL ORDER & CHAT NORMALIZERS ----------------

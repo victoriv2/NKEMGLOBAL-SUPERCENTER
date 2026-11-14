@@ -359,11 +359,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderCategoriesManager();
 
       try {
-        await window.SupabaseService.saveCategory(catDraft);
-        window.CustomModal.toast({
-          message: isNew ? 'Category created and synced.' : 'Category updated and synced.',
-          type: 'success'
-        });
+        const savedCat = await window.SupabaseService.saveCategory(catDraft);
+        if (savedCat && savedCat._cloudSynced === false) {
+          window.CustomModal.toast({
+            message: '⚠️ Category saved locally, but live store sync timed out. Please check network and re-save.',
+            type: 'warning',
+            duration: 6000
+          });
+        } else {
+          window.CustomModal.toast({
+            message: isNew ? '✅ Category created and published live.' : '✅ Category updated and published live.',
+            type: 'success'
+          });
+        }
       } catch (err) {
         window.CustomModal.toast({ message: `Cloud sync error: ${err.message}`, type: 'danger' });
       }
@@ -986,6 +994,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         updated_at: new Date().toISOString()
       };
 
+      const submitBtn = form.querySelector('button[type="submit"]') || form.querySelector('#saveProdBtn');
+      const origBtnText = submitBtn ? submitBtn.innerHTML : '';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>Publishing to Store...</span>';
+      }
+
       if (isNew) {
         adminState.products.unshift(updated);
       } else {
@@ -996,10 +1011,29 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (window.SupabaseService?.setProductHidden) {
         window.SupabaseService.setProductHidden(updated.id, isHidden);
       }
-      await window.SupabaseService.saveProduct(updated);
+      const savedProd = await window.SupabaseService.saveProduct(updated);
+
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = origBtnText;
+      }
+
       closeDialog();
       renderProductsManager();
-      window.CustomModal.toast({ message: `Product ${isNew ? 'created' : 'updated'} successfully.`, type: 'success' });
+
+      if (savedProd && savedProd._cloudSynced === false) {
+        window.CustomModal.toast({
+          message: '⚠️ Saved locally on device, but live store sync timed out. Please check your internet connection and re-save to publish live.',
+          type: 'warning',
+          duration: 7000
+        });
+      } else {
+        window.CustomModal.toast({
+          message: `✅ Product ${isNew ? 'created and published' : 'updated'} live on nkemmarket.com!`,
+          type: 'success',
+          duration: 5000
+        });
+      }
     });
 
     productEditModal.classList.add('active');
