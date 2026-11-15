@@ -211,11 +211,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  function getProductImages(prod) {
+    if (!prod) return ['assets/images/logo.png'];
+    if (Array.isArray(prod.images) && prod.images.length > 0) return prod.images;
+    if (typeof prod.images === 'string' && prod.images.trim()) {
+      try {
+        const parsed = JSON.parse(prod.images);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (_) {}
+      return [prod.images.trim()];
+    }
+    if (prod.image && typeof prod.image === 'string' && prod.image.trim()) {
+      return [prod.image.trim()];
+    }
+    return ['assets/images/logo.png'];
+  }
+
   function addToCart(prod, quantity = 1) {
     if (!prod) return;
     const cart = getCart();
     const existing = cart.find(item => item.id === prod.id);
-    const coverImg = Array.isArray(prod.images) && prod.images[0] ? prod.images[0] : 'assets/images/logo.png';
+    const coverImg = getProductImages(prod)[0];
 
     if (existing) {
       existing.quantity += quantity;
@@ -997,9 +1013,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     productGrid.innerHTML = state.filteredProducts.map(prod => {
-      const images = Array.isArray(prod.images) && prod.images.length > 0 
-        ? prod.images 
-        : ['assets/images/logo.png'];
+      const images = getProductImages(prod);
       const hasMultipleImages = images.length > 1;
 
       const suitFallbackDesc = 'These particular suits are authentic Italian bespoke cuts, crafted with premium high-twist wool blend fabric for exceptional drape, comfort, and structure. Designed with classic notch lapels, flap pockets, soft interior lining, and dual side vents. Meticulously finished for modern executives and high-profile occasions.';
@@ -1059,7 +1073,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Setup 2s auto-slide for each product card with multiple images
     state.filteredProducts.forEach(prod => {
-      const images = Array.isArray(prod.images) ? prod.images : [];
+      const images = getProductImages(prod);
       if (images.length > 1) {
         let currentIdx = 0;
         const wrap = productGrid.querySelector(`.product-card-img-wrap[data-prod-id="${prod.id}"]`);
@@ -1215,9 +1229,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!prod || !detailsModalOverlay) return;
 
     state.activeProductForOrder = prod;
-    const images = Array.isArray(prod.images) && prod.images.length > 0 
-      ? prod.images 
-      : ['assets/images/logo.png'];
+    const images = getProductImages(prod);
     currentModalSelectedImage = images[0];
 
     const modalContent = detailsModalOverlay.querySelector('.product-details-modal-box');

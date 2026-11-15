@@ -678,8 +678,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 5. Render product rows
     productListContainer.innerHTML = filtered.map((p, idx) => {
-      const coverImg = Array.isArray(p.images) && p.images[0] ? p.images[0] : 'assets/images/logo.jpeg';
-      const imgCount = Array.isArray(p.images) ? p.images.length : 0;
+      let pImgs = [];
+      if (Array.isArray(p.images) && p.images.length > 0) {
+        pImgs = p.images;
+      } else if (typeof p.images === 'string' && p.images.trim()) {
+        try { const parsed = JSON.parse(p.images); pImgs = Array.isArray(parsed) ? parsed : [p.images.trim()]; } catch (_) { pImgs = [p.images.trim()]; }
+      }
+      const coverImg = pImgs[0] || 'assets/images/logo.jpeg';
+      const imgCount = pImgs.length;
       const cat = adminState.categories.find(c => c.id === p.category_id);
       const catName = cat ? cat.name : '';
 
@@ -817,7 +823,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function openProductEditDialog(product, isNew = false) {
     adminState.editingProduct = { ...product };
-    adminState.productImagesDraft = Array.isArray(product.images) ? [...product.images] : [];
+    let initialDraft = [];
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      initialDraft = [...product.images];
+    } else if (typeof product.images === 'string' && product.images.trim()) {
+      try { const parsed = JSON.parse(product.images); initialDraft = Array.isArray(parsed) ? parsed : [product.images.trim()]; } catch (_) { initialDraft = [product.images.trim()]; }
+    }
+    adminState.productImagesDraft = initialDraft;
 
     productEditModal.innerHTML = `
       <div class="c-modal-box" style="max-width: 680px; max-height: 90vh;">
