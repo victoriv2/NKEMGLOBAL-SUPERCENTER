@@ -358,6 +358,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         categoryPickerInstance.setValue(state.selectedCategory);
       }
       applyFiltersAndSort();
+      syncCatalogSilently();
     } else if (tabName === 'cart') {
       renderCartView();
       syncCartWithCloud();
@@ -460,6 +461,40 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.warn('Supabase fetch notice (using cache):', err);
     }
   }
+
+  // Throttled background catalog sync: keeps customer storefront live when admin publishes new products
+  let isSilentlySyncing = false;
+  let lastSilentSyncTime = Date.now();
+
+  async function syncCatalogSilently() {
+    if (isSilentlySyncing) return;
+    if (Date.now() - lastSilentSyncTime < 25000) return; // 25s throttle
+    isSilentlySyncing = true;
+    lastSilentSyncTime = Date.now();
+
+    try {
+      const freshProducts = await window.SupabaseService.getProducts({
+        limit: 1000,
+        includeHidden: false
+      });
+      if (Array.isArray(freshProducts) && freshProducts.length > 0) {
+        const visible = freshProducts.filter(p => !window.SupabaseService?.isProductHidden?.(p));
+        const prevCount = state.products.length;
+        state.products = visible;
+        if (state.products.length !== prevCount) {
+          applyFiltersAndSort();
+        }
+      }
+    } catch (_) {} finally {
+      isSilentlySyncing = false;
+    }
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && state.currentTab === 'shop') {
+      syncCatalogSilently();
+    }
+  });
 
   /* ==========================================================================
      4. HOME VIEW: "EVERYTHING DEY" SOURCING REQUEST & 3-COL CATEGORIES
@@ -996,12 +1031,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (state.selectedSort === 'price_desc') {
       prods.sort((a, b) => Number(b.price) - Number(a.price));
     } else {
-      // Sequential continuation order matching catalog pagination (sort_order ASC 1, 2, 3... then natural continuation)
+      // Sequential continuation order matching catalog pagination (sort_order ASC 1, 2, 3... then latest created first)
       prods.sort((a, b) => {
         const sA = (a.sort_order !== undefined && a.sort_order !== null) ? Number(a.sort_order) : 999999;
         const sB = (b.sort_order !== undefined && b.sort_order !== null) ? Number(b.sort_order) : 999999;
         if (sA !== sB) return sA - sB;
-        return 0;
+        const tA = new Date(a.created_at || a.updated_at || 0).getTime();
+        const tB = new Date(b.created_at || b.updated_at || 0).getTime();
+        return tB - tA;
       });
     }
 

@@ -802,17 +802,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Create Product Button
   if (addProductBtn) {
     addProductBtn.addEventListener('click', () => {
+      const defaultCatId = adminState.categories[0]?.id || 'cat-clothes';
       const newProd = {
         id: `prod-${Date.now()}`,
         title: '',
         description: '',
-        price: 300000,
-        category_id: adminState.categories[0]?.id || '',
+        price: 30000,
+        category_id: defaultCatId,
         in_stock: true,
         is_hidden: false,
         hidden: false,
         images: [],
-        sort_order: adminState.products.length + 1
+        sort_order: 1, // Promoted to top of storefront as New Arrival
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       openProductEditDialog(newProd, true);
     });
@@ -993,16 +996,42 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       const isHidden = !!document.getElementById('editProdHidden')?.checked;
+      let selectedCatId = editCategoryPicker ? editCategoryPicker.getValue() : adminState.editingProduct.category_id;
+      if (!selectedCatId && adminState.categories && adminState.categories.length > 0) {
+        selectedCatId = adminState.categories[0].id;
+      }
+
+      // Defensive pre-upload compression guard: Ensure no draft image exceeds 95KB
+      if (Array.isArray(adminState.productImagesDraft)) {
+        for (let i = 0; i < adminState.productImagesDraft.length; i++) {
+          const img = adminState.productImagesDraft[i];
+          if (typeof img === 'string' && img.startsWith('data:image') && img.length > 95 * 1024) {
+            try {
+              if (window.ImageCompressor && typeof window.ImageCompressor.compressImageElement === 'function') {
+                const temp = new Image();
+                temp.src = img;
+                await new Promise(r => { temp.onload = r; temp.onerror = r; });
+                if (temp.width) {
+                  const comp = await window.ImageCompressor.compressImageElement(temp, 'image/jpeg', 70 * 1024);
+                  adminState.productImagesDraft[i] = comp.dataUrl;
+                }
+              }
+            } catch (_) {}
+          }
+        }
+      }
 
       const updated = {
         ...adminState.editingProduct,
         title,
         price,
         description: desc,
-        category_id: editCategoryPicker ? editCategoryPicker.getValue() : adminState.editingProduct.category_id,
+        category_id: selectedCatId,
         images: adminState.productImagesDraft,
         is_hidden: isHidden,
         hidden: isHidden,
+        sort_order: isNew ? 1 : (adminState.editingProduct.sort_order || 1),
+        created_at: adminState.editingProduct.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
 
@@ -1024,6 +1053,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.SupabaseService.setProductHidden(updated.id, isHidden);
       }
       const savedProd = await window.SupabaseService.saveProduct(updated);
+      try {
+        localStorage.setItem('nkem_catalog_cache_ver', 'v' + Date.now());
+        localStorage.setItem('nkem_catalog_last_sync', Date.now().toString());
+      } catch (_) {}
 
       if (submitBtn) {
         submitBtn.disabled = false;
