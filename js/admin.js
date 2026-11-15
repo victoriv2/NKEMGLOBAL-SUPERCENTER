@@ -628,15 +628,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         return aHidden ? 1 : -1;
       }
       if (sortBy === 'oldest') {
-        const tA = new Date(a.created_at || 0).getTime();
-        const tB = new Date(b.created_at || 0).getTime();
-        return tA - tB;
+        const tA = new Date(a.created_at || a.updated_at || 0).getTime();
+        const tB = new Date(b.created_at || b.updated_at || 0).getTime();
+        if (tA !== tB) return tA - tB;
+        const sA = (a.sort_order !== undefined && a.sort_order !== null) ? Number(a.sort_order) : 999999;
+        const sB = (b.sort_order !== undefined && b.sort_order !== null) ? Number(b.sort_order) : 999999;
+        return sA - sB;
       }
-      // 'newest' default: sequential sort_order ASC matching catalog pagination, maintaining continuation
+      // 'newest' default: true reverse chronological order (newest created / updated first)
+      const tA = new Date(a.created_at || a.updated_at || 0).getTime();
+      const tB = new Date(b.created_at || b.updated_at || 0).getTime();
+      if (tB !== tA) return tB - tA;
       const sA = (a.sort_order !== undefined && a.sort_order !== null) ? Number(a.sort_order) : 999999;
       const sB = (b.sort_order !== undefined && b.sort_order !== null) ? Number(b.sort_order) : 999999;
-      if (sA !== sB) return sA - sB;
-      return 0;
+      return sA - sB;
     });
 
     // 3. Update count badge

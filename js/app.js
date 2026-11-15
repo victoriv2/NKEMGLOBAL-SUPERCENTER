@@ -856,8 +856,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (sortPickerMount && window.CustomPicker && !sortPickerInstance) {
         const sortOpts = [
           { value: 'newest', label: 'Newest Arrivals' },
+          { value: 'oldest', label: 'Oldest First' },
           { value: 'price_asc', label: 'Price: Low to High' },
-          { value: 'price_desc', label: 'Price: High to Low' }
+          { value: 'price_desc', label: 'Price: High to Low' },
+          { value: 'name_asc', label: 'Name (A - Z)' }
         ];
 
         sortPickerInstance = window.CustomPicker.create({
@@ -1030,15 +1032,26 @@ document.addEventListener('DOMContentLoaded', async () => {
       prods.sort((a, b) => Number(a.price) - Number(b.price));
     } else if (state.selectedSort === 'price_desc') {
       prods.sort((a, b) => Number(b.price) - Number(a.price));
-    } else {
-      // Sequential continuation order matching catalog pagination (sort_order ASC 1, 2, 3... then latest created first)
+    } else if (state.selectedSort === 'oldest') {
       prods.sort((a, b) => {
-        const sA = (a.sort_order !== undefined && a.sort_order !== null) ? Number(a.sort_order) : 999999;
-        const sB = (b.sort_order !== undefined && b.sort_order !== null) ? Number(b.sort_order) : 999999;
-        if (sA !== sB) return sA - sB;
         const tA = new Date(a.created_at || a.updated_at || 0).getTime();
         const tB = new Date(b.created_at || b.updated_at || 0).getTime();
-        return tB - tA;
+        if (tA !== tB) return tA - tB;
+        const sA = (a.sort_order !== undefined && a.sort_order !== null) ? Number(a.sort_order) : 999999;
+        const sB = (b.sort_order !== undefined && b.sort_order !== null) ? Number(b.sort_order) : 999999;
+        return sA - sB;
+      });
+    } else if (state.selectedSort === 'name_asc') {
+      prods.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    } else {
+      // 'newest' (Newest Arrivals): true reverse chronological order (latest created first)
+      prods.sort((a, b) => {
+        const tA = new Date(a.created_at || a.updated_at || 0).getTime();
+        const tB = new Date(b.created_at || b.updated_at || 0).getTime();
+        if (tB !== tA) return tB - tA;
+        const sA = (a.sort_order !== undefined && a.sort_order !== null) ? Number(a.sort_order) : 999999;
+        const sB = (b.sort_order !== undefined && b.sort_order !== null) ? Number(b.sort_order) : 999999;
+        return sA - sB;
       });
     }
 
