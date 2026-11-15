@@ -354,6 +354,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderHomeCategories();
     } else if (tabName === 'shop') {
       renderShopCategoryPills();
+      if (categoryPickerInstance && state.selectedCategory) {
+        categoryPickerInstance.setValue(state.selectedCategory);
+      }
       applyFiltersAndSort();
     } else if (tabName === 'cart') {
       renderCartView();
@@ -950,6 +953,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       // Defensive fallback: If in-memory filter returned 0, fetch directly from Supabase for this category
       if (prods.length === 0 && targetId) {
+        if (productGrid) {
+          productGrid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px 20px;">
+              <span class="spinner" style="display:inline-block; width:28px; height:28px; border:3px solid #087f3b; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; margin-bottom:10px;"></span>
+              <p style="color:#073b1f; font-weight:600; font-size:0.95rem;">Loading products...</p>
+            </div>
+          `;
+        }
         try {
           const cloudCatProds = await window.SupabaseService.getProducts({
             categoryId: targetId,

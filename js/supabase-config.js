@@ -258,6 +258,11 @@ window.SupabaseService = {
       const raw = localStorage.getItem('nkem_local_products');
       if (raw) {
         let parsed = JSON.parse(raw);
+        // If local cache is from old pagination (less than 50 items), clear it so full catalog is fetched
+        if (Array.isArray(parsed) && parsed.length < 50) {
+          localStorage.removeItem('nkem_local_products');
+          parsed = null;
+        }
         if (Array.isArray(parsed) && parsed.length > 0) {
           const defaults = this._getDefaultProducts();
           let needsUpdate = false;
@@ -642,6 +647,16 @@ window.SupabaseService = {
         }
         localStorage.setItem(RESET_FLAG, 'true');
         console.log('Nkem Global: Factory reset completed. User accounts and activities purged cleanly.');
+      } catch (e) {}
+    }
+
+    // Catalog cache versioning: automatically purge stale local product cache on catalog upgrade
+    const CATALOG_VERSION = 'v20261115_1400';
+    if (localStorage.getItem('nkem_catalog_cache_ver') !== CATALOG_VERSION) {
+      try {
+        localStorage.removeItem('nkem_local_products');
+        localStorage.removeItem('nkem_local_categories');
+        localStorage.setItem('nkem_catalog_cache_ver', CATALOG_VERSION);
       } catch (e) {}
     }
   },
