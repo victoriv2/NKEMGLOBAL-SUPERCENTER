@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const [categories, products, orders, users] = await Promise.all([
         window.SupabaseService.getCategories(),
-        window.SupabaseService.getProducts({ limit: adminState.productPageSize, offset: 0, includeHidden: true }),
+        window.SupabaseService.getProducts({ limit: 1000, offset: 0, includeHidden: true }),
         window.SupabaseService.getOrders(),
         window.SupabaseService.getUsers()
       ]);

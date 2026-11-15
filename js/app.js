@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     homePromotedCategory: null,
     selectedSort: 'newest',
     pageSize: 16, // STRICT 16-ROW CATALOG RULE
+    displayLimit: 16,
     hasMoreProducts: false,
     isLoadingMore: false,
     productCardTimers: {},
@@ -342,8 +343,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (categoryToFilter) {
       state.selectedCategory = categoryToFilter;
       state.homePromotedCategory = categoryToFilter;
+      state.displayLimit = state.pageSize;
     } else if (tabName === 'shop') {
       state.homePromotedCategory = null;
+      state.displayLimit = state.pageSize;
     }
 
     // Tab-specific rendering
@@ -424,10 +427,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const [categories, products] = await Promise.all([
         window.SupabaseService.getCategories(),
         window.SupabaseService.getProducts({
-          limit: state.pageSize,
-          offset: 0,
-          categoryId: state.selectedCategory,
-          sort: state.selectedSort,
+          limit: 1000,
           includeHidden: false
         })
       ]);
@@ -444,7 +444,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           return p;
         });
       }
-      state.hasMoreProducts = Array.isArray(products) && products.length === state.pageSize;
 
       renderHomeCategories();
       renderShopCategoryPills();
@@ -742,6 +741,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         state.selectedCategory = cat;
+        state.displayLimit = state.pageSize;
 
         // Re-render pills immediately so that if homePromotedCategory was cleared,
         // the promoted button returns to its original position
@@ -798,12 +798,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!isSame) state.homePromotedCategory = null;
               }
               state.selectedCategory = val;
+              state.displayLimit = state.pageSize;
               renderShopCategoryPills();
               applyFiltersAndSort();
             }
           });
         } else if (categoryPickerInstance.setOptions) {
           categoryPickerInstance.setOptions(opts, true);
+          if (state.selectedCategory) {
+            categoryPickerInstance.setValue(state.selectedCategory);
+          }
         }
       }
     } catch (e) {
@@ -827,6 +831,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           searchable: false,
           onChange: (val) => {
             state.selectedSort = val;
+            state.displayLimit = state.pageSize;
             applyFiltersAndSort();
           }
         });
@@ -841,6 +846,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (searchInput && !searchInput._hasListener) {
         searchInput._hasListener = true;
         searchInput.addEventListener('input', () => {
+          state.displayLimit = state.pageSize;
           applyFiltersAndSort();
         });
       }
@@ -906,7 +912,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     applyProductView(state.currentView);
   }
 
-  function applyFiltersAndSort() {
+  async function applyFiltersAndSort() {
     let prods = [...state.products].filter(p => !window.SupabaseService?.isProductHidden?.(p));
 
     // Filter by Category
@@ -941,6 +947,24 @@ document.addEventListener('DOMContentLoaded', async () => {
           (targetName.length >= 4 && val.includes(targetName))
         );
       });
+
+      // Defensive fallback: If in-memory filter returned 0, fetch directly from Supabase for this category
+      if (prods.length === 0 && targetId) {
+        try {
+          const cloudCatProds = await window.SupabaseService.getProducts({
+            categoryId: targetId,
+            limit: 300,
+            includeHidden: false
+          });
+          if (Array.isArray(cloudCatProds) && cloudCatProds.length > 0) {
+            const existingIds = new Set(state.products.map(p => p.id));
+            cloudCatProds.forEach(p => {
+              if (!existingIds.has(p.id)) state.products.push(p);
+            });
+            prods = cloudCatProds.filter(p => !window.SupabaseService?.isProductHidden?.(p));
+          }
+        } catch (_) {}
+      }
     }
 
     // Filter by Search Query
@@ -971,6 +995,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     state.filteredProducts = prods;
+    state.hasMoreProducts = state.filteredProducts.length > state.displayLimit;
     renderProductGrid();
     updateSeeMoreButton();
   }
@@ -1012,7 +1037,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    productGrid.innerHTML = state.filteredProducts.map(prod => {
+    const visibleProducts = state.filteredProducts.slice(0, state.displayLimit);
+
+    productGrid.innerHTML = visibleProducts.map(prod => {
       const images = getProductImages(prod);
       const hasMultipleImages = images.length > 1;
 
@@ -1071,8 +1098,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       `;
     }).join('');
 
-    // Setup 2s auto-slide for each product card with multiple images
-    state.filteredProducts.forEach(prod => {
+    // Setup 2s auto-slide for each visible product card with multiple images
+    visibleProducts.forEach(prod => {
       const images = getProductImages(prod);
       if (images.length > 1) {
         let currentIdx = 0;
@@ -1140,7 +1167,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function updateSeeMoreButton() {
     if (!seeMoreContainer) return;
-    if (state.hasMoreProducts) {
+    if (state.filteredProducts.length > state.displayLimit) {
       seeMoreContainer.style.display = 'block';
     } else {
       seeMoreContainer.style.display = 'none';
@@ -1150,6 +1177,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   function initSeeMore() {
     if (!seeMoreBtn) return;
     seeMoreBtn.addEventListener('click', async () => {
+      // First, expand from locally filtered memory
+      if (state.filteredProducts.length > state.displayLimit) {
+        state.displayLimit += state.pageSize;
+        renderProductGrid();
+        updateSeeMoreButton();
+        return;
+      }
+
+      // If we displayed all in-memory items, check cloud for additional items
       if (state.isLoadingMore) return;
       state.isLoadingMore = true;
       seeMoreBtn.disabled = true;
@@ -1173,15 +1209,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           const newItems = visibleBatch.filter(p => !existingIds.has(p.id));
           if (newItems.length > 0) {
             state.products = [...state.products, ...newItems];
-            state.hasMoreProducts = nextProducts.length === state.pageSize;
+            state.displayLimit += state.pageSize;
             applyFiltersAndSort();
           } else {
-            state.hasMoreProducts = false;
-            updateSeeMoreButton();
+            if (seeMoreContainer) seeMoreContainer.style.display = 'none';
           }
         } else {
-          state.hasMoreProducts = false;
-          updateSeeMoreButton();
+          if (seeMoreContainer) seeMoreContainer.style.display = 'none';
         }
       } catch (err) {
         console.error('See More notice:', err);
