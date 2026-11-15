@@ -15,8 +15,8 @@ window.SupabaseService = {
   async request(endpoint, options = {}) {
     const method = (options.method || 'GET').toUpperCase();
     const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
-    // Allow up to 35 seconds for mobile uploads (e.g. photos/payloads), 12 seconds for reads
-    const timeoutMs = options.timeoutMs || (isMutation ? 35000 : 12000);
+    // Allow up to 45 seconds for mobile uploads (e.g. photos/payloads), 25 seconds for reads
+    const timeoutMs = options.timeoutMs || (isMutation ? 45000 : 25000);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -340,18 +340,32 @@ window.SupabaseService = {
     if (cloud && Array.isArray(cloud)) {
       try {
         let local = [];
-        const raw = localStorage.getItem('nkem_local_products');
-        if (raw) local = JSON.parse(raw);
-        cloud.forEach(p => {
-          if (this.isProductHidden(p)) {
-            p.is_hidden = true;
-            p.hidden = true;
-          }
-          const idx = local.findIndex(x => x.id === p.id);
-          if (idx >= 0) local[idx] = { ...local[idx], ...p };
-          else local.push(p);
-        });
-        localStorage.setItem('nkem_local_products', JSON.stringify(local));
+        const isFullCatalog = (!categoryId || categoryId === 'all') && (!limit || limit >= 100);
+
+        if (isFullCatalog) {
+          // Authoritative full sync: cleanly update local cache with exact cloud state
+          cloud.forEach(p => {
+            if (this.isProductHidden(p)) {
+              p.is_hidden = true;
+              p.hidden = true;
+            }
+          });
+          localStorage.setItem('nkem_local_products', JSON.stringify(cloud));
+          localStorage.setItem('nkem_catalog_last_sync', Date.now().toString());
+        } else {
+          const raw = localStorage.getItem('nkem_local_products');
+          if (raw) local = JSON.parse(raw);
+          cloud.forEach(p => {
+            if (this.isProductHidden(p)) {
+              p.is_hidden = true;
+              p.hidden = true;
+            }
+            const idx = local.findIndex(x => x.id === p.id);
+            if (idx >= 0) local[idx] = { ...local[idx], ...p };
+            else local.push(p);
+          });
+          localStorage.setItem('nkem_local_products', JSON.stringify(local));
+        }
       } catch (_) {}
       return includeHidden ? cloud : cloud.filter(p => !this.isProductHidden(p));
     }
@@ -446,6 +460,26 @@ window.SupabaseService = {
       localList.push(cleanProd);
     }
     localStorage.setItem('nkem_local_products', JSON.stringify(localList));
+
+    // Defensive image compression guard: Ensure no base64 string exceeds 100KB payload
+    if (Array.isArray(cleanProd.images)) {
+      for (let i = 0; i < cleanProd.images.length; i++) {
+        const img = cleanProd.images[i];
+        if (typeof img === 'string' && img.startsWith('data:image') && img.length > 120 * 1024) {
+          try {
+            if (window.ImageCompressor && typeof window.ImageCompressor.compressImageElement === 'function') {
+              const tempImg = new Image();
+              tempImg.src = img;
+              await new Promise(r => { tempImg.onload = r; tempImg.onerror = r; });
+              if (tempImg.width) {
+                const comp = await window.ImageCompressor.compressImageElement(tempImg, 'image/jpeg', 70 * 1024);
+                cleanProd.images[i] = comp.dataUrl;
+              }
+            }
+          } catch (_) {}
+        }
+      }
+    }
 
     const dbPayload = {
       id: cleanProd.id,
@@ -651,12 +685,21 @@ window.SupabaseService = {
     }
 
     // Catalog cache versioning: automatically purge stale local product cache on catalog upgrade
-    const CATALOG_VERSION = 'v20261115_1400';
+    const CATALOG_VERSION = 'v20261115_1415';
     if (localStorage.getItem('nkem_catalog_cache_ver') !== CATALOG_VERSION) {
       try {
         localStorage.removeItem('nkem_local_products');
         localStorage.removeItem('nkem_local_categories');
         localStorage.setItem('nkem_catalog_cache_ver', CATALOG_VERSION);
+      } catch (e) {}
+    }
+
+    // 12-Hour Cache TTL: purge local products if older than 12 hours so clients always refresh from Supabase
+    const lastSync = localStorage.getItem('nkem_catalog_last_sync');
+    if (lastSync && Date.now() - parseInt(lastSync, 10) > 12 * 60 * 60 * 1000) {
+      try {
+        localStorage.removeItem('nkem_local_products');
+        localStorage.removeItem('nkem_catalog_last_sync');
       } catch (e) {}
     }
   },
