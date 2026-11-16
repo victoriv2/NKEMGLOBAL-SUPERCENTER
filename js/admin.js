@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.SupabaseService.getProducts({ limit: 1000, offset: 0, includeHidden: true }).then(prods => {
       if (prods && Array.isArray(prods) && prods.length > 0) {
         adminState.products = prods;
-        adminState.hasMoreProducts = prods.length === adminState.productPageSize;
+        adminState.hasMoreProducts = prods.length >= 1000;
         renderProductsManager();
       }
     }).catch(e => console.warn('Products fetch notice:', e));
@@ -406,13 +406,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const savedCat = await window.SupabaseService.saveCategory(catDraft);
         if (savedCat && savedCat._cloudSynced === false) {
           window.CustomModal.toast({
-            message: '⚠️ Category saved locally, but live store sync timed out. Please check network and re-save.',
+            message: 'Category saved locally, but live store sync timed out. Please check network and re-save.',
             type: 'warning',
             duration: 6000
           });
         } else {
           window.CustomModal.toast({
-            message: isNew ? '✅ Category created and published live.' : '✅ Category updated and published live.',
+            message: isNew ? 'Category created and published live.' : 'Category updated and published live.',
             type: 'success'
           });
         }
@@ -1139,13 +1139,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (savedProd && savedProd._cloudSynced === false) {
         window.CustomModal.toast({
-          message: '⚠️ Saved locally on device, but live store sync timed out. Please check your internet connection and re-save to publish live.',
+          message: 'Saved locally on device, but live store sync timed out. Please check your internet connection and re-save to publish live.',
           type: 'warning',
           duration: 7000
         });
       } else {
         window.CustomModal.toast({
-          message: `✅ Product ${isNew ? 'created and published' : 'updated'} live on nkemmarket.com!`,
+          message: `Product ${isNew ? 'created and published' : 'updated'} live on nkemmarket.com!`,
           type: 'success',
           duration: 5000
         });

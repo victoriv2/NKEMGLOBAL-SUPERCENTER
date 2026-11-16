@@ -5,6 +5,35 @@ window.SupabaseService = {
 
   _inFlight: new Map(),
   _cache: new Map(),
+  _lastMutationTime: 0,
+
+  getDeletedProductIds() {
+    try {
+      const raw = localStorage.getItem('nkem_deleted_product_ids');
+      return raw ? JSON.parse(raw) : [];
+    } catch (_) {
+      return [];
+    }
+  },
+
+  markProductDeleted(id) {
+    if (!id) return;
+    try {
+      const list = this.getDeletedProductIds();
+      if (!list.includes(id)) {
+        list.push(id);
+        localStorage.setItem('nkem_deleted_product_ids', JSON.stringify(list));
+      }
+    } catch (_) {}
+  },
+
+  unmarkProductDeleted(id) {
+    if (!id) return;
+    try {
+      const list = this.getDeletedProductIds().filter(x => x !== id);
+      localStorage.setItem('nkem_deleted_product_ids', JSON.stringify(list));
+    } catch (_) {}
+  },
 
   getHeaders() {
     return {
@@ -19,9 +48,11 @@ window.SupabaseService = {
     const method = (options.method || 'GET').toUpperCase();
     const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
 
-    // Invalidate in-memory GET cache on mutations
+    // Invalidate in-memory GET cache and in-flight queue on mutations
     if (isMutation) {
       this._cache.clear();
+      this._inFlight.clear();
+      this._lastMutationTime = Date.now();
     } else if (!options.noCache) {
       // 15-second fast in-memory GET cache to prevent cellular redundant hits
       const cached = this._cache.get(endpoint);
@@ -34,6 +65,7 @@ window.SupabaseService = {
       }
     }
 
+    const requestStartTime = Date.now();
     const execRequest = async () => {
       // Allow up to 45 seconds for mobile uploads (e.g. photos/payloads), 25 seconds for reads
       const timeoutMs = options.timeoutMs || (isMutation ? 45000 : 25000);
@@ -72,9 +104,11 @@ window.SupabaseService = {
           parsed = text;
         }
 
-        // Cache successful GET results
+        // Cache successful GET results only if no mutation occurred in the interim
         if (!isMutation && parsed !== null && parsed !== undefined) {
-          this._cache.set(endpoint, { data: parsed, time: Date.now() });
+          if (requestStartTime >= this._lastMutationTime) {
+            this._cache.set(endpoint, { data: parsed, time: Date.now() });
+          }
         }
         return parsed;
       } catch (err) {
@@ -293,11 +327,13 @@ window.SupabaseService = {
   },
 
   getLocalProducts(includeHidden = false) {
+    const deletedIds = new Set(this.getDeletedProductIds());
     try {
       const raw = localStorage.getItem('nkem_local_products');
       if (raw) {
         let parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          parsed = parsed.filter(p => p && p.id && !deletedIds.has(p.id));
           const defaults = this._getDefaultProducts();
           let needsUpdate = false;
           parsed = parsed.map(p => {
@@ -324,7 +360,7 @@ window.SupabaseService = {
         }
       }
     } catch (e) {}
-    const defs = this._getDefaultProducts();
+    const defs = this._getDefaultProducts().filter(p => p && p.id && !deletedIds.has(p.id));
     return includeHidden ? defs : defs.filter(p => !this.isProductHidden(p));
   },
 
@@ -334,6 +370,7 @@ window.SupabaseService = {
     const categoryId = options.categoryId || null;
     const sort = options.sort || null;
     const includeHidden = !!options.includeHidden;
+    const deletedIds = new Set(this.getDeletedProductIds());
 
     let queryParts = ['select=*'];
 
@@ -373,73 +410,134 @@ window.SupabaseService = {
 
     if (cloud && Array.isArray(cloud)) {
       try {
-        let local = [];
-        const isFullCatalog = (!categoryId || categoryId === 'all') && (!limit || limit >= 100);
+        // 1. Immediately scrub any resurrected deleted items from cloud response
+        const cleanCloud = cloud.filter(p => p && p.id && !deletedIds.has(p.id));
 
-        if (isFullCatalog) {
-          // Authoritative full sync: cleanly update local cache with exact cloud state
-          cloud.forEach(p => {
-            if (this.isProductHidden(p)) {
-              p.is_hidden = true;
-              p.hidden = true;
-            }
+        // Background purge: If any deleted item was returned by cloud, re-delete from Supabase
+        const resurrected = cloud.filter(p => p && p.id && deletedIds.has(p.id));
+        if (resurrected.length > 0) {
+          resurrected.forEach(rp => {
+            this.request(`nkem_products?id=eq.${encodeURIComponent(rp.id)}`, { method: 'DELETE', timeoutMs: 30000 }).catch(() => {});
           });
-          localStorage.setItem('nkem_local_products', JSON.stringify(cloud));
-          localStorage.setItem('nkem_catalog_last_sync', Date.now().toString());
-        } else {
-          const raw = localStorage.getItem('nkem_local_products');
-          if (raw) local = JSON.parse(raw);
-          cloud.forEach(p => {
-            if (this.isProductHidden(p)) {
-              p.is_hidden = true;
-              p.hidden = true;
-            }
-            const idx = local.findIndex(x => x.id === p.id);
-            if (idx >= 0) local[idx] = { ...local[idx], ...p };
-            else local.push(p);
-          });
-          localStorage.setItem('nkem_local_products', JSON.stringify(local));
         }
+
+        // 2. Read existing local products
+        let existingLocal = [];
+        try {
+          const raw = localStorage.getItem('nkem_local_products');
+          if (raw) existingLocal = JSON.parse(raw);
+        } catch (_) {}
+        if (!Array.isArray(existingLocal)) existingLocal = [];
+        existingLocal = existingLocal.filter(p => p && p.id && !deletedIds.has(p.id));
+
+        // 3. Intelligent Non-Destructive Merge:
+        // Start with cleanCloud items
+        const productMap = new Map();
+        cleanCloud.forEach(cp => {
+          if (this.isProductHidden(cp)) {
+            cp.is_hidden = true;
+            cp.hidden = true;
+          }
+          productMap.set(cp.id, cp);
+        });
+
+        // Smart preservation: Never drop local additions or newer edits!
+        const pendingSync = [];
+        existingLocal.forEach(lp => {
+          if (!lp || !lp.id || deletedIds.has(lp.id)) return;
+          const cloudItem = productMap.get(lp.id);
+          if (!cloudItem) {
+            // Local product not in this cloud response (could be new product or category-filtered query):
+            // Preserve it in the catalog so it never vanishes!
+            productMap.set(lp.id, lp);
+            if (lp._cloudSynced === false) {
+              pendingSync.push(lp);
+            }
+          } else {
+            // Product exists in both: compare updated_at
+            const localTime = new Date(lp.updated_at || lp.created_at || 0).getTime();
+            const cloudTime = new Date(cloudItem.updated_at || cloudItem.created_at || 0).getTime();
+            if (localTime > cloudTime) {
+              // Local product was edited more recently: keep local modifications
+              productMap.set(lp.id, { ...cloudItem, ...lp });
+              pendingSync.push(lp);
+            }
+          }
+        });
+
+        const mergedCatalog = Array.from(productMap.values());
+        try {
+          localStorage.setItem('nkem_local_products', JSON.stringify(mergedCatalog));
+          localStorage.setItem('nkem_catalog_last_sync', Date.now().toString());
+        } catch (_) {}
+
+        // In background, sync any pending local items to Supabase
+        if (pendingSync.length > 0) {
+          setTimeout(() => {
+            pendingSync.forEach(p => {
+              this.saveProduct(p).catch(() => {});
+            });
+          }, 800);
+        }
+
+        // 4. Return the exact filtered & sorted slice
+        let result = mergedCatalog;
+        if (!includeHidden) {
+          result = result.filter(p => !this.isProductHidden(p));
+        }
+        if (categoryId && categoryId !== 'all') {
+          let resolvedCatId = categoryId;
+          try {
+            const cats = this.getLocalCategories ? this.getLocalCategories() : [];
+            const match = cats.find(c => c.id === categoryId || c.name === categoryId || (c.name && c.name.toLowerCase() === categoryId.toLowerCase()));
+            if (match) resolvedCatId = match.id;
+          } catch (_) {}
+          result = result.filter(p => p.category_id === resolvedCatId);
+        }
+
+        if (sort === 'oldest') {
+          result.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+        } else if (sort === 'price_low' || sort === 'price_asc') {
+          result.sort((a, b) => Number(a.price) - Number(b.price));
+        } else if (sort === 'price_high' || sort === 'price_desc') {
+          result.sort((a, b) => Number(b.price) - Number(a.price));
+        } else if (sort === 'name_asc') {
+          result.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+        } else {
+          result.sort((a, b) => {
+            const tA = new Date(a.created_at || a.updated_at || 0).getTime();
+            const tB = new Date(b.created_at || b.updated_at || 0).getTime();
+            if (tB !== tA) return tB - tA;
+            const sA = (a.sort_order !== undefined && a.sort_order !== null) ? Number(a.sort_order) : 999999;
+            const sB = (b.sort_order !== undefined && b.sort_order !== null) ? Number(b.sort_order) : 999999;
+            return sA - sB;
+          });
+        }
+
+        if (limit !== null) {
+          return result.slice(offset, offset + limit);
+        }
+        return result;
       } catch (_) {}
-      return includeHidden ? cloud : cloud.filter(p => !this.isProductHidden(p));
+      return includeHidden ? cloud.filter(p => !deletedIds.has(p.id)) : cloud.filter(p => !deletedIds.has(p.id) && !this.isProductHidden(p));
     }
 
     // Fallback to local storage
     try {
-      let local = [];
-      const raw = localStorage.getItem('nkem_local_products');
-      if (raw) local = JSON.parse(raw);
-
-      if (!local || local.length === 0) {
-        local = this._getDefaultProducts();
-        localStorage.setItem('nkem_local_products', JSON.stringify(local));
-      } else {
-        const defaults = this._getDefaultProducts();
-        let needsUpdate = false;
-        local = local.map(p => {
-          if (this.isProductHidden(p)) {
-            p.is_hidden = true;
-            p.hidden = true;
-          }
-          const currentDesc = p.description || p.desc || p.details || p.product_description || '';
-          if (!currentDesc || typeof currentDesc !== 'string' || !currentDesc.trim()) {
-            const def = defaults.find(d => d.id === p.id) || defaults[0];
-            needsUpdate = true;
-            return { ...p, description: (def && def.description) ? def.description : 'These particular suits are authentic Italian bespoke cuts, crafted with premium high-twist wool blend fabric for exceptional drape, comfort, and structure. Designed with classic notch lapels, flap pockets, soft interior lining, and dual side vents. Meticulously finished for modern executives and high-profile occasions.' };
-          }
-          return p;
-        });
-        if (needsUpdate) {
-          try { localStorage.setItem('nkem_local_products', JSON.stringify(local)); } catch (_) {}
-        }
-      }
+      let local = this.getLocalProducts(true);
 
       let result = [...local];
       if (!includeHidden) {
         result = result.filter(p => !this.isProductHidden(p));
       }
       if (categoryId && categoryId !== 'all') {
-        result = result.filter(p => p.category_id === categoryId);
+        let resolvedCatId = categoryId;
+        try {
+          const cats = this.getLocalCategories ? this.getLocalCategories() : [];
+          const match = cats.find(c => c.id === categoryId || c.name === categoryId || (c.name && c.name.toLowerCase() === categoryId.toLowerCase()));
+          if (match) resolvedCatId = match.id;
+        } catch (_) {}
+        result = result.filter(p => p.category_id === resolvedCatId);
       }
       if (sort === 'oldest') {
         result.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
@@ -470,8 +568,10 @@ window.SupabaseService = {
   },
 
   async saveProduct(prod) {
+    if (!prod || !prod.id) return null;
     const isHidden = Boolean(prod.is_hidden || prod.hidden);
     this.setProductHidden(prod.id, isHidden);
+    this.unmarkProductDeleted(prod.id);
 
     let localList = [];
     try {
@@ -493,7 +593,7 @@ window.SupabaseService = {
     if (idx >= 0) {
       localList[idx] = { ...localList[idx], ...cleanProd };
     } else {
-      localList.push(cleanProd);
+      localList.unshift(cleanProd);
     }
     localStorage.setItem('nkem_local_products', JSON.stringify(localList));
 
@@ -527,7 +627,7 @@ window.SupabaseService = {
       is_hidden: isHidden,
       hidden: isHidden,
       images: Array.isArray(cleanProd.images) ? cleanProd.images : [],
-      sort_order: typeof cleanProd.sort_order === 'number' ? cleanProd.sort_order : 0,
+      sort_order: typeof cleanProd.sort_order === 'number' ? cleanProd.sort_order : 1,
       updated_at: cleanProd.updated_at
     };
     if (cleanProd.created_at) dbPayload.created_at = cleanProd.created_at;
@@ -544,11 +644,15 @@ window.SupabaseService = {
     } catch (e) {
       console.warn('saveProduct cloud notice:', e);
     }
+
     cleanProd._cloudSynced = Boolean(cloudRes && (typeof cloudRes === 'object' || cloudRes === true));
     return cleanProd;
   },
 
   async deleteProduct(id) {
+    if (!id) return false;
+    this.markProductDeleted(id);
+
     let localList = [];
     try {
       const stored = localStorage.getItem('nkem_local_products');
@@ -560,7 +664,7 @@ window.SupabaseService = {
 
     const cloudRes = await this.request(`nkem_products?id=eq.${encodeURIComponent(id)}`, {
       method: 'DELETE',
-      timeoutMs: 25000
+      timeoutMs: 30000
     });
     return Boolean(cloudRes);
   },
