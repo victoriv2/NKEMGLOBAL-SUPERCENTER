@@ -73,22 +73,27 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   /* ==========================================================================
-     1. INITIAL DATA LOADING
+     1. INITIAL DATA LOADING (0ms Instant Local Preload + Decoupled Cloud Sync)
      ========================================================================== */
-  async function loadAdminData() {
+  function loadAdminLocalCache() {
     try {
-      const [categories, products, orders, users] = await Promise.all([
-        window.SupabaseService.getCategories(),
-        window.SupabaseService.getProducts({ limit: 1000, offset: 0, includeHidden: true }),
-        window.SupabaseService.getOrders(),
-        window.SupabaseService.getUsers()
-      ]);
+      const cachedCategories = window.SupabaseService.getLocalCategories ? window.SupabaseService.getLocalCategories() : [];
+      const cachedProducts = window.SupabaseService.getLocalProducts ? window.SupabaseService.getLocalProducts(true) : [];
+      let cachedOrders = [];
+      try {
+        const rawO = localStorage.getItem('nkem_local_orders');
+        if (rawO) cachedOrders = JSON.parse(rawO);
+      } catch (_) {}
+      let cachedUsers = [];
+      try {
+        const rawU = localStorage.getItem('nkem_local_users');
+        if (rawU) cachedUsers = JSON.parse(rawU);
+      } catch (_) {}
 
-      adminState.categories = categories || [];
-      adminState.products = products || [];
-      adminState.orders = orders || [];
-      adminState.users = users || [];
-      adminState.hasMoreProducts = Array.isArray(products) && products.length === adminState.productPageSize;
+      if (cachedCategories.length > 0) adminState.categories = cachedCategories;
+      if (cachedProducts.length > 0) adminState.products = cachedProducts;
+      if (cachedOrders.length > 0) adminState.orders = cachedOrders;
+      if (cachedUsers.length > 0) adminState.users = cachedUsers;
 
       renderCategoriesManager();
       renderProductsManager();
@@ -96,9 +101,46 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderChatManager();
       renderUsersManager();
       updateAdminUsersBadge();
-    } catch (err) {
-      console.error('Error loading admin data:', err);
+    } catch (e) {
+      console.warn('Admin local cache notice:', e);
     }
+  }
+
+  async function loadAdminData() {
+    // 0ms instant render from local cache first
+    loadAdminLocalCache();
+
+    // Decoupled asynchronous fetches: each section updates as soon as its network request returns!
+    window.SupabaseService.getCategories().then(cats => {
+      if (cats && Array.isArray(cats) && cats.length > 0) {
+        adminState.categories = cats;
+        renderCategoriesManager();
+      }
+    }).catch(e => console.warn('Categories fetch notice:', e));
+
+    window.SupabaseService.getProducts({ limit: 1000, offset: 0, includeHidden: true }).then(prods => {
+      if (prods && Array.isArray(prods) && prods.length > 0) {
+        adminState.products = prods;
+        adminState.hasMoreProducts = prods.length === adminState.productPageSize;
+        renderProductsManager();
+      }
+    }).catch(e => console.warn('Products fetch notice:', e));
+
+    window.SupabaseService.getOrders().then(ords => {
+      if (ords && Array.isArray(ords)) {
+        adminState.orders = ords;
+        renderOrdersManager();
+        renderChatManager();
+      }
+    }).catch(e => console.warn('Orders fetch notice:', e));
+
+    window.SupabaseService.getUsers().then(usrs => {
+      if (usrs && Array.isArray(usrs)) {
+        adminState.users = usrs;
+        renderUsersManager();
+        updateAdminUsersBadge();
+      }
+    }).catch(e => console.warn('Users fetch notice:', e));
   }
 
   /* ==========================================================================
@@ -732,26 +774,26 @@ document.addEventListener('DOMContentLoaded', async () => {
       `;
     }).join('');
 
-    // Toggle In Stock / Out of Stock
+    // Toggle In Stock / Out of Stock (Optimistic UI: 0ms instant render, background cloud sync)
     productListContainer.querySelectorAll('[data-action="toggle-stock"]').forEach(btn => {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
         const p = adminState.products.find(x => x.id === id);
         if (!p) return;
 
         p.in_stock = !p.in_stock;
-        await window.SupabaseService.saveProduct(p);
         renderProductsManager();
         window.CustomModal.toast({ 
           message: `${p.title} marked as ${p.in_stock ? 'In Stock' : 'Out of Stock'}.`, 
           type: 'info' 
         });
+        window.SupabaseService.saveProduct(p).catch(err => console.warn('Background stock sync notice:', err));
       });
     });
 
-    // Toggle Product Visibility in Store (Hide / Show)
+    // Toggle Product Visibility in Store (Optimistic UI: 0ms instant render, background cloud sync)
     productListContainer.querySelectorAll('[data-action="toggle-visibility"]').forEach(btn => {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
         const p = adminState.products.find(x => x.id === id);
         if (!p) return;
@@ -763,12 +805,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (window.SupabaseService && window.SupabaseService.setProductHidden) {
           window.SupabaseService.setProductHidden(p.id, newHidden);
         }
-        await window.SupabaseService.saveProduct(p);
         renderProductsManager();
         window.CustomModal.toast({ 
           message: `"${p.title}" is now ${newHidden ? 'hidden from' : 'visible in'} the store.`, 
           type: 'info' 
         });
+        window.SupabaseService.saveProduct(p).catch(err => console.warn('Background visibility sync notice:', err));
       });
     });
 
@@ -1584,47 +1626,55 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     try {
+      ord.status = newStatus;
       if (window.SupabaseService && window.SupabaseService.setOrderStatus) {
         window.SupabaseService.setOrderStatus(orderId, newStatus);
       }
-      await window.SupabaseService.updateOrderStatus(orderId, newStatus);
-      ord.status = newStatus;
-
-      const statusLabels = {
-        pending: 'under review',
-        approved: 'APPROVED! Let\'s arrange delivery details and confirm dispatch.',
-        shipping: 'IN TRANSIT / SHIPPING. Your order is on the way!',
-        delivered: 'DELIVERED. Thank you for choosing Nkem Global!',
-        declined: 'DECLINED by store admin.',
-        cancelled: 'CANCELLED.'
-      };
-
-      // Post update into live chat thread
-      if (ord.user_id) {
-        await window.SupabaseService.sendUserChatMessage({
-          id: `msg-status-${orderId}-${Date.now()}`,
-          order_code: orderId,
-          user_id: ord.user_id,
-          user_name: 'Nkem Global Support',
-          user_whatsapp: '07042087633',
-          sender: 'admin',
-          message: `Order #${orderId.toUpperCase()} status update: Your order request for "${ord.product_title}" is now ${statusLabels[newStatus] || newStatus}`,
-          image_url: null,
-          is_read_by_admin: true,
-          is_read_by_user: false,
-          deleted_for_everyone: false,
-          deleted_for_user: false,
-          deleted_for_admin: false,
-          created_at: new Date().toISOString()
-        });
-      }
-
       renderOrdersManager();
       if (adminState.activeChatCustomer) {
         renderAdminChatMessages();
       }
       window.CustomModal.toast({ message: `Order #${orderId.toUpperCase()} updated to ${newStatus.toUpperCase()}!`, type: 'success' });
+
+      // Background asynchronous cloud sync
+      (async () => {
+        try {
+          await window.SupabaseService.updateOrderStatus(orderId, newStatus);
+          const statusLabels = {
+            pending: 'under review',
+            approved: 'APPROVED! Let\'s arrange delivery details and confirm dispatch.',
+            shipping: 'IN TRANSIT / SHIPPING. Your order is on the way!',
+            delivered: 'DELIVERED. Thank you for choosing Nkem Global!',
+            declined: 'DECLINED by store admin.',
+            cancelled: 'CANCELLED.'
+          };
+
+          if (ord.user_id) {
+            await window.SupabaseService.sendUserChatMessage({
+              id: `msg-status-${orderId}-${Date.now()}`,
+              order_code: orderId,
+              user_id: ord.user_id,
+              user_name: 'Nkem Global Support',
+              user_whatsapp: '07042087633',
+              sender: 'admin',
+              message: `Order #${orderId.toUpperCase()} status update: Your order request for "${ord.product_title}" is now ${statusLabels[newStatus] || newStatus}`,
+              image_url: null,
+              is_read_by_admin: true,
+              is_read_by_user: false,
+              deleted_for_everyone: false,
+              deleted_for_user: false,
+              deleted_for_admin: false,
+              created_at: new Date().toISOString()
+            }).catch(() => {});
+          }
+        } catch (syncErr) {
+          console.warn('Background order status update notice:', syncErr);
+        }
+      })();
     } catch (err) {
+      window.CustomModal.toast({ message: err.message || 'Failed to update order status.', type: 'danger' });
+      renderOrdersManager();
+    }
       window.CustomModal.toast({ message: err.message || 'Failed to update order status.', type: 'danger' });
       renderOrdersManager();
     }
@@ -2234,7 +2284,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     chatInput.value = '';
 
-    // Immediately update local conversation latest message & time
+    // Immediately update local conversation latest message & time (0ms instant UI)
     if (customer) {
       customer.latestMessage = text;
       customer.latestTime = msgObj.created_at;
@@ -2243,8 +2293,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     renderChatManager();
 
-    await window.SupabaseService.sendUserChatMessage(msgObj);
-    loadAdminChatMessages();
+    // Background cloud sync (never freezes admin chat window)
+    window.SupabaseService.sendUserChatMessage(msgObj)
+      .then(() => loadAdminChatMessages())
+      .catch(err => console.warn('Background chat sync notice:', err));
   }
 
   if (chatSendBtn) {

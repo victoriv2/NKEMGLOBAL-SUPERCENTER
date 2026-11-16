@@ -3,6 +3,9 @@ window.SupabaseService = {
   URL: 'https://ykwhhgajybhbmkqkmzhm.supabase.co',
   ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlrd2hoZ2FqeWJoYm1rcWttemhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0MTI5NzksImV4cCI6MjEwNzk4ODk3OX0.d-qkmKCGE1bbMBNZb7ROnMXC1t1RcPweeXD4Hg0atBM',
 
+  _inFlight: new Map(),
+  _cache: new Map(),
+
   getHeaders() {
     return {
       'apikey': this.ANON_KEY,
@@ -15,45 +18,81 @@ window.SupabaseService = {
   async request(endpoint, options = {}) {
     const method = (options.method || 'GET').toUpperCase();
     const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
-    // Allow up to 45 seconds for mobile uploads (e.g. photos/payloads), 25 seconds for reads
-    const timeoutMs = options.timeoutMs || (isMutation ? 45000 : 25000);
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-    if (options.signal) {
-      if (options.signal.aborted) {
+    // Invalidate in-memory GET cache on mutations
+    if (isMutation) {
+      this._cache.clear();
+    } else if (!options.noCache) {
+      // 15-second fast in-memory GET cache to prevent cellular redundant hits
+      const cached = this._cache.get(endpoint);
+      if (cached && (Date.now() - cached.time < 15000)) {
+        return JSON.parse(JSON.stringify(cached.data));
+      }
+      // In-flight request deduplication: return existing pending promise
+      if (this._inFlight.has(endpoint)) {
+        return this._inFlight.get(endpoint);
+      }
+    }
+
+    const execRequest = async () => {
+      // Allow up to 45 seconds for mobile uploads (e.g. photos/payloads), 25 seconds for reads
+      const timeoutMs = options.timeoutMs || (isMutation ? 45000 : 25000);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+      if (options.signal) {
+        if (options.signal.aborted) {
+          clearTimeout(timer);
+          return null;
+        }
+        options.signal.addEventListener('abort', () => controller.abort(), { once: true });
+      }
+
+      try {
+        const url = `${this.URL}/rest/v1/${endpoint}`;
+        const headers = { ...this.getHeaders(), ...(options.headers || {}) };
+        const fetchOpts = { ...options };
+        delete fetchOpts.timeoutMs;
+        delete fetchOpts.noCache;
+        fetchOpts.headers = headers;
+        fetchOpts.signal = controller.signal;
+
+        const response = await fetch(url, fetchOpts);
         clearTimeout(timer);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`API error ${response.status}: ${errorText}`);
+        }
+        if (response.status === 204) return true;
+        const text = await response.text();
+        let parsed = null;
+        try {
+          parsed = text ? JSON.parse(text) : true;
+        } catch (_) {
+          parsed = text;
+        }
+
+        // Cache successful GET results
+        if (!isMutation && parsed !== null && parsed !== undefined) {
+          this._cache.set(endpoint, { data: parsed, time: Date.now() });
+        }
+        return parsed;
+      } catch (err) {
+        clearTimeout(timer);
+        console.warn('Supabase request notice (using local):', err.message);
         return null;
       }
-      options.signal.addEventListener('abort', () => controller.abort(), { once: true });
+    };
+
+    if (!isMutation && !options.noCache) {
+      const promise = execRequest().finally(() => {
+        this._inFlight.delete(endpoint);
+      });
+      this._inFlight.set(endpoint, promise);
+      return promise;
     }
 
-    try {
-      const url = `${this.URL}/rest/v1/${endpoint}`;
-      const headers = { ...this.getHeaders(), ...(options.headers || {}) };
-      const fetchOpts = { ...options };
-      delete fetchOpts.timeoutMs;
-      fetchOpts.headers = headers;
-      fetchOpts.signal = controller.signal;
-
-      const response = await fetch(url, fetchOpts);
-      clearTimeout(timer);
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API error ${response.status}: ${errorText}`);
-      }
-      if (response.status === 204) return true;
-      const text = await response.text();
-      try {
-        return text ? JSON.parse(text) : true;
-      } catch (_) {
-        return text;
-      }
-    } catch (err) {
-      clearTimeout(timer);
-      console.warn('Supabase request notice (using local):', err.message);
-      return null;
-    }
+    return execRequest();
   },
 
   // ---------------- CATEGORIES ----------------
@@ -258,11 +297,6 @@ window.SupabaseService = {
       const raw = localStorage.getItem('nkem_local_products');
       if (raw) {
         let parsed = JSON.parse(raw);
-        // If local cache is from old pagination (less than 50 items), clear it so full catalog is fetched
-        if (Array.isArray(parsed) && parsed.length < 50) {
-          localStorage.removeItem('nkem_local_products');
-          parsed = null;
-        }
         if (Array.isArray(parsed) && parsed.length > 0) {
           const defaults = this._getDefaultProducts();
           let needsUpdate = false;
@@ -686,22 +720,12 @@ window.SupabaseService = {
       } catch (e) {}
     }
 
-    // Catalog cache versioning: automatically purge stale local product cache on catalog upgrade
-    const CATALOG_VERSION = 'v20261115_1505';
+    // Catalog cache versioning: updates version flag without deleting cache
+    // Stale-While-Revalidate (SWR) guarantees 0ms load and background refresh
+    const CATALOG_VERSION = 'v20261116_2000';
     if (localStorage.getItem('nkem_catalog_cache_ver') !== CATALOG_VERSION) {
       try {
-        localStorage.removeItem('nkem_local_products');
-        localStorage.removeItem('nkem_local_categories');
         localStorage.setItem('nkem_catalog_cache_ver', CATALOG_VERSION);
-      } catch (e) {}
-    }
-
-    // 12-Hour Cache TTL: purge local products if older than 12 hours so clients always refresh from Supabase
-    const lastSync = localStorage.getItem('nkem_catalog_last_sync');
-    if (lastSync && Date.now() - parseInt(lastSync, 10) > 12 * 60 * 60 * 1000) {
-      try {
-        localStorage.removeItem('nkem_local_products');
-        localStorage.removeItem('nkem_catalog_last_sync');
       } catch (e) {}
     }
   },

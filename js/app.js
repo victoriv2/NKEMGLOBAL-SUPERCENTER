@@ -396,7 +396,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   /* ==========================================================================
-     3. INITIAL DATA FETCHING (Supabase with Local Preload)
+     3. INITIAL DATA FETCHING (Instant SWR: 0ms Local Preload + Background Revalidation)
      ========================================================================== */
   async function loadInitialData() {
     // 0ms INSTANT RENDER FROM LOCAL CACHE
@@ -426,40 +426,47 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.warn('Preload notice:', e);
     }
 
-    // Fresh fetch from Supabase
-    try {
-      const [categories, products] = await Promise.all([
-        window.SupabaseService.getCategories(),
-        window.SupabaseService.getProducts({
-          limit: 1000,
-          includeHidden: false
-        })
-      ]);
+    // Decoupled Background Revalidation from Supabase (Never blocks UI rendering)
+    (async () => {
+      try {
+        const [categories, products] = await Promise.all([
+          window.SupabaseService.getCategories(),
+          window.SupabaseService.getProducts({
+            limit: 1000,
+            includeHidden: false
+          })
+        ]);
 
-      if (categories && categories.length > 0) state.categories = categories;
+        let hasCategoryChange = false;
+        if (categories && Array.isArray(categories) && categories.length > 0) {
+          state.categories = categories;
+          hasCategoryChange = true;
+        }
 
-      const suitFallbackDesc = 'These particular suits are authentic Italian bespoke cuts, crafted with premium high-twist wool blend fabric for exceptional drape, comfort, and structure. Designed with classic notch lapels, flap pockets, soft interior lining, and dual side vents. Meticulously finished for modern executives and high-profile occasions.';
-      if (Array.isArray(products)) {
-        state.products = products.filter(p => !window.SupabaseService?.isProductHidden?.(p)).map(p => {
-          const raw = p.description || p.desc || p.details || p.product_description || '';
-          if (!raw || typeof raw !== 'string' || !raw.trim()) {
-            return { ...p, description: suitFallbackDesc };
-          }
-          return p;
-        });
+        const suitFallbackDesc = 'These particular suits are authentic Italian bespoke cuts, crafted with premium high-twist wool blend fabric for exceptional drape, comfort, and structure. Designed with classic notch lapels, flap pockets, soft interior lining, and dual side vents. Meticulously finished for modern executives and high-profile occasions.';
+        if (Array.isArray(products) && products.length > 0) {
+          state.products = products.filter(p => !window.SupabaseService?.isProductHidden?.(p)).map(p => {
+            const raw = p.description || p.desc || p.details || p.product_description || '';
+            if (!raw || typeof raw !== 'string' || !raw.trim()) {
+              return { ...p, description: suitFallbackDesc };
+            }
+            return p;
+          });
+          applyFiltersAndSort();
+          initSeeMore();
+        }
+
+        if (hasCategoryChange) {
+          renderHomeCategories();
+          renderShopCategoryPills();
+        }
+        updateCartBadges();
+        checkUnreadMessages();
+        syncCartWithCloud();
+      } catch (err) {
+        console.warn('Supabase background fetch notice (using cache):', err);
       }
-
-      renderHomeCategories();
-      renderShopCategoryPills();
-      initToolbars();
-      initSeeMore();
-      applyFiltersAndSort();
-      updateCartBadges();
-      checkUnreadMessages();
-      syncCartWithCloud();
-    } catch (err) {
-      console.warn('Supabase fetch notice (using cache):', err);
-    }
+    })();
   }
 
   // Throttled background catalog sync: keeps customer storefront live when admin publishes new products
@@ -1819,7 +1826,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const address = (activeUser.address || '').trim();
         const baseTimestamp = Date.now();
 
-        const orderTasks = currentCart.map(async (item, idx) => {
+        const createdOrders = currentCart.map((item, idx) => {
           const qty = Number(item.quantity) || 1;
           const unitPrice = Number(item.price) || 0;
           const itemTotal = unitPrice * qty;
@@ -1828,7 +1835,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           const itemImg = item.image || (item.images && item.images[0]) || 'assets/images/logo.png';
           const titleWithQty = qty > 1 ? `${item.title} (Qty: ${qty})` : item.title;
 
-          const orderData = {
+          return {
             id: orderId,
             retrieval_code: retCode,
             user_id: activeUser.id,
@@ -1846,68 +1853,67 @@ document.addEventListener('DOMContentLoaded', async () => {
             status: 'pending',
             created_at: new Date(baseTimestamp + idx * 1000).toISOString()
           };
-
-          try {
-            await window.SupabaseService.createOrder(orderData);
-
-            // Send individual rich Order Card into chat
-            if (activeUser.id) {
-              const orderChatMessage = {
-                id: `msg-ord-${orderData.id}`,
-                order_code: orderData.id,
-                user_id: activeUser.id,
-                user_name: `${firstName} ${lastName}`.trim(),
-                user_whatsapp: whatsapp,
-                sender: 'user',
-                message_type: 'order_card',
-                order_data: {
-                  ...orderData,
-                  id: orderData.id,
-                  order_id: orderData.id,
-                  first_name: firstName,
-                  last_name: lastName,
-                  whatsapp_number: whatsapp,
-                  email: email,
-                  state: stateName,
-                  lga: lgaName,
-                  address: address,
-                  delivery_address: `${address}, ${lgaName}, ${stateName}`,
-                  status: 'pending',
-                  created_at: orderData.created_at
-                },
-                message: `Order Placed: ${orderData.product_title} (${window.formatNaira(itemTotal)}) - Status: Pending`,
-                image_url: null,
-                is_read_by_admin: false,
-                is_read_by_user: true,
-                deleted_for_everyone: false,
-                deleted_for_user: false,
-                deleted_for_admin: false,
-                created_at: new Date(baseTimestamp + idx * 1000).toISOString()
-              };
-              await window.SupabaseService.sendUserChatMessage(orderChatMessage).catch(() => {});
-            }
-          } catch (itemErr) {
-            console.error('Error placing individual item order:', itemErr);
-          }
-          return orderData;
         });
 
-        const createdOrders = await Promise.all(orderTasks);
-
-        // Immediate Cart Clear (Memory, LocalStorage, Cloud, Badges & UI View)
+        // 0ms INSTANT UI: Clear cart immediately and show Success Modal
         lastExplicitClearTime = Date.now();
         lastLocalCartMutationTime = Date.now();
         saveCart([], false);
         renderCartView();
-
-        if (activeUser && activeUser.id && window.SupabaseService?.syncUserCartToCloud) {
-          await window.SupabaseService.syncUserCartToCloud(activeUser.id, []).catch(() => {});
-        }
-
         isSubmittingCartOrder = false;
 
-        // Open Order Success Modal & Receipt Download
+        // Open Order Success Modal & Receipt Download immediately
         openOrderSuccessModal(createdOrders);
+
+        // Background asynchronous cloud sync (never blocks checkout)
+        (async () => {
+          for (let i = 0; i < createdOrders.length; i++) {
+            const orderData = createdOrders[i];
+            try {
+              await window.SupabaseService.createOrder(orderData);
+              if (activeUser.id) {
+                const orderChatMessage = {
+                  id: `msg-ord-${orderData.id}`,
+                  order_code: orderData.id,
+                  user_id: activeUser.id,
+                  user_name: `${firstName} ${lastName}`.trim(),
+                  user_whatsapp: whatsapp,
+                  sender: 'user',
+                  message_type: 'order_card',
+                  order_data: {
+                    ...orderData,
+                    id: orderData.id,
+                    order_id: orderData.id,
+                    first_name: firstName,
+                    last_name: lastName,
+                    whatsapp_number: whatsapp,
+                    email: email,
+                    state: stateName,
+                    lga: lgaName,
+                    address: address,
+                    delivery_address: `${address}, ${lgaName}, ${stateName}`,
+                    status: 'pending',
+                    created_at: orderData.created_at
+                  },
+                  message: `Order Placed: ${orderData.product_title} (${window.formatNaira(orderData.product_price)}) - Status: Pending`,
+                  image_url: null,
+                  is_read_by_admin: false,
+                  is_read_by_user: true,
+                  deleted_for_everyone: false,
+                  deleted_for_user: false,
+                  deleted_for_admin: false,
+                  created_at: orderData.created_at
+                };
+                await window.SupabaseService.sendUserChatMessage(orderChatMessage).catch(() => {});
+              }
+            } catch (err) {
+              console.warn('Background order sync notice:', err);
+            }
+          }
+          if (activeUser && activeUser.id && window.SupabaseService?.syncUserCartToCloud) {
+            await window.SupabaseService.syncUserCartToCloud(activeUser.id, []).catch(() => {});
+          }
+        })();
       });
     }
   }
@@ -2688,8 +2694,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Load Initial Data
-  await loadInitialData();
+  // Load Initial Data (Instant 0ms render from cache, background revalidation)
+  loadInitialData();
 
   // Handle URL hash on load (e.g. #shop, #cart, #requests, #account, #home)
   const hash = (window.location.hash || '').replace('#', '').toLowerCase();
