@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     conversations: [],
     users: [],
     productPageSize: 16,
+    productDisplayLimit: 16,
+    lastFilteredCount: 0,
     hasMoreProducts: false,
     isLoadingMoreProducts: false,
     activeChatUserId: null,
@@ -481,6 +483,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       adminProductSearchInput._hasBoundEvents = true;
       adminProductSearchInput.addEventListener('input', () => {
         adminState.productSearchQuery = (adminProductSearchInput.value || '').trim().toLowerCase();
+        adminState.productDisplayLimit = adminState.productPageSize;
         if (adminProductSearchClearBtn) {
           adminProductSearchClearBtn.style.display = adminState.productSearchQuery ? 'inline-flex' : 'none';
         }
@@ -493,6 +496,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       adminProductSearchClearBtn.addEventListener('click', () => {
         if (adminProductSearchInput) adminProductSearchInput.value = '';
         adminState.productSearchQuery = '';
+        adminState.productDisplayLimit = adminState.productPageSize;
         adminProductSearchClearBtn.style.display = 'none';
         renderProductsManager();
         if (adminProductSearchInput) adminProductSearchInput.focus();
@@ -510,6 +514,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         searchable: true,
         onChange: (val) => {
           adminState.productFilter = val;
+          adminState.productDisplayLimit = adminState.productPageSize;
           renderProductsManager();
         }
       });
@@ -537,15 +542,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         searchable: false,
         onChange: (val) => {
           adminState.productSortBy = val;
+          adminState.productDisplayLimit = adminState.productPageSize;
           renderProductsManager();
         }
       });
     }
   }
 
-  function updateAdminSeeMoreButton() {
+  function updateAdminSeeMoreButton(filteredCount = 0) {
     if (!adminSeeMoreContainer) return;
-    if (adminState.hasMoreProducts && adminState.products.length > 0) {
+    const hasMoreInMemory = filteredCount > adminState.productDisplayLimit;
+    const canFetchMoreCloud = adminState.hasMoreProducts && adminState.products.length > 0;
+    if (hasMoreInMemory || canFetchMoreCloud) {
       adminSeeMoreContainer.style.display = 'block';
     } else {
       adminSeeMoreContainer.style.display = 'none';
@@ -554,6 +562,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (adminSeeMoreBtn) {
     adminSeeMoreBtn.addEventListener('click', async () => {
+      // 1. If we have more in-memory items matching current filter, expand by 16 immediately!
+      if (adminState.lastFilteredCount > adminState.productDisplayLimit) {
+        adminState.productDisplayLimit += adminState.productPageSize;
+        renderProductsManager();
+        return;
+      }
+
+      // 2. Otherwise fetch the next batch from cloud
       if (adminState.isLoadingMoreProducts || !adminState.hasMoreProducts) return;
       adminState.isLoadingMoreProducts = true;
       adminSeeMoreBtn.disabled = true;
@@ -570,17 +586,20 @@ document.addEventListener('DOMContentLoaded', async () => {
           includeHidden: true
         });
 
-        if (nextBatch && nextBatch.length > 0) {
+        if (nextBatch && Array.isArray(nextBatch) && nextBatch.length > 0) {
           const newItems = nextBatch.filter(nb => !adminState.products.some(p => p.id === nb.id));
           if (newItems.length > 0) {
             adminState.products = [...adminState.products, ...newItems];
-            adminState.hasMoreProducts = (nextBatch.length === adminState.productPageSize);
+            adminState.productDisplayLimit += adminState.productPageSize;
+            adminState.hasMoreProducts = (nextBatch.length >= adminState.productPageSize);
             renderProductsManager();
           } else {
             adminState.hasMoreProducts = false;
+            updateAdminSeeMoreButton(adminState.lastFilteredCount);
           }
         } else {
           adminState.hasMoreProducts = false;
+          updateAdminSeeMoreButton(adminState.lastFilteredCount);
         }
       } catch (err) {
         console.error('Failed to load more products in admin:', err);
@@ -588,7 +607,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         adminState.isLoadingMoreProducts = false;
         adminSeeMoreBtn.disabled = false;
         adminSeeMoreBtn.innerHTML = `<span>See More Products</span>`;
-        updateAdminSeeMoreButton();
+        updateAdminSeeMoreButton(adminState.lastFilteredCount);
       }
     });
   }
@@ -686,13 +705,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       return sA - sB;
     });
 
+    adminState.lastFilteredCount = filtered.length;
+
     // 3. Update count badge
     if (adminProductCountBadge) {
       const total = adminState.products.length;
-      if (filtered.length === total) {
-        adminProductCountBadge.textContent = `Showing all ${total} product${total !== 1 ? 's' : ''}`;
+      const displayed = Math.min(filtered.length, adminState.productDisplayLimit);
+      if (filtered.length <= adminState.productDisplayLimit) {
+        adminProductCountBadge.textContent = `Showing all ${filtered.length} of ${total} product${total !== 1 ? 's' : ''}`;
       } else {
-        adminProductCountBadge.textContent = `Showing ${filtered.length} of ${total} product${total !== 1 ? 's' : ''}`;
+        adminProductCountBadge.textContent = `Showing ${displayed} of ${total} product${total !== 1 ? 's' : ''}`;
       }
     }
 
@@ -712,6 +734,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           adminState.productSearchQuery = '';
           adminState.productFilter = 'all';
           adminState.productSortBy = 'newest';
+          adminState.productDisplayLimit = adminState.productPageSize;
           if (adminProductSearchInput) adminProductSearchInput.value = '';
           if (adminProductSearchClearBtn) adminProductSearchClearBtn.style.display = 'none';
           if (adminProductFilterPickerInstance) adminProductFilterPickerInstance.setValue('all');
@@ -719,12 +742,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           renderProductsManager();
         });
       }
-      updateAdminSeeMoreButton();
+      updateAdminSeeMoreButton(0);
       return;
     }
 
-    // 5. Render product rows
-    productListContainer.innerHTML = filtered.map((p, idx) => {
+    // 5. Render visible product rows (sliced to productDisplayLimit)
+    const toRender = filtered.slice(0, adminState.productDisplayLimit);
+    productListContainer.innerHTML = toRender.map((p, idx) => {
       let pImgs = [];
       if (Array.isArray(p.images) && p.images.length > 0) {
         pImgs = p.images;
@@ -843,7 +867,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     });
 
-    updateAdminSeeMoreButton();
+    updateAdminSeeMoreButton(filtered.length);
   }
 
   // Create Product Button
@@ -1672,9 +1696,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       })();
     } catch (err) {
-      window.CustomModal.toast({ message: err.message || 'Failed to update order status.', type: 'danger' });
-      renderOrdersManager();
-    }
       window.CustomModal.toast({ message: err.message || 'Failed to update order status.', type: 'danger' });
       renderOrdersManager();
     }
