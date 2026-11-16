@@ -503,6 +503,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // Periodic background catalog sync: keeps customer storefront live when admin publishes new items
+  setInterval(() => {
+    if (state.currentTab === 'shop' && !document.hidden) {
+      syncCatalogSilently();
+    }
+  }, 45000);
+
+  // Cross-tab real-time sync: instantly reflects changes when admin adds/edits products in another tab
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'nkem_local_products' || e.key === 'nkem_catalog_cache_ver') {
+      try {
+        const cachedProducts = window.SupabaseService.getLocalProducts ? window.SupabaseService.getLocalProducts(false) : [];
+        if (cachedProducts && cachedProducts.length > 0) {
+          state.products = cachedProducts.filter(p => !window.SupabaseService?.isProductHidden?.(p));
+          applyFiltersAndSort();
+          renderShopCategoryPills();
+        }
+      } catch (_) {}
+    } else if (e.key === 'nkem_local_categories') {
+      try {
+        const cachedCategories = window.SupabaseService.getLocalCategories ? window.SupabaseService.getLocalCategories() : [];
+        if (cachedCategories && cachedCategories.length > 0) {
+          state.categories = cachedCategories;
+          renderHomeCategories();
+          renderShopCategoryPills();
+        }
+      } catch (_) {}
+    }
+  });
+
   /* ==========================================================================
      4. HOME VIEW: "EVERYTHING DEY" SOURCING REQUEST & 3-COL CATEGORIES
      ========================================================================== */
